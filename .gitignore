@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+node_modules/
+.next/
+runtime/*.json
+runtime/service-launch-audits/
+runtime/collector-artifacts/
+.env
+.env.local
+.env.*.local
+.DS_Store
+.playwright-mcp/
+*.egg-info/
+dist/
+build/

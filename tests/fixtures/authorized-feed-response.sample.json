@@ -1,0 +1,139 @@
+{
+  "collected_at": "2026-05-25T02:10:00Z",
+  "places": [
+    {
+      "place_id": "TYO",
+      "place_type": "city",
+      "display_name_ko": "도쿄",
+      "display_name_en": "Tokyo",
+      "iata_code": "TYO",
+      "country_code": "JP",
+      "region": "JAPAN",
+      "linked_airports": ["NRT", "HND"],
+      "latitude": 35.6762,
+      "longitude": 139.6503,
+      "is_active": true
+    }
+  ],
+  "offers": [
+    {
+      "id": "partner-ke-tyo-economy-001",
+      "origin": {
+        "airport": "ICN",
+        "city_id": "SEL"
+      },
+      "destination": {
+        "airport": "NRT",
+        "city_id": "TYO",
+        "display_name_ko": "도쿄",
+        "display_name_en": "Tokyo",
+        "country_code": "JP",
+        "region": "JAPAN",
+        "latitude": 35.6762,
+        "longitude": 139.6503
+      },
+      "dates": {
+        "depart": "2026-04-10",
+        "return": "2026-04-15"
+      },
+      "traveler": "adt1",
+      "carrier": {
+        "code": "KE",
+        "name": "대한항공"
+      },
+      "source": {
+        "booking_source": "korean_air_official",
+        "type": "airline_official",
+        "deep_link": "https://www.koreanair.com/booking/search?from=ICN&to=NRT&depart=2026-04-10&return=2026-04-15"
+      },
+      "cabin": {
+        "group": "economy",
+        "label": "Economy Saver",
+        "fare_brand": "Saver"
+      },
+      "price": {
+        "total": 312000,
+        "currency": "KRW",
+        "tax_included": true
+      },
+      "itinerary": {
+        "stops": 0,
+        "departure_time_local": "2026-04-10T09:10",
+        "arrival_time_local": "2026-04-10T11:35",
+        "return_departure_time_local": "2026-04-15T17:20",
+        "return_arrival_time_local": "2026-04-15T19:55",
+        "duration_minutes": 145,
+        "return_duration_minutes": 155,
+        "free_baggage_allowance": "1PC",
+        "seats_left": 7
+      },
+      "quality": {
+        "bucket": "preferred",
+        "warning_flags": ["tax_included_total"]
+      },
+      "availability": {
+        "bookability_status": "available",
+        "price_status": "active",
+        "is_price_changed": true
+      }
+    },
+    {
+      "id": "partner-skyscanner-tyo-business-001",
+      "capture_channel": "graphql",
+      "origin": {
+        "airport": "ICN",
+        "city_id": "SEL"
+      },
+      "destination": {
+        "airport": "HND",
+        "city_id": "TYO",
+        "display_name_ko": "도쿄",
+        "display_name_en": "Tokyo",
+        "country_code": "JP",
+        "region": "JAPAN",
+        "latitude": 35.6762,
+        "longitude": 139.6503
+      },
+      "dates": {
+        "depart": "2026-04-10",
+        "return": "2026-04-15",
+        "week": "2026-W15",
+        "stay_nights": 5
+      },
+      "traveler": "adt1",
+      "carrier": {
+        "code": "OZ",
+        "name": "아시아나항공"
+      },
+      "source": {
+        "booking_source": "skyscanner_affiliate",
+        "type": "meta_search",
+        "deep_link": "https://www.skyscanner.com/transport/flights?from=ICN&to=TYO&depart=2026-04-10&return=2026-04-15&cabin=business"
+      },
+      "cabin": {
+        "group": "business",
+        "label": "Business Flex",
+        "fare_brand": "Flex"
+      },
+      "price": {
+        "total": 1180000,
+        "currency": "KRW",
+        "tax_included": true
+      },
+      "itinerary": {
+        "stops": 0,
+        "duration_minutes": 130,
+        "return_duration_minutes": 150
+      },
+      "quality": {
+        "bucket": "preferred",
+        "warning_flags": ["final_price_check_on_booking_source"]
+      }
+    }
+  ],
+  "stats": {
+    "block_count": 0,
+    "schema_validation_failed_count": 0,
+    "price_anomaly_count": 0
+  }
+}

@@ -1,0 +1,25 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: sky_planner_db
+    environment:
+      POSTGRES_DB: sky_planner
+      POSTGRES_USER: sky_planner
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sky_planner_dev}
+      SKY_DB_READ_PASSWORD: ${SKY_DB_READ_PASSWORD:-sky_planner_read_dev}
+      SKY_DB_INGEST_PASSWORD: ${SKY_DB_INGEST_PASSWORD:-sky_planner_ingest_dev}
+      SKY_DB_MIGRATION_PASSWORD: ${SKY_DB_MIGRATION_PASSWORD:-sky_planner_migration_dev}
+      TZ: Asia/Seoul
+    ports:
+      - "5433:5432"
+    volumes:
+      - sky_planner_pgdata:/var/lib/postgresql/data
+      - ./sql/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sky_planner"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  sky_planner_pgdata:

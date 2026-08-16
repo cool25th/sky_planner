@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "collectedAt": "2026-05-25T02:20:00Z"
+  },
+  "data": {
+    "quotes": [
+      {
+        "quoteId": "raw-partner-tyo-economy-001",
+        "from": "ICN",
+        "fromCity": "SEL",
+        "toAirport": "NRT",
+        "toCity": "TYO",
+        "toNameKo": "도쿄",
+        "toNameEn": "Tokyo",
+        "country": "JP",
+        "region": "JAPAN",
+        "lat": "35.6762",
+        "lon": "139.6503",
+        "depart": "2026-04-10",
+        "return": "2026-04-15",
+        "airline": {
+          "code": "KE",
+          "name": "대한항공"
+        },
+        "bookingSource": "korean_air_official",
+        "sourceType": "airline_official",
+        "bookingUrl": "https://www.koreanair.com/booking/search?from=ICN&to=NRT&depart=2026-04-10&return=2026-04-15",
+        "cabin": "Economy",
+        "fareBrand": "Saver",
+        "totalKrw": "312,000",
+        "taxIncluded": "true",
+        "stops": "0",
+        "durationMinutes": "145",
+        "returnDurationMinutes": "155",
+        "baggage": "1PC",
+        "seatsLeft": "7",
+        "warnings": ["tax_included_total"]
+      },
+      {
+        "quoteId": "raw-partner-tyo-business-001",
+        "from": "ICN",
+        "fromCity": "SEL",
+        "toAirport": "HND",
+        "toCity": "TYO",
+        "toNameKo": "도쿄",
+        "toNameEn": "Tokyo",
+        "country": "JP",
+        "region": "JAPAN",
+        "depart": "2026-04-10",
+        "return": "2026-04-15",
+        "week": "2026-W15",
+        "nights": "5",
+        "airline": {
+          "code": "OZ",
+          "name": "아시아나항공"
+        },
+        "bookingSource": "skyscanner_affiliate",
+        "sourceType": "meta_search",
+        "bookingUrl": "https://www.skyscanner.com/transport/flights?from=ICN&to=TYO&depart=2026-04-10&return=2026-04-15&cabin=business",
+        "cabin": "Business",
+        "fareBrand": "Flex",
+        "totalKrw": 1180000,
+        "taxIncluded": true,
+        "stops": 0,
+        "durationMinutes": 130,
+        "returnDurationMinutes": 150,
+        "warnings": "final_price_check_on_booking_source"
+      }
+    ]
+  }
+}

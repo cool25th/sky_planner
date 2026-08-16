@@ -1,0 +1,67 @@
+{
+  "schema_version": "collector.source_manifest.v1",
+  "artifact_root": "runtime/collector-artifacts",
+  "revalidate": {
+    "url": "https://your-app.vercel.app/api/revalidate",
+    "secret_env": "VERCEL_REVALIDATE_SECRET",
+    "timeout_ms": 10000
+  },
+  "sources": [
+    {
+      "config": {
+        "schema_version": "collector.authorized_feed_source.v1",
+        "source_id": "skyscanner_affiliate",
+        "source_type": "meta_search",
+        "parser_version": "authorized-json-feed-v1",
+        "endpoint": "https://replace-with-skyscanner-feed.example/fares",
+        "method": "GET",
+        "auth": {
+          "header_name": "Authorization",
+          "token_env": "SKYSCANNER_FEED_API_KEY",
+          "value_prefix": "Bearer "
+        },
+        "query": {
+          "origin": "ICN",
+          "market": "KR",
+          "currency": "KRW"
+        }
+      }
+    },
+    {
+      "config": {
+        "schema_version": "collector.authorized_feed_source.v1",
+        "source_id": "korean_air_official",
+        "source_type": "airline_official",
+        "parser_version": "authorized-json-feed-v1",
+        "endpoint": "https://replace-with-korean-air-feed.example/fares",
+        "method": "GET",
+        "auth": {
+          "header_name": "X-Api-Key",
+          "token_env": "KOREAN_AIR_FEED_API_KEY"
+        },
+        "query": {
+          "origin": "ICN",
+          "currency": "KRW"
+        }
+      }
+    },
+    {
+      "config": {
+        "schema_version": "collector.authorized_feed_source.v1",
+        "source_id": "asiana_official",
+        "source_type": "airline_official",
+        "parser_version": "authorized-json-feed-v1",
+        "endpoint": "https://replace-with-asiana-feed.example/fares",
+        "method": "GET",
+        "auth": {
+          "header_name": "X-Api-Key",
+          "token_env": "ASIANA_FEED_API_KEY"
+        },
+        "query": {
+          "origin": "ICN",
+          "currency": "KRW"
+        }
+      }
+    }
+  ]
+}

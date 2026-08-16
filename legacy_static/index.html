@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sky Planner Atlas</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-left"></div>
+    <div class="ambient ambient-right"></div>
+
+    <main class="shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Sky Planner Atlas</p>
+          <h1>한국 출발 항공 특가를 지도와 날짜 축으로 탐색</h1>
+          <p class="hero-text">
+            지역을 먼저 찍어도 되고, 날짜를 먼저 찍어도 됩니다. 이코노미와 비즈니스를
+            한 화면에서 비교하고, 가격을 누르면 실제 항공편 옵션과 예약 소스로 바로
+            내려갑니다.
+          </p>
+          <div class="hero-badges">
+            <span class="hero-badge">왕복</span>
+            <span class="hero-badge">세금 포함 총액</span>
+            <span class="hero-badge">이코노미 + 비즈니스</span>
+            <span class="hero-badge">메타검색 + 공식 항공사</span>
+          </div>
+        </div>
+        <div class="hero-metrics">
+          <article class="metric-card">
+            <span class="metric-label">현재 주간 목적지</span>
+            <strong id="metric-destinations">-</strong>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">가장 낮은 대표가</span>
+            <strong id="metric-lowest">-</strong>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">마지막 배치 시각</span>
+            <strong id="metric-captured">-</strong>
+          </article>
+        </div>
+      </header>
+
+      <section class="batch-strip panel">
+        <div class="batch-stat">
+          <span class="metric-label">Batch</span>
+          <strong id="batch-strip-last">-</strong>
+        </div>
+        <div class="batch-stat">
+          <span class="metric-label">Traveler</span>
+          <strong id="batch-strip-mode">성인 1인 · 일 1회 갱신</strong>
+        </div>
+        <div class="batch-stat batch-stat-wide">
+          <span class="metric-label">Enabled Sources</span>
+          <strong id="batch-strip-sources">-</strong>
+        </div>
+      </section>
+
+      <section class="panel controls-panel">
+        <div class="controls-grid">
+          <label class="field">
+            <span>출발 공항</span>
+            <select id="origin-select"></select>
+          </label>
+          <label class="field">
+            <span>출발 주간</span>
+            <select id="week-select"></select>
+          </label>
+          <div class="field grow">
+            <span>지역</span>
+            <div id="region-chips" class="chip-row"></div>
+          </div>
+          <div class="field grow">
+            <span>지도 캐빈</span>
+            <div id="cabin-chips" class="chip-row"></div>
+          </div>
+          <div class="field grow">
+            <span>체류 버킷</span>
+            <div id="global-bucket-chips" class="chip-row"></div>
+          </div>
+        </div>
+        <p id="prototype-note" class="panel-note"></p>
+      </section>
+
+      <section class="dashboard-grid">
+        <section class="panel map-panel">
+          <div class="panel-head">
+            <div>
+              <p class="section-kicker">Map View</p>
+              <h2>지역과 도시별 대표 특가</h2>
+            </div>
+            <div class="selection-pill" id="selection-summary"></div>
+          </div>
+
+          <div class="atlas-shell">
+            <div class="atlas-grid"></div>
+            <svg class="atlas-base" viewBox="0 0 1000 500" aria-hidden="true">
+              <defs>
+                <linearGradient id="continentFill" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="rgba(255,255,255,0.16)" />
+                  <stop offset="100%" stop-color="rgba(255,255,255,0.05)" />
+                </linearGradient>
+              </defs>
+              <path
+                class="continent"
+                d="M100 120 L175 85 L260 95 L285 130 L250 170 L190 180 L150 205 L92 185 L80 145 Z"
+              />
+              <path
+                class="continent"
+                d="M235 210 L270 225 L290 270 L280 345 L248 405 L220 385 L208 320 L218 255 Z"
+              />
+              <path
+                class="continent"
+                d="M440 105 L500 92 L548 110 L560 145 L520 165 L485 150 L450 172 L422 142 Z"
+              />
+              <path
+                class="continent"
+                d="M470 185 L520 198 L560 255 L565 310 L540 370 L495 400 L452 360 L445 300 L430 238 Z"
+              />
+              <path
+                class="continent"
+                d="M560 108 L688 78 L830 112 L910 170 L868 232 L798 252 L705 215 L640 232 L592 198 L575 155 Z"
+              />
+              <path
+                class="continent"
+                d="M800 325 L850 340 L884 372 L848 404 L792 392 L778 350 Z"
+              />
+            </svg>
+            <div id="map-pins" class="map-pins"></div>
+            <div class="map-caption">
+              <span>Eco와 Biz는 한 핀 안에 같이 표시되지만, 할인율과 순위 계산은 캐빈별로 분리됩니다.</span>
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel list-panel">
+          <div class="panel-head compact">
+            <div>
+              <p class="section-kicker">Regional Rail</p>
+              <h2>지역별 대표가</h2>
+            </div>
+            <div class="selection-pill" id="deal-count"></div>
+          </div>
+          <div id="region-list" class="region-list"></div>
+          <div class="list-footer">
+            <div class="field">
+              <span>항공사 필터</span>
+              <div id="airline-chips" class="chip-row"></div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="panel calendar-panel">
+        <div class="panel-head">
+          <div>
+            <p class="section-kicker">Calendar Matrix</p>
+            <h2 id="calendar-title">날짜 매트릭스</h2>
+            <p id="calendar-subtitle" class="panel-note"></p>
+          </div>
+          <div class="toolbar-block">
+            <div class="field compact">
+              <span>매트릭스 캐빈</span>
+              <div id="matrix-cabin-chips" class="chip-row"></div>
+            </div>
+            <div class="field compact">
+              <span>활성 체류 버킷</span>
+              <div id="bucket-chips" class="chip-row"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="calendar-layout">
+          <div class="matrix-shell">
+            <div class="matrix-scroll">
+              <table id="matrix-table" class="matrix-table"></table>
+            </div>
+          </div>
+          <aside class="calendar-aside">
+            <article id="destination-spotlight" class="aside-card"></article>
+            <article id="selected-cell-card" class="aside-card"></article>
+          </aside>
+        </div>
+      </section>
+
+      <section class="panel offers-panel">
+        <div class="panel-head">
+          <div>
+            <p class="section-kicker">Offer Book</p>
+            <h2>실제 항공편 옵션</h2>
+            <p id="offers-subtitle" class="panel-note"></p>
+          </div>
+        </div>
+        <div class="offers-filters">
+          <div class="field compact">
+            <span>항공사</span>
+            <div id="offer-airline-filters" class="chip-row"></div>
+          </div>
+          <div class="field compact">
+            <span>캐빈</span>
+            <div id="offer-cabin-filters" class="chip-row"></div>
+          </div>
+          <div class="field compact">
+            <span>직항/경유</span>
+            <div id="offer-stop-filters" class="chip-row"></div>
+          </div>
+        </div>
+        <div id="offers-list" class="offers-list"></div>
+      </section>
+    </main>
+
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>
