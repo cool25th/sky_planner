@@ -2390,6 +2390,228 @@ select {
   border-color: var(--color-border-strong);
 }
 
+/* Modal Generic */
+.app-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: fadeIn 150ms ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.app-modal-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-floating);
+  max-width: 500px;
+  width: 100%;
+  overflow: hidden;
+  animation: modalSlideUp 200ms ease;
+}
+
+@keyframes modalSlideUp {
+  from { transform: translateY(12px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.app-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.app-modal-header h3 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-modal-close {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: all 150ms ease;
+}
+
+.app-modal-close:hover {
+  background: var(--color-surface-subtle);
+  color: var(--color-text-primary);
+}
+
+.app-modal-body {
+  padding: 24px;
+}
+
+.app-modal-footer {
+  padding: 16px 24px;
+  background: var(--color-surface-subtle);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* Price Alert Form */
+.price-alert-field {
+  margin-bottom: 16px;
+}
+
+.price-alert-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
+}
+
+.price-alert-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 150ms ease;
+}
+
+.price-alert-input:focus {
+  border-color: var(--color-primary);
+}
+
+.price-alert-tip {
+  font-size: 0.76rem;
+  color: var(--color-text-tertiary);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+/* Boarding Pass Ticket View */
+.boarding-pass-card {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #ffffff;
+  border-radius: 18px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.boarding-pass-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+}
+
+.boarding-pass-brand {
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #38bdf8;
+}
+
+.boarding-pass-class {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.boarding-pass-route {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.boarding-pass-city h4 {
+  font-size: 1.6rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.boarding-pass-city span {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.boarding-pass-plane {
+  font-size: 1.4rem;
+  color: #38bdf8;
+}
+
+.boarding-pass-details {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 18px;
+}
+
+.boarding-pass-item label {
+  display: block;
+  font-size: 0.68rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.boarding-pass-item strong {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.boarding-pass-barcode {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px dashed rgba(255, 255, 255, 0.2);
+  padding-top: 14px;
+}
+
+.barcode-lines {
+  font-family: monospace;
+  letter-spacing: 2px;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.barcode-price {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #38bdf8;
+}
+
 /* Responsive Media Queries */
 @media (max-width: 1024px) {
   .deals-grid {

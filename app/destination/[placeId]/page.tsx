@@ -7,6 +7,8 @@ import { RecentDestinationTracker } from "@/components/recent-destinations";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { MatrixKeyboardNavigator } from "@/components/matrix-keyboard-navigator";
 import { ShareButton } from "@/components/share-button";
+import { PriceAlertModal } from "@/components/price-alert-modal";
+import { BoardingPassModal } from "@/components/boarding-pass-modal";
 import { dataModeLabel, resolveCalendarResponse, resolveMapResponse } from "@/lib/data-source";
 import { formatDate, formatMoney, isPastWeek, stamp } from "@/lib/format";
 import { TRIP_BUCKETS, parseCalendarQuery, parseMapQuery, formatWeekNatural, availableWeeks, getDestinationList } from "@/lib/mock-market";
@@ -151,6 +153,13 @@ export default async function DestinationPage(props: { params: Params; searchPar
               </p>
             </div>
             <div className="dest-header-actions">
+              <PriceAlertModal
+                destinationCode={placeId}
+                cityName={calendar.destination.city}
+                origin={query.origin}
+                currentLowestPrice={lowestCellPrice}
+                cabin={query.cabin}
+              />
               <ShareButton
                 title={`${calendar.destination.city} 항공 특가 날짜`}
                 text={`${calendar.destination.city} 최저 ${formatMoney(lowestCellPrice)}부터 시작하는 저렴한 날짜 조합을 확인해보세요!`}
@@ -392,20 +401,33 @@ export default async function DestinationPage(props: { params: Params; searchPar
                         <strong className="price-amount">{formatMoney(fare)}</strong>
                         <span className="price-meta">세금 포함 · 성인 1인</span>
                       </div>
-                      <Link
-                        href={href("/offers", {
-                          origin: query.origin,
-                          week: query.week,
-                          destination: placeId,
-                          depart: String(cell.depart_date),
-                          return: String(cell.return_date),
-                          cabin: query.cabin,
-                          traveler: query.traveler,
-                        })}
-                        className="top-date-card__cta"
-                      >
-                        이 일정으로 항공편 비교 →
-                      </Link>
+                      <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                        <Link
+                          href={href("/offers", {
+                            origin: query.origin,
+                            week: query.week,
+                            destination: placeId,
+                            depart: String(cell.depart_date),
+                            return: String(cell.return_date),
+                            cabin: query.cabin,
+                            traveler: query.traveler,
+                          })}
+                          className="top-date-card__cta"
+                          style={{ flex: 1, textAlign: "center" }}
+                        >
+                          항공편 비교 →
+                        </Link>
+                        <BoardingPassModal
+                          origin={query.origin}
+                          destinationCode={placeId}
+                          cityName={calendar.destination?.city || placeId}
+                          countryName={calendar.destination?.country || ""}
+                          departDate={String(cell.depart_date)}
+                          returnDate={String(cell.return_date)}
+                          fare={fare}
+                          cabin={query.cabin}
+                        />
+                      </div>
                     </article>
                   );
                 })}
