@@ -6,12 +6,15 @@ import { MapSplitView } from "@/components/map-split-view";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { ShareButton } from "@/components/share-button";
 import { dataModeLabel, resolveMapResponse, resolveMetaResponse } from "@/lib/data-source";
+import { isPastWeek } from "@/lib/format";
 import {
   TRIP_BUCKETS,
   parseMapQuery,
   formatWeekNatural,
+  availableWeeks,
 } from "@/lib/mock-market";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
+import { href } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +81,15 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
           <ShareButton title="Sky Planner 특가 지도 공유" text="지도에서 출발지/기간별 항공 최저가를 확인해보세요!" />
         </div>
       </header>
+
+      {isPastWeek(query.week) && (
+        <div className="beta-banner">
+          <span>
+            <strong>지난 시기 안내:</strong> {formatWeekNatural(query.week)} — 이미 지난 주간이라 표시할 특가가 없습니다.{" "}
+            <Link href={href("/map", { ...query, week: availableWeeks(1)[0].code })}>이번 주간으로 다시 검색</Link>해 보세요.
+          </span>
+        </div>
+      )}
 
       {/* 2. Split View (좌측 목록 + 우측 지도) */}
       {serviceUnavailable ? (

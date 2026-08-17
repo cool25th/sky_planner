@@ -7,7 +7,8 @@ import { ServiceUnavailableNotice } from "@/components/service-unavailable-notic
 import { MatrixKeyboardNavigator } from "@/components/matrix-keyboard-navigator";
 import { ShareButton } from "@/components/share-button";
 import { dataModeLabel, resolveCalendarResponse, resolveMapResponse } from "@/lib/data-source";
-import { TRIP_BUCKETS, parseCalendarQuery, parseMapQuery, formatWeekNatural, getDestinationList } from "@/lib/mock-market";
+import { formatDate, formatMoney, isPastWeek, stamp } from "@/lib/format";
+import { TRIP_BUCKETS, parseCalendarQuery, parseMapQuery, formatWeekNatural, availableWeeks, getDestinationList } from "@/lib/mock-market";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
 import { href } from "@/lib/url";
 
@@ -51,19 +52,6 @@ export async function generateMetadata(props: { params: Params; searchParams: Se
       images: ["/og-image.png"],
     },
   };
-}
-
-function formatMoney(value: number | null) {
-  if (value === null) return "-";
-  return new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(value);
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", weekday: "short" }).format(new Date(value));
-}
-
-function stamp(value: string) {
-  return new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }
 
 export default async function DestinationPage(props: { params: Params; searchParams: SearchParams }) {
@@ -132,6 +120,14 @@ export default async function DestinationPage(props: { params: Params; searchPar
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      {isPastWeek(query.week) && (
+        <div className="beta-banner">
+          <span>
+            <strong>지난 시기 안내:</strong> {formatWeekNatural(query.week)} — 이미 지난 주간이라 표시할 특가가 없습니다.{" "}
+            <Link href={href(`/destination/${placeId}`, { ...query, week: availableWeeks(1)[0].code })}>이번 주간으로 다시 검색</Link>해 보세요.
+          </span>
+        </div>
+      )}
       {/* 1. Compact Destination Header */}
       {calendar.destination && (
         <section className="dest-header-banner">
