@@ -278,8 +278,9 @@ export const TRIP_BUCKETS = [
 ] as const;
 
 export const ORIGINS: Origin[] = [
+  { code: "SEL", city: "서울 전체", label: "서울 전체 (SEL)" },
   { code: "ICN", city: "인천", label: "인천 (ICN)" },
-  { code: "GMP", city: "서울/김포", label: "서울/김포 (GMP)" },
+  { code: "GMP", city: "김포", label: "김포 (GMP)" },
   { code: "PUS", city: "부산", label: "부산 (PUS)" },
   { code: "CJU", city: "제주", label: "제주 (CJU)" },
 ];
@@ -848,7 +849,7 @@ export function envelope<T>(
 
 export function getMetaData() {
   return {
-    prototype_note: "일 1회 배치 캐시 기반 mock feed입니다. 실제 예약가는 예약처에서 최종 확인해야 합니다.",
+    prototype_note: "일 1회 캐시 기반 탐색용 데모 데이터입니다. 최종 운임 및 예약 가능 여부는 예약처에서 확인해야 합니다.",
     defaults: {
       origin: "ICN",
       region: DEFAULT_REGION,
@@ -861,9 +862,9 @@ export function getMetaData() {
     regions: REGIONS,
     trip_buckets: TRIP_BUCKETS,
     cabins: [
-      { code: "ALL", label: "전체 캐빈" },
-      { code: "ECONOMY", label: "이코노미" },
-      { code: "BUSINESS", label: "비즈니스" },
+      { code: "ALL", label: "전체 좌석" },
+      { code: "ECONOMY", label: "일반석" },
+      { code: "BUSINESS", label: "비즈니스석" },
     ],
     airlines: AIRLINES.map(({ businessLabel, ...rest }) => ({
       ...rest,
@@ -1209,7 +1210,11 @@ function filterOffers(
   },
 ) {
   return offers.filter((offer) => {
-    if (offer.origin !== query.origin) return false;
+    if (query.origin === "SEL") {
+      if (offer.origin !== "ICN" && offer.origin !== "GMP") return false;
+    } else if (offer.origin !== query.origin) {
+      return false;
+    }
     if (query.region && query.region !== "ALL" && offer.region_code !== query.region) return false;
     if (query.destination && offer.destination_code !== query.destination) return false;
     if (query.depart && offer.depart_date !== query.depart) return false;
@@ -1459,7 +1464,7 @@ export function getOffersData(query: OffersQuery, lastBatchAt: string, sourceFla
       available_airlines: [...new Map(offers.map((offer) => [offer.airline_code, { code: offer.airline_code, name: offer.airline_name }])).values()],
       available_cabins: [...new Set(offers.map((offer) => offer.cabin_group))].map((code) => ({
         code,
-        label: code === "ECONOMY" ? "이코노미" : "비즈니스",
+        label: code === "ECONOMY" ? "일반석" : "비즈니스석",
       })),
       available_stops: [...new Set(offers.map((offer) => offer.stops))].sort(),
     },
