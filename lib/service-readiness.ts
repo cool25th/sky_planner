@@ -763,11 +763,11 @@ export function buildServiceReadinessSnapshot(input: ServiceReadinessInput): Ser
       ? check("status_page_available", "pass")
       : check("status_page_available", "fail"),
     userExperienceArtifacts.trustCues
-      ? check("trust_cues_available", "pass", { surfaces: ["/fare-board"] })
-      : check("trust_cues_available", "fail", { surfaces: ["/fare-board"] }),
+      ? check("trust_cues_available", "pass", { surfaces: ["/map"] })
+      : check("trust_cues_available", "fail", { surfaces: ["/map"] }),
     userExperienceArtifacts.serviceUnavailableUi
-      ? check("service_unavailable_ui_available", "pass", { surfaces: ["/", "/fare-board", "/map", "/offers", "/destination/[placeId]"] })
-      : check("service_unavailable_ui_available", "fail", { surfaces: ["/", "/fare-board", "/map", "/offers", "/destination/[placeId]"] }),
+      ? check("service_unavailable_ui_available", "pass", { surfaces: ["/", "/map", "/offers", "/destination/[placeId]"] })
+      : check("service_unavailable_ui_available", "fail", { surfaces: ["/", "/map", "/offers", "/destination/[placeId]"] }),
     counts && Number(counts.deals_current_active ?? 0) > 0
       ? check("search_inventory_available", "pass", { deals_current_active: counts.deals_current_active })
       : check("search_inventory_available", "fail", { counts }),

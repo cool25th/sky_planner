@@ -27,32 +27,29 @@ async function artifactContains(relativePath: string, requiredTokens: string[], 
 
 export async function userExperienceArtifactSnapshot(baseDir = process.cwd()): Promise<UserExperienceArtifactSnapshot> {
   const [
-    fareBoardTrustCues,
+    mapTrustCues,
     serviceUnavailableHelper,
     serviceUnavailableComponent,
     homeUnavailableUi,
-    fareBoardUnavailableUi,
     mapUnavailableUi,
     offersUnavailableUi,
     destinationUnavailableUi,
   ] = await Promise.all([
-    artifactContains("app/fare-board/page.tsx", ["fb-trust-strip", "readModelLabel", "Source health", "Eligible sources"], baseDir),
+    artifactContains("app/map/page.tsx", ["MapFilterSelect", "DealsMap", "resolveMapResponse", "resolveMetaResponse"], baseDir),
     artifactContains("lib/service-unavailable.ts", ["isServiceUnavailableDiagnostics", "Read model unavailable"], baseDir),
     artifactContains("components/service-unavailable-notice.tsx", ["ServiceUnavailableNotice", "service-unavailable-panel"], baseDir),
     artifactContains("app/page.tsx", ["dynamic = \"force-dynamic\"", "ServiceUnavailableNotice", "isServiceUnavailableDiagnostics", "unstable_noStore", "noStore();"], baseDir),
-    artifactContains("app/fare-board/page.tsx", ["dynamic = \"force-dynamic\"", "ServiceUnavailableNotice", "isServiceUnavailableDiagnostics", "unstable_noStore", "noStore();"], baseDir),
     artifactContains("app/map/page.tsx", ["dynamic = \"force-dynamic\"", "ServiceUnavailableNotice", "isServiceUnavailableDiagnostics", "unstable_noStore", "noStore();"], baseDir),
     artifactContains("app/offers/page.tsx", ["dynamic = \"force-dynamic\"", "ServiceUnavailableNotice", "isServiceUnavailableDiagnostics", "unstable_noStore", "noStore();"], baseDir),
     artifactContains("app/destination/[placeId]/page.tsx", ["dynamic = \"force-dynamic\"", "ServiceUnavailableNotice", "isServiceUnavailableDiagnostics", "unstable_noStore", "noStore();"], baseDir),
   ]);
 
   return {
-    trustCues: fareBoardTrustCues,
+    trustCues: mapTrustCues,
     serviceUnavailableUi:
       serviceUnavailableHelper &&
       serviceUnavailableComponent &&
       homeUnavailableUi &&
-      fareBoardUnavailableUi &&
       mapUnavailableUi &&
       offersUnavailableUi &&
       destinationUnavailableUi,

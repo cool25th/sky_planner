@@ -226,7 +226,7 @@ export default async function ServiceReadinessPage() {
       </section>
 
       <section className="service-links">
-        <Link href="/fare-board" className="cta-link">Fare Board</Link>
+        <Link href="/map" className="cta-link">특가 지도</Link>
         <Link href="/policies" className="cta-link service-secondary-link">정책 보기</Link>
         <a href="/api/ops/service-readiness" className="cta-link service-secondary-link">JSON 상태</a>
       </section>
