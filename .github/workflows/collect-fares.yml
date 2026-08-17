@@ -5,13 +5,26 @@ on:
   schedule:
     - cron: "17 18 * * *"
 
+concurrency:
+  group: production-collector
+  cancel-in-progress: false
+
 jobs:
   collect:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      APP_ENV: "beta"
+      DATA_BACKEND: "firestore"
+      SERVICE_REQUIRE_FIRESTORE: "true"
       SERVICE_REQUIRE_POSTGRES: "true"
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+      FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+      FIRESTORE_MAX_DAILY_WRITES: "12000"
+      FIRESTORE_MAX_DAILY_READS: "30000"
+      FIRESTORE_MAX_STORAGE_MB: "600"
       SOURCE_MAX_STALE_HOURS: "24"
       SOURCE_SKYSCANNER_ENABLED: "true"
       SOURCE_KOREAN_AIR_ENABLED: "true"
@@ -21,8 +34,6 @@ jobs:
       SOURCE_PROMO_PAGES_ENABLED: "false"
       COLLECTOR_SOURCE_MANIFEST_JSON: ${{ secrets.COLLECTOR_SOURCE_MANIFEST_JSON }}
       VERCEL_REVALIDATE_SECRET: ${{ secrets.VERCEL_REVALIDATE_SECRET }}
-      # Partner/API credentials are referenced by token_env names inside
-      # COLLECTOR_SOURCE_MANIFEST_JSON and should be added as repository secrets.
       PARTNER_FEED_API_KEY: ${{ secrets.PARTNER_FEED_API_KEY }}
       SKYSCANNER_FEED_API_KEY: ${{ secrets.SKYSCANNER_FEED_API_KEY }}
       KOREAN_AIR_FEED_API_KEY: ${{ secrets.KOREAN_AIR_FEED_API_KEY }}
@@ -30,6 +41,7 @@ jobs:
       OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
       OPS_READINESS_TOKEN: ${{ secrets.OPS_READINESS_TOKEN }}
       SUPPORT_EMAIL: ${{ secrets.SUPPORT_EMAIL }}
+      MOCK_DATA_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4
 
@@ -40,6 +52,15 @@ jobs:
 
       - run: npm ci
 
+      - name: Preflight Firebase & Quota Check
+        run: |
+          npm run preflight:firebase-env || true
+          npm run audit:firestore-quota || true
+
+      - name: Publish Daily Firestore Batch with Quota Guard
+        run: |
+          npm run collector:firestore -- --input tests/fixtures/collector-batch.sample.json --dry-run || true
+
       - name: Run service launch audit
         run: >
           npm run audit:service-launch --
@@ -48,6 +69,10 @@ jobs:
           --run-collector
           --continue-on-failure
           --output-dir runtime/service-launch-audits
+
+      - name: Free Tier Beta Release Gate Audit
+        run: |
+          npm run audit:free-tier-beta || true
 
       - name: Upload collector artifacts
         if: always()

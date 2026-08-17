@@ -31,6 +31,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="ambient ambient-left" />
         <div className="ambient ambient-right" />
         <div className="site-shell">
+          <div className="beta-banner">
+            <span><strong>Limited Beta:</strong> 비상업적 제한 공개 베타 버전입니다. 실제 예약 및 결제는 제휴처/항공사 공식 페이지에서 진행됩니다.</span>
+          </div>
           <header className="site-header">
             <Link href="/" className="site-brand">
               Sky Planner Atlas
@@ -45,6 +48,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </nav>
           </header>
           {children}
+          <footer className="site-footer">
+            <div className="site-footer__links">
+              <Link href="/terms">이용약관</Link>
+              <Link href="/privacy">개인정보처리방침</Link>
+              <Link href="/affiliate-disclosure">제휴고지</Link>
+              <Link href="/policies">운영정책</Link>
+            </div>
+            <p className="site-footer__copy">
+              &copy; 2026 Sky Planner Atlas. Non-commercial Limited Beta on Firebase Spark Plan.
+            </p>
+          </footer>
         </div>
       </body>
     </html>
