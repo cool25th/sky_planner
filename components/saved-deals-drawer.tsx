@@ -177,6 +177,22 @@ export function SavedDealsDrawer() {
 
             {deals.length > 0 && (
               <div className="drawer-footer">
+                <button
+                  type="button"
+                  className="drawer-share-btn"
+                  onClick={async () => {
+                    const codes = deals.map((d) => d.destinationCode).join(",");
+                    const url = `${window.location.origin}/map?saved=${codes}`;
+                    try {
+                      await navigator.clipboard.writeText(url);
+                      alert("찜한 특가 목록 공유 링크가 복사되었습니다!");
+                    } catch {
+                      prompt("공유 링크 복사:", url);
+                    }
+                  }}
+                >
+                  🔗 보관함 링크 복사
+                </button>
                 <button type="button" className="drawer-clear-btn" onClick={clearAll}>
                   전체 비우기
                 </button>

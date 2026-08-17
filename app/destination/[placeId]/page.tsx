@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
 
@@ -6,7 +7,7 @@ import { ServiceUnavailableNotice } from "@/components/service-unavailable-notic
 import { MatrixKeyboardNavigator } from "@/components/matrix-keyboard-navigator";
 import { ShareButton } from "@/components/share-button";
 import { resolveCalendarResponse, resolveMapResponse } from "@/lib/data-source";
-import { TRIP_BUCKETS, parseCalendarQuery, parseMapQuery, formatWeekNatural } from "@/lib/mock-market";
+import { TRIP_BUCKETS, parseCalendarQuery, parseMapQuery, formatWeekNatural, getDestinationList } from "@/lib/mock-market";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
 import { href } from "@/lib/url";
 
@@ -14,6 +15,43 @@ export const dynamic = "force-dynamic";
 
 type Params = Promise<{ placeId: string }>;
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+export async function generateMetadata(props: { params: Params; searchParams: SearchParams }): Promise<Metadata> {
+  const { placeId } = await props.params;
+  const searchParams = await props.searchParams;
+  const query = parseCalendarQuery({ ...searchParams, destination: placeId });
+  const destinations = getDestinationList();
+  const dest = destinations.find((d) => d.code === placeId);
+  const cityName = dest?.city ?? placeId;
+  const countryName = dest?.country ?? "";
+
+  const title = `${cityName}(${placeId}) 항공 특가 & 저렴한 날짜 매트릭스 | Sky Planner Atlas`;
+  const description = `${query.origin} 출발 ${cityName}(${countryName}) 왕복 항공권 최저가와 저렴한 출발/귀국 날짜 조합을 2D 가격 매트릭스로 확인하세요.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      images: [
+        {
+          url: "/og-image.png",
+          width: 1200,
+          height: 630,
+          alt: `${cityName} 항공 특가 날짜 탐색`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: ["/og-image.png"],
+    },
+  };
+}
 
 function formatMoney(value: number | null) {
   if (value === null) return "-";
@@ -75,8 +113,25 @@ export default async function DestinationPage(props: { params: Params; searchPar
     return "fare-level-4"; // 높음
   };
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: `${calendar.destination?.city || placeId} 왕복 항공권 특가`,
+    description: `${query.origin} 출발 ${calendar.destination?.city || placeId}(${calendar.destination?.country || ""}) 왕복 항공권 최저가 탐색`,
+    offers: {
+      "@type": "AggregateOffer",
+      priceCurrency: "KRW",
+      lowPrice: lowestCellPrice ?? undefined,
+      offerCount: validCells.length,
+    },
+  };
+
   return (
     <main className="dest-page-container">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* 1. Compact Destination Header */}
       {calendar.destination && (
         <section className="dest-header-banner">
@@ -114,8 +169,35 @@ export default async function DestinationPage(props: { params: Params; searchPar
             </div>
           </div>
 
-          {/* Cabin Switcher Bar */}
+          {/* Filter Controls Bar: Origin & Cabin */}
           <div className="dest-filter-bar">
+            <div className="cabin-toggle-group">
+              <span className="cabin-toggle-label">출발 공항:</span>
+              {[
+                { code: "SEL", label: "서울 전체" },
+                { code: "ICN", label: "인천" },
+                { code: "GMP", label: "김포" },
+                { code: "PUS", label: "부산" },
+                { code: "CJU", label: "제주" },
+              ].map((orig) => (
+                <Link
+                  key={orig.code}
+                  href={href(`/destination/${placeId}`, {
+                    origin: orig.code,
+                    week: query.week,
+                    region: query.region,
+                    stay_bucket: query.stay_bucket,
+                    traveler: query.traveler,
+                    cabin: query.cabin,
+                    budget: query.budget,
+                  })}
+                  className={`cabin-toggle-btn ${query.origin === orig.code ? "is-active" : ""}`}
+                >
+                  {orig.label}
+                </Link>
+              ))}
+            </div>
+
             <div className="cabin-toggle-group">
               <span className="cabin-toggle-label">좌석 등급:</span>
               <Link
