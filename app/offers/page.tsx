@@ -34,11 +34,24 @@ function stamp(value: string) {
 }
 
 export default async function OffersPage(props: { searchParams: SearchParams }) {
-  const query = parseOffersQuery(await props.searchParams);
+  const rawParams = await props.searchParams;
+  const query = parseOffersQuery(rawParams);
+  const sortBy = (typeof rawParams?.sort === "string" ? rawParams.sort : "price") as "price" | "duration" | "departure";
+
   const offersResponse = await resolveOffersResponse(query);
   const offersData = offersResponse.data;
   const serviceUnavailable = isServiceUnavailableDiagnostics(offersResponse.diagnostics);
   if (serviceUnavailable) noStore();
+
+  const sortedOffers = [...offersData.offers].sort((a, b) => {
+    if (sortBy === "duration") {
+      return a.duration_hours - b.duration_hours || a.price_total - b.price_total;
+    }
+    if (sortBy === "departure") {
+      return new Date(a.outbound_departure_at).getTime() - new Date(b.outbound_departure_at).getTime() || a.price_total - b.price_total;
+    }
+    return a.price_total - b.price_total;
+  });
 
   const cabinLabel = query.cabin === "BUSINESS" ? "비즈니스석" : query.cabin === "ECONOMY" ? "일반석" : "전체 좌석";
   const dateRangeLabel = query.depart && query.return
@@ -84,34 +97,64 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
       {/* 2. Compact Filter & Sort Bar */}
       {!serviceUnavailable && (
         <section className="offers-filter-bar">
-          <div className="filter-chips-group">
-            <span className="filter-group-label">필터:</span>
-            <Link
-              href={href("/offers", { ...query, stops: "ALL" })}
-              className={`filter-chip ${query.stops === "ALL" ? "is-active" : ""}`}
-            >
-              전체 여정
-            </Link>
-            <Link
-              href={href("/offers", { ...query, stops: "0" })}
-              className={`filter-chip ${query.stops === "0" ? "is-active" : ""}`}
-            >
-              직항만
-            </Link>
-            <Link
-              href={href("/offers", { ...query, cabin: "ALL" })}
-              className={`filter-chip ${query.cabin === "ALL" ? "is-active" : ""}`}
-            >
-              전체 좌석
-            </Link>
-            <Link
-              href={href("/offers", { ...query, cabin: "ECONOMY" })}
-              className={`filter-chip ${query.cabin === "ECONOMY" ? "is-active" : ""}`}
-            >
-              일반석
-            </Link>
+          <div className="filter-chips-wrapper">
+            <div className="filter-chips-group">
+              <span className="filter-group-label">여정:</span>
+              <Link
+                href={href("/offers", { ...query, stops: "ALL", sort: sortBy !== "price" ? sortBy : null })}
+                className={`filter-chip ${query.stops === "ALL" ? "is-active" : ""}`}
+              >
+                전체 여정
+              </Link>
+              <Link
+                href={href("/offers", { ...query, stops: "0", sort: sortBy !== "price" ? sortBy : null })}
+                className={`filter-chip ${query.stops === "0" ? "is-active" : ""}`}
+              >
+                직항만
+              </Link>
+              <Link
+                href={href("/offers", { ...query, cabin: "ALL", sort: sortBy !== "price" ? sortBy : null })}
+                className={`filter-chip ${query.cabin === "ALL" ? "is-active" : ""}`}
+              >
+                전체 좌석
+              </Link>
+              <Link
+                href={href("/offers", { ...query, cabin: "ECONOMY", sort: sortBy !== "price" ? sortBy : null })}
+                className={`filter-chip ${query.cabin === "ECONOMY" ? "is-active" : ""}`}
+              >
+                일반석
+              </Link>
+              <Link
+                href={href("/offers", { ...query, cabin: "BUSINESS", sort: sortBy !== "price" ? sortBy : null })}
+                className={`filter-chip ${query.cabin === "BUSINESS" ? "is-active" : ""}`}
+              >
+                비즈니스석
+              </Link>
+            </div>
+
+            <div className="filter-chips-group">
+              <span className="filter-group-label">정렬:</span>
+              <Link
+                href={href("/offers", { ...query, sort: "price" })}
+                className={`filter-chip ${sortBy === "price" ? "is-active" : ""}`}
+              >
+                최저가순
+              </Link>
+              <Link
+                href={href("/offers", { ...query, sort: "duration" })}
+                className={`filter-chip ${sortBy === "duration" ? "is-active" : ""}`}
+              >
+                최단시간순
+              </Link>
+              <Link
+                href={href("/offers", { ...query, sort: "departure" })}
+                className={`filter-chip ${sortBy === "departure" ? "is-active" : ""}`}
+              >
+                출발빠른순
+              </Link>
+            </div>
           </div>
-          <span className="results-badge">검색 결과 {offersData.summary.count}건</span>
+          <span className="results-badge">검색 결과 {sortedOffers.length}건</span>
         </section>
       )}
 
@@ -119,8 +162,8 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
       <section className="offers-card-list">
         {serviceUnavailable ? (
           <ServiceUnavailableNotice diagnostics={offersResponse.diagnostics} />
-        ) : offersData.offers.length ? (
-          offersData.offers.map((offer) => {
+        ) : sortedOffers.length ? (
+          sortedOffers.map((offer) => {
             const freshness = fareFreshness(offer.last_seen_at || offer.last_batch_at);
             const isOutboundNextDay = new Date(offer.outbound_arrival_at).getDate() !== new Date(offer.outbound_departure_at).getDate();
             const isInboundNextDay = new Date(offer.inbound_arrival_at).getDate() !== new Date(offer.inbound_departure_at).getDate();

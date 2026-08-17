@@ -142,7 +142,7 @@ function cameraForDeals(deals: MapDeal[]) {
 
 interface DealsMapProps {
   deals: MapDeal[];
-  query: Pick<MapQuery, "origin" | "week" | "stay_bucket" | "traveler" | "cabin" | "budget">;
+  query: Pick<MapQuery, "origin" | "region" | "week" | "stay_bucket" | "traveler" | "cabin" | "budget">;
 }
 
 export function DealsMap({ deals, query }: DealsMapProps) {
@@ -336,16 +336,17 @@ export function DealsMap({ deals, query }: DealsMapProps) {
         markerEl.addEventListener("mouseenter", () => setSelectedCode(deal.destination_code));
         markerEl.addEventListener("click", () => {
           setSelectedCode(deal.destination_code);
-          router.push(
-            href(`/destination/${deal.destination_code}`, {
-              origin: query.origin,
-              week: query.week,
-              stay_bucket: query.stay_bucket,
-              traveler: query.traveler,
-              cabin: query.cabin,
-              budget: query.budget,
-            }),
-          );
+            router.push(
+              href(`/destination/${deal.destination_code}`, {
+                origin: query.origin,
+                week: query.week,
+                region: query.region,
+                stay_bucket: query.stay_bucket,
+                traveler: query.traveler,
+                cabin: query.cabin,
+                budget: query.budget,
+              }),
+            );
         });
       }
 
@@ -395,6 +396,7 @@ export function DealsMap({ deals, query }: DealsMapProps) {
                   href(`/destination/${deal.destination_code}`, {
                     origin: query.origin,
                     week: query.week,
+                    region: query.region,
                     stay_bucket: query.stay_bucket,
                     traveler: query.traveler,
                     cabin: query.cabin,
@@ -465,6 +467,7 @@ export function DealsMap({ deals, query }: DealsMapProps) {
                     href(`/destination/${selection.destination_code}`, {
                       origin: query.origin,
                       week: query.week,
+                      region: query.region,
                       stay_bucket: query.stay_bucket,
                       traveler: query.traveler,
                       cabin: query.cabin,

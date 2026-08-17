@@ -242,6 +242,7 @@ export interface MapQuery {
 export interface CalendarQuery {
   origin: string;
   week: string;
+  region?: RegionCode;
   destination: string;
   cabin: CabinCode;
   stay_bucket: StayBucket;

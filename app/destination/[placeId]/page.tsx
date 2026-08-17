@@ -100,7 +100,7 @@ export default async function DestinationPage(props: { params: Params; searchPar
                 href={href("/map", {
                   origin: query.origin,
                   week: query.week,
-                  region: "ALL",
+                  region: query.region || "ALL",
                   cabin: query.cabin,
                   stay_bucket: query.stay_bucket,
                   traveler: query.traveler,
@@ -110,6 +110,55 @@ export default async function DestinationPage(props: { params: Params; searchPar
                 className="dest-back-btn"
               >
                 ← 특가 지도로 돌아가기
+              </Link>
+            </div>
+          </div>
+
+          {/* Cabin Switcher Bar */}
+          <div className="dest-filter-bar">
+            <div className="cabin-toggle-group">
+              <span className="cabin-toggle-label">좌석 등급:</span>
+              <Link
+                href={href(`/destination/${placeId}`, {
+                  origin: query.origin,
+                  week: query.week,
+                  region: query.region,
+                  stay_bucket: query.stay_bucket,
+                  traveler: query.traveler,
+                  cabin: "ALL",
+                  budget: query.budget,
+                })}
+                className={`cabin-toggle-btn ${query.cabin === "ALL" ? "is-active" : ""}`}
+              >
+                전체
+              </Link>
+              <Link
+                href={href(`/destination/${placeId}`, {
+                  origin: query.origin,
+                  week: query.week,
+                  region: query.region,
+                  stay_bucket: query.stay_bucket,
+                  traveler: query.traveler,
+                  cabin: "ECONOMY",
+                  budget: query.budget,
+                })}
+                className={`cabin-toggle-btn ${query.cabin === "ECONOMY" ? "is-active" : ""}`}
+              >
+                일반석
+              </Link>
+              <Link
+                href={href(`/destination/${placeId}`, {
+                  origin: query.origin,
+                  week: query.week,
+                  region: query.region,
+                  stay_bucket: query.stay_bucket,
+                  traveler: query.traveler,
+                  cabin: "BUSINESS",
+                  budget: query.budget,
+                })}
+                className={`cabin-toggle-btn ${query.cabin === "BUSINESS" ? "is-active" : ""}`}
+              >
+                비즈니스석
               </Link>
             </div>
           </div>

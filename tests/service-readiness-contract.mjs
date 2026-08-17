@@ -188,7 +188,7 @@ test("service readiness requires service unavailable UI on public fare surfaces"
   assert.equal(snapshot.status, "not_ready");
   assert.equal(uxAxis.status, "fail");
   assert.equal(check.status, "fail");
-  assert.deepEqual(check.detail.surfaces, ["/", "/fare-board", "/map", "/offers", "/destination/[placeId]"]);
+  assert.deepEqual(check.detail.surfaces, ["/", "/map", "/offers", "/destination/[placeId]"]);
 });
 
 test("service readiness requires policy support contact disclosure without placeholders", () => {

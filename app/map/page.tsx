@@ -38,6 +38,7 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
   const lastBatchAt = mapResponse.last_batch_at;
 
   const originOptions = meta.origins.map((o) => ({ code: o.code, label: `${o.city} (${o.code})` }));
+  const regionOptions = meta.regions.map((r) => ({ code: r.code, label: r.label }));
   const weekOptions = meta.weeks.map((w) => ({ code: w.code, label: formatWeekNatural(w.code) }));
   const stayOptions = meta.trip_buckets.filter((b) => b.code !== "ALL").map((b) => ({ code: b.code, label: b.label }));
   const cabinOptions = meta.cabins.map((c) => ({ code: c.code, label: c.label }));
@@ -53,6 +54,13 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
             defaultValue={query.origin}
             paramName="origin"
             options={originOptions}
+          />
+          <MapFilterSelect
+            id="map-region-select"
+            label="지역"
+            defaultValue={query.region}
+            paramName="region"
+            options={regionOptions}
           />
           <MapFilterSelect
             id="map-week-select"
@@ -142,9 +150,11 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
                           href={href(`/destination/${deal.destination_code}`, {
                             origin: query.origin,
                             week: query.week,
+                            region: query.region,
                             stay_bucket: query.stay_bucket,
                             traveler: query.traveler,
                             cabin: query.cabin,
+                            budget: query.budget,
                             airlines: query.airlines.join(",") || null,
                           })}
                           className="dest-card-cta"
