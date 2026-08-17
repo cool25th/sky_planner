@@ -33,9 +33,10 @@ interface MapSplitViewProps {
   deals: MapDeal[];
   query: MapQuery;
   lastBatchAt: string;
+  dataMode: string;
 }
 
-export function MapSplitView({ deals, query, lastBatchAt }: MapSplitViewProps) {
+export function MapSplitView({ deals, query, lastBatchAt, dataMode }: MapSplitViewProps) {
   const [selectedCode, setSelectedCode] = useState<string | null>(deals[0]?.destination_code ?? null);
   const listContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -72,7 +73,7 @@ export function MapSplitView({ deals, query, lastBatchAt }: MapSplitViewProps) {
             </span>
             <span className="results-sub">왕복 총액 · 성인 1인 · 세금 포함</span>
           </div>
-          <span className="last-batch-tag">최근 확인 {stamp(lastBatchAt)}</span>
+          <span className="last-batch-tag">최근 확인 {stamp(lastBatchAt)} · {dataMode}</span>
         </div>
 
         {deals.length === 0 ? (

@@ -6,7 +6,7 @@ import { BookmarkButton } from "@/components/bookmark-button";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { MatrixKeyboardNavigator } from "@/components/matrix-keyboard-navigator";
 import { ShareButton } from "@/components/share-button";
-import { resolveCalendarResponse, resolveMapResponse } from "@/lib/data-source";
+import { dataModeLabel, resolveCalendarResponse, resolveMapResponse } from "@/lib/data-source";
 import { TRIP_BUCKETS, parseCalendarQuery, parseMapQuery, formatWeekNatural, getDestinationList } from "@/lib/mock-market";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
 import { href } from "@/lib/url";
@@ -258,7 +258,7 @@ export default async function DestinationPage(props: { params: Params; searchPar
                 <h2 className="section-title">가장 저렴한 추천 날짜 조합 Top 3</h2>
                 <p className="section-desc">해당 기간 중 항공권 가격이 가장 저렴한 출발-귀국 날짜 조합입니다.</p>
               </div>
-              <span className="last-batch-tag">최근 가격 확인 {stamp(calendarResponse.last_batch_at)}</span>
+              <span className="last-batch-tag">최근 가격 확인 {stamp(calendarResponse.last_batch_at)} · {dataModeLabel(calendarResponse.diagnostics)}</span>
             </div>
 
             {topRecommendations.length > 0 ? (

@@ -5,7 +5,7 @@ import { MapFilterSelect } from "@/components/map-filter-select";
 import { MapSplitView } from "@/components/map-split-view";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { ShareButton } from "@/components/share-button";
-import { resolveMapResponse, resolveMetaResponse } from "@/lib/data-source";
+import { dataModeLabel, resolveMapResponse, resolveMetaResponse } from "@/lib/data-source";
 import {
   TRIP_BUCKETS,
   parseMapQuery,
@@ -83,7 +83,7 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
       {serviceUnavailable ? (
         <ServiceUnavailableNotice diagnostics={mapResponse.diagnostics} />
       ) : (
-        <MapSplitView deals={map.deals} query={query} lastBatchAt={lastBatchAt} />
+        <MapSplitView deals={map.deals} query={query} lastBatchAt={lastBatchAt} dataMode={dataModeLabel(mapResponse.diagnostics)} />
       )}
     </main>
   );

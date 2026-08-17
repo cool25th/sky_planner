@@ -4,7 +4,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import { BookmarkButton } from "@/components/bookmark-button";
 import { RecentSearches } from "@/components/recent-searches";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
-import { resolveMapResponse } from "@/lib/data-source";
+import { dataModeLabel, resolveMapResponse } from "@/lib/data-source";
 import { getMetaData, parseMapQuery, formatWeekNatural, TRIP_BUCKETS } from "@/lib/mock-market";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
 import { href } from "@/lib/url";
@@ -245,7 +245,7 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
           </div>
         )}
         <div className="section-caption">
-          <span>가격 확인: {stamp(mapResponse.last_batch_at)} · 일 1회 배치 기준 참고 운임이며 최종 가격은 예약처에서 확인해야 합니다.</span>
+          <span>가격 확인: {stamp(mapResponse.last_batch_at)} · {dataModeLabel(mapResponse.diagnostics)} · 일 1회 배치 기준 참고 운임이며 최종 가격은 예약처에서 확인해야 합니다.</span>
         </div>
       </section>
 

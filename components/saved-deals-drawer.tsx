@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { href } from "@/lib/url";
+import { formatWeekNatural } from "@/lib/format-week";
 import type { BookmarkedDeal } from "@/components/bookmark-button";
 
 const STORAGE_KEY = "sky_planner_saved_deals";
@@ -139,7 +140,7 @@ export function SavedDealsDrawer() {
                           <span>·</span>
                           <span>{STAY_LABELS[item.stayBucket] ?? item.stayBucket}</span>
                           <span>·</span>
-                          <span>주간: {item.week}</span>
+                          <span>주간: {formatWeekNatural(item.week)}</span>
                         </div>
                         <div className="saved-item-price">
                           <span>최저</span>

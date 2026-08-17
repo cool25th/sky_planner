@@ -5,6 +5,9 @@ import {
   isOfferSourceEligible,
 } from "./source-policy.ts";
 import { isHiddenFare } from "./fare-freshness.ts";
+import { formatWeekNatural } from "./format-week.ts";
+
+export { formatWeekNatural };
 
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
 export const GENERATED_AT = `${TODAY_ISO}T11:30`;
@@ -556,24 +559,6 @@ function currentWeekStart() {
   const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   monday.setUTCDate(monday.getUTCDate() - (now.getUTCDay() || 7) + 1);
   return monday;
-}
-
-export function formatWeekNatural(code: string): string {
-  const match = code.match(/^(\d{4})-W(\d{2})$/);
-  if (!match) return code;
-  const year = parseInt(match[1], 10);
-  const weekNum = parseInt(match[2], 10);
-  const jan4 = new Date(Date.UTC(year, 0, 4));
-  const startDay = new Date(jan4.getTime() + ((weekNum - 1) * 7 - (jan4.getUTCDay() || 7) + 1) * 86400000);
-  const endDay = new Date(startDay.getTime() + 6 * 86400000);
-  const m1 = startDay.getUTCMonth() + 1;
-  const d1 = startDay.getUTCDate();
-  const m2 = endDay.getUTCMonth() + 1;
-  const d2 = endDay.getUTCDate();
-  if (m1 === m2) {
-    return `${m1}월 ${d1}일 ~ ${d2}일`;
-  }
-  return `${m1}월 ${d1}일 ~ ${m2}월 ${d2}일`;
 }
 
 export function availableWeeks(count = 6) {

@@ -6,6 +6,7 @@ import maplibregl, { type LngLatBoundsLike, type Map, type StyleSpecification } 
 
 import type { MapDeal, MapQuery } from "@/lib/mock-market";
 import { clusterDeals, dealMinFare, type DealCluster } from "@/lib/map-clustering";
+import { formatWeekNatural } from "@/lib/format-week";
 import { href } from "@/lib/url";
 
 const ORIGIN_COORDS: Record<string, [number, number]> = {
@@ -452,7 +453,7 @@ export function DealsMap({ deals, query, selectedCode: controlledCode, onSelectC
         </div>
         <div className="map-chip">
           <span>검색 조건</span>
-          <strong>{query.origin} · {query.week}</strong>
+          <strong>{query.origin} · {formatWeekNatural(query.week)}</strong>
         </div>
       </div>
       {selection ? (

@@ -4,7 +4,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import { BookmarkButton } from "@/components/bookmark-button";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { ShareButton } from "@/components/share-button";
-import { resolveOffersResponse } from "@/lib/data-source";
+import { dataModeLabel, resolveOffersResponse } from "@/lib/data-source";
 import { fareFreshness } from "@/lib/fare-freshness";
 import { parseOffersQuery } from "@/lib/mock-market";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
@@ -70,7 +70,7 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
               <strong>{query.destination || "목적지"}</strong>
             </div>
             <p className="summary-conditions">
-              {dateRangeLabel} · 성인 1인 · {cabinLabel} · 왕복
+              {dateRangeLabel} · 성인 1인 · {cabinLabel} · 왕복 · {dataModeLabel(offersResponse.diagnostics)}
             </p>
           </div>
           <div className="summary-banner-actions">
