@@ -32,7 +32,7 @@ DATABASE_URL=postgresql://sky_planner:sky_planner_dev@localhost:5433/sky_planner
 `npm run db:seed`는 deterministic mock market을 PostgreSQL `places`, `offers`, `deals_current`, `source_health`, `batch_state`에 적재합니다. 앱은 `DATABASE_URL`이 있으면 PostgreSQL read model을 먼저 사용하고, 실패하거나 데이터가 없으면 mock BFF로 fallback합니다.
 
 ### DB 계정 분리 (REQ-DB-002)
-`docker compose up -d db`는 `sql/init/002_roles.sh`로 `sky_planner_read`(BFF 조회 전용), `sky_planner_ingest`(배치 적재 테이블 제한 쓰기), `sky_planner_migration`(DDL) 롤을 만들고 테이블 소유권을 migration 롤로 이전합니다. 운영에서는 `DATABASE_READ_URL` / `DATABASE_INGEST_URL` / `DATABASE_MIGRATION_URL` 세 연결을 분리해 사용하고, `npm run db:migrate`는 `DATABASE_MIGRATION_URL`로 `sql/init/*.sql` DDL을 적용합니다. `npm run smoke:prod-readiness`의 `db_roles` 체크가 read 계정 쓰기 차단, ingest 계정 DDL 차단, migration 계정 DDL 허용을 실제 프로브 트랜잭션으로 검증합니다.
+`docker compose up -d db`는 `sql/init/002_roles.sql`로 `sky_planner_read`(BFF 조회 전용), `sky_planner_ingest`(배치 적재 테이블 제한 쓰기), `sky_planner_migration`(DDL) 롤을 만들고 테이블 소유권을 migration 롤로 이전합니다. 운영에서는 `DATABASE_READ_URL` / `DATABASE_INGEST_URL` / `DATABASE_MIGRATION_URL` 세 연결을 분리해 사용하고, `npm run db:migrate`는 `DATABASE_MIGRATION_URL`로 `sql/init/*.sql` DDL을 적용합니다. `npm run smoke:prod-readiness`의 `db_roles` 체크가 read 계정 쓰기 차단, ingest 계정 DDL 차단, migration 계정 DDL 허용을 실제 프로브 트랜잭션으로 검증합니다.
 
 ### Collector batch ingest 계약 확인
 ```bash

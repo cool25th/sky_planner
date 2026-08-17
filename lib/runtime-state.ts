@@ -27,7 +27,9 @@ function normalizeBatchState(data: any): BatchState | null {
 }
 
 async function getPostgresBatchState(): Promise<BatchState | null> {
-  if (!process.env.DATABASE_URL) return null;
+  // lib/db와 동일한 우선순위: BFF는 READ_URL만 가지는 경우가 운영 표준이다.
+  const connectionString = process.env.DATABASE_READ_URL || process.env.DATABASE_URL;
+  if (!connectionString) return null;
 
   try {
     const { query } = await import("./db");

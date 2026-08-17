@@ -421,7 +421,7 @@ async function resolveMapDataFromPostgres(query: MapQuery, lastBatchAt: string, 
       AND traveler = $3
       AND stay_bucket = $4
       AND is_active = true
-      AND GREATEST(COALESCE(economy_best_depart_date, DATE '1970-01-01'), COALESCE(business_best_depart_date, DATE '1970-01-01')) >= CURRENT_DATE
+      AND GREATEST(COALESCE(economy_best_depart_date, '1970-01-01'), COALESCE(business_best_depart_date, '1970-01-01')) >= to_char(CURRENT_DATE, 'YYYY-MM-DD')
   `;
   const params: any[] = [query.origin, query.week, query.traveler, query.stay_bucket];
 
