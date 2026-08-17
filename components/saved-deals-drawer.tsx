@@ -3,15 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { href } from "@/lib/url";
-import { formatWeekNatural } from "@/lib/format-week";
+import { formatMoney, formatWeekNatural } from "@/lib/format";
 import type { BookmarkedDeal } from "@/components/bookmark-button";
 
 const STORAGE_KEY = "sky_planner_saved_deals";
-
-function formatMoney(value: number | null) {
-  if (value === null || value === 0) return "-";
-  return new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(value);
-}
 
 const STAY_LABELS: Record<string, string> = {
   "3_4": "3-4일",
@@ -144,7 +139,7 @@ export function SavedDealsDrawer() {
                         </div>
                         <div className="saved-item-price">
                           <span>최저</span>
-                          <strong>{formatMoney(item.fare)}</strong>
+                          <strong>{formatMoney(item.fare || null)}</strong>
                         </div>
                       </div>
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { href } from "@/lib/url";
-import { formatWeekNatural } from "@/lib/format-week";
+import { formatWeekNatural } from "@/lib/format";
 
 export interface RecentSearchItem {
   id: string;

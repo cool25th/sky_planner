@@ -7,27 +7,8 @@ import { BookmarkButton } from "@/components/bookmark-button";
 import { DealsMap } from "@/components/deals-map";
 import { saveRecentSearch } from "@/components/recent-searches";
 import type { MapDeal, MapQuery } from "@/lib/mock-market";
+import { formatMoney, stamp } from "@/lib/format";
 import { href } from "@/lib/url";
-
-function formatMoney(value: number | null) {
-  if (value === null) return "-";
-  return new Intl.NumberFormat("ko-KR", {
-    style: "currency",
-    currency: "KRW",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function stamp(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("ko-KR", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
 
 interface MapSplitViewProps {
   deals: MapDeal[];

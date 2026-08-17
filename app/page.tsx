@@ -5,20 +5,12 @@ import { BookmarkButton } from "@/components/bookmark-button";
 import { RecentSearches } from "@/components/recent-searches";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { dataModeLabel, resolveMapResponse } from "@/lib/data-source";
+import { formatMoney, stamp } from "@/lib/format";
 import { getMetaData, parseMapQuery, formatWeekNatural, TRIP_BUCKETS } from "@/lib/mock-market";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
 import { href } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
-
-function formatMoney(value: number | null) {
-  if (value === null) return "-";
-  return new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(value);
-}
-
-function stamp(value: string) {
-  return new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
-}
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 

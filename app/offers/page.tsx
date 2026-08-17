@@ -6,6 +6,7 @@ import { ServiceUnavailableNotice } from "@/components/service-unavailable-notic
 import { ShareButton } from "@/components/share-button";
 import { dataModeLabel, resolveOffersResponse } from "@/lib/data-source";
 import { fareFreshness } from "@/lib/fare-freshness";
+import { formatCompactDate, formatMoney, formatTime } from "@/lib/format";
 import { parseOffersQuery } from "@/lib/mock-market";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
 import { href } from "@/lib/url";
@@ -13,25 +14,6 @@ import { href } from "@/lib/url";
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
-const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
-
-function formatMoney(value: number | null) {
-  if (value === null) return "-";
-  return new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(value);
-}
-
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
-}
-
-function formatCompactDate(value: string) {
-  const date = new Date(value);
-  return `${date.getMonth() + 1}/${date.getDate()} (${WEEKDAYS[date.getDay()]})`;
-}
-
-function stamp(value: string) {
-  return new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
-}
 
 export default async function OffersPage(props: { searchParams: SearchParams }) {
   const rawParams = await props.searchParams;

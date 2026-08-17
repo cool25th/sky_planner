@@ -6,7 +6,7 @@ import maplibregl, { type LngLatBoundsLike, type Map, type StyleSpecification } 
 
 import type { MapDeal, MapQuery } from "@/lib/mock-market";
 import { clusterDeals, dealMinFare, type DealCluster } from "@/lib/map-clustering";
-import { formatWeekNatural } from "@/lib/format-week";
+import { formatMoney, formatWeekNatural, stamp } from "@/lib/format";
 import { href } from "@/lib/url";
 
 const ORIGIN_COORDS: Record<string, [number, number]> = {
@@ -22,21 +22,6 @@ const STAY_BUCKET_LABELS: Record<string, string> = {
   "5_7": "5-7박",
   "8_14": "8-14박",
 };
-
-function stamp(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(date);
-}
-
-function formatMoney(value: number | null) {
-  if (value === null) return "-";
-  return new Intl.NumberFormat("ko-KR", {
-    style: "currency",
-    currency: "KRW",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
 function formatFareShort(value: number | null) {
   if (value === null) return "-";
