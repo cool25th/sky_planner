@@ -4,9 +4,11 @@ import {
   DEFAULT_ENABLED_SOURCE_FLAGS,
   isOfferSourceEligible,
 } from "./source-policy.ts";
+import { isHiddenFare } from "./fare-freshness.ts";
 
-export const GENERATED_AT = "2026-03-24T11:30";
-export const DEFAULT_LAST_BATCH_AT = "2026-03-24T02:00";
+const TODAY_ISO = new Date().toISOString().slice(0, 10);
+export const GENERATED_AT = `${TODAY_ISO}T11:30`;
+export const DEFAULT_LAST_BATCH_AT = `${TODAY_ISO}T02:00`;
 export const DEFAULT_REGION = "ALL";
 export const DEFAULT_STAY_BUCKET = "5_7";
 export const DEFAULT_TRAVELER = "adt1";
@@ -547,7 +549,10 @@ function weekStartFromCode(week: string) {
 }
 
 function currentWeekStart() {
-  return new Date(Date.UTC(2026, 2, 23));
+  const now = new Date();
+  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  monday.setUTCDate(monday.getUTCDate() - (now.getUTCDay() || 7) + 1);
+  return monday;
 }
 
 export function availableWeeks(count = 6) {
@@ -1173,6 +1178,7 @@ export function getSearchResults(query: SearchQuery, lastBatchAt = DEFAULT_LAST_
   for (const week of availableWeeks()) {
     const weekOffers = buildMarket(week.code, lastBatchAt).filter((offer) => {
       if (offer.origin !== query.origin) return false;
+      if (offer.depart_date < todayIso()) return false;
       if (!searchedDestinationCodes.has(offer.destination_code)) return false;
       if (offer.traveler !== query.traveler) return false;
       if (offer.stay_nights < minNights || offer.stay_nights > maxNights) return false;
@@ -1193,6 +1199,10 @@ export function getSearchResults(query: SearchQuery, lastBatchAt = DEFAULT_LAST_
   );
 }
 
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function filterOffers(
   offers: Offer[],
   query: {
@@ -1210,6 +1220,7 @@ function filterOffers(
   },
 ) {
   return offers.filter((offer) => {
+    if (offer.depart_date < todayIso()) return false;
     if (query.origin === "SEL") {
       if (offer.origin !== "ICN" && offer.origin !== "GMP") return false;
     } else if (offer.origin !== query.origin) {
@@ -1450,7 +1461,9 @@ export function getOffersData(query: OffersQuery, lastBatchAt: string, sourceFla
     airlines: query.airline,
     stops: query.stops,
     sourceFlags,
-  }).sort((a, b) => a.price_total - b.price_total || a.airline_code.localeCompare(b.airline_code));
+  })
+    .filter((offer) => !isHiddenFare(offer.last_seen_at || offer.last_batch_at))
+    .sort((a, b) => a.price_total - b.price_total || a.airline_code.localeCompare(b.airline_code));
 
   return {
     origin: query.origin,

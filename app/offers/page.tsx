@@ -5,6 +5,7 @@ import { BookmarkButton } from "@/components/bookmark-button";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { ShareButton } from "@/components/share-button";
 import { resolveOffersResponse } from "@/lib/data-source";
+import { fareFreshness } from "@/lib/fare-freshness";
 import { parseOffersQuery } from "@/lib/mock-market";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
 import { href } from "@/lib/url";
@@ -148,7 +149,9 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
         {serviceUnavailable ? (
           <ServiceUnavailableNotice diagnostics={offersResponse.diagnostics} />
         ) : offersData.offers.length ? (
-          offersData.offers.map((offer) => (
+          offersData.offers.map((offer) => {
+            const freshness = fareFreshness(offer.last_seen_at || offer.last_batch_at);
+            return (
             <article key={offer.offer_id} className="offer-card">
               <div className="offer-head">
                 <div>
@@ -175,9 +178,15 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
                       week={query.week}
                       stayBucket="5_7"
                     />
-                    <a className="cta-link" href={offer.deep_link} target="_blank" rel="noreferrer">
-                      예약처에서 가격 확인 →
-                    </a>
+                    {freshness.level === "cta_disabled" ? (
+                      <span className="cta-link is-disabled" aria-disabled="true" title="확인된 지 28시간이 넘은 가격입니다. 갱신 후 이용할 수 있습니다.">
+                        가격 갱신 대기 중
+                      </span>
+                    ) : (
+                      <a className="cta-link" href={offer.deep_link} target="_blank" rel="noreferrer">
+                        예약처에서 가격 확인 →
+                      </a>
+                    )}
                   </div>
                   <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                     {offer.discount_pct_30 > 10 ? (
@@ -185,7 +194,11 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
                         평균 대비 {offer.discount_pct_30}% 저렴
                       </span>
                     ) : null}
-                    <span className="price-status-badge">최근 확인 운임</span>
+                    {freshness.level === "fresh" ? (
+                      <span className="price-status-badge">최근 확인 운임</span>
+                    ) : (
+                      <span className="price-status-badge is-delayed">업데이트 지연 · {Math.floor(freshness.ageHours)}시간 전 확인</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -216,7 +229,8 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
                 <span>가격 확인: {stamp(offer.last_seen_at || offer.last_batch_at)}</span>
               </div>
             </article>
-          ))
+            );
+          })
         ) : (
           <div className="empty-state">선택한 조건에 맞는 항공편 옵션이 없습니다.</div>
         )}

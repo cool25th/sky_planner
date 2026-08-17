@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { MockRepository } from "../lib/data/mock-repository.ts";
+import { availableWeeks } from "../lib/mock-market.ts";
 import { calculateEstimatedWrites, validateWriteQuota, QUOTA_LIMITS } from "../lib/quota/guard.ts";
 
 test("MockRepository satisfies FlightDataRepository contract", async () => {
@@ -12,7 +13,7 @@ test("MockRepository satisfies FlightDataRepository contract", async () => {
 
   const deals = await repo.getMapDeals({
     origin: "ICN",
-    week: "2026-W13",
+    week: availableWeeks()[0].code,
     region: "ALL",
     cabin: "ALL",
     stay_bucket: "5_7",
@@ -20,6 +21,16 @@ test("MockRepository satisfies FlightDataRepository contract", async () => {
   });
   assert.ok(Array.isArray(deals));
   assert.ok(deals.length > 0);
+
+  const pastDeals = await repo.getMapDeals({
+    origin: "ICN",
+    week: "2026-W13",
+    region: "ALL",
+    cabin: "ALL",
+    stay_bucket: "5_7",
+    traveler: "adt1",
+  });
+  assert.equal(pastDeals.length, 0);
 
   const health = await repo.getSourceHealth();
   assert.equal(health.status, "ready");

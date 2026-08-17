@@ -32,6 +32,7 @@ import {
 } from "@/lib/mock-market";
 import { getBatchState } from "@/lib/runtime-state";
 import { query as pgQuery } from "@/lib/db";
+import { isHiddenFare } from "@/lib/fare-freshness";
 import { serviceApiReadinessBlockReason } from "@/lib/service-api-readiness";
 import { buildSourceReadinessSnapshot } from "@/lib/source-readiness";
 import { serviceRequiresPostgres } from "@/lib/service-mode";
@@ -420,6 +421,7 @@ async function resolveMapDataFromPostgres(query: MapQuery, lastBatchAt: string, 
       AND traveler = $3
       AND stay_bucket = $4
       AND is_active = true
+      AND GREATEST(COALESCE(economy_best_depart_date, DATE '1970-01-01'), COALESCE(business_best_depart_date, DATE '1970-01-01')) >= CURRENT_DATE
   `;
   const params: any[] = [query.origin, query.week, query.traveler, query.stay_bucket];
 
@@ -523,9 +525,10 @@ async function resolveCalendarDataFromPostgres(query: CalendarQuery, lastBatchAt
       AND o.destination_city_id = $2
       AND o.week = $3
       AND o.traveler = $4
-      AND o.stay_bucket = $5
-      AND o.is_active = true
-      AND COALESCE(o.bookability_status, 'available') <> 'sold_out'
+    AND o.stay_bucket = $5
+    AND o.is_active = true
+    AND o.depart_date >= CURRENT_DATE
+    AND COALESCE(o.bookability_status, 'available') <> 'sold_out'
       AND COALESCE(o.price_status, 'active') <> 'sold_out'
       AND COALESCE(o.price_anomaly_status, 'normal') = 'normal'
       AND COALESCE(o.quality_bucket, 'preferred') <> 'excluded'
@@ -594,6 +597,7 @@ async function resolveOffersDataFromPostgres(query: OffersQuery, lastBatchAt: st
       AND o.return_date = $4
       AND o.traveler = $5
       AND o.is_active = true
+      AND o.depart_date >= CURRENT_DATE
       AND (
         LOWER(COALESCE(o.booking_source, '')) = ANY($6::text[])
         OR (
@@ -616,6 +620,7 @@ async function resolveOffersDataFromPostgres(query: OffersQuery, lastBatchAt: st
 
   const offers = allOffers
     .filter((offer) => {
+      if (isHiddenFare(offer.last_seen_at || offer.last_batch_at)) return false;
       if (query.cabin !== "ALL" && offer.cabin_group !== query.cabin) return false;
       if (query.airline.length && !query.airline.includes(offer.airline_code)) return false;
       if (query.stops !== "ALL" && String(offer.stops) !== query.stops) return false;
@@ -738,6 +743,7 @@ async function resolveSearchDataFromPostgres(query: SearchQuery, lastBatchAt: st
       AND o.destination_city_id = ANY($2::text[])
       AND o.traveler = $3
       AND o.is_active = true
+      AND o.depart_date >= CURRENT_DATE
       AND COALESCE(o.bookability_status, 'available') <> 'sold_out'
       AND COALESCE(o.price_status, 'active') <> 'sold_out'
       AND COALESCE(o.price_anomaly_status, 'normal') = 'normal'
