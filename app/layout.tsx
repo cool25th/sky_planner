@@ -28,6 +28,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Sky Planner Atlas | 지도 기반 항공 특가 탐색",
     description: "한국 출발 항공 특가를 지도와 날짜 축으로 탐색하는 스마트 항공 플래너",
+    images: ["/og-image.png"],
   },
 };
 
