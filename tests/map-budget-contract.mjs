@@ -24,3 +24,15 @@ test("invalid budget values fall back to no limit", () => {
   assert.equal(parseMapQuery({ origin: "ICN", budget: "-5" }).budget, null);
   assert.equal(parseMapQuery({ origin: "ICN", budget: "400000.7" }).budget, 400000);
 });
+
+test("seoul-wide search attributes each deal's best fare to ICN or GMP", () => {
+  const deals = getMapData(parseMapQuery({ origin: "SEL" })).deals;
+  assert.ok(deals.length > 0);
+  for (const deal of deals) {
+    assert.ok(
+      deal.best_origin_by_cabin.ECONOMY === "ICN" || deal.best_origin_by_cabin.ECONOMY === "GMP",
+      `${deal.destination_code} best economy origin missing`,
+    );
+  }
+  assert.ok(deals.length >= getMapData(parseMapQuery({ origin: "ICN" })).deals.length);
+});

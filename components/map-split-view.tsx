@@ -14,10 +14,11 @@ interface MapSplitViewProps {
   deals: MapDeal[];
   query: MapQuery;
   lastBatchAt: string;
+  lastSeenAt: string | null;
   dataMode: string;
 }
 
-export function MapSplitView({ deals, query, lastBatchAt, dataMode }: MapSplitViewProps) {
+export function MapSplitView({ deals, query, lastBatchAt, lastSeenAt, dataMode }: MapSplitViewProps) {
   const [selectedCode, setSelectedCode] = useState<string | null>(deals[0]?.destination_code ?? null);
   const listContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -54,7 +55,9 @@ export function MapSplitView({ deals, query, lastBatchAt, dataMode }: MapSplitVi
             </span>
             <span className="results-sub">왕복 총액 · 성인 1인 · 세금 포함</span>
           </div>
-          <span className="last-batch-tag">최근 확인 {stamp(lastBatchAt)} · {dataMode}</span>
+          <span className="last-batch-tag">
+            게시 {stamp(lastBatchAt)}{lastSeenAt ? ` · 관측 ${stamp(lastSeenAt)}` : ""} · {dataMode}
+          </span>
         </div>
 
         {deals.length === 0 ? (
@@ -74,6 +77,9 @@ export function MapSplitView({ deals, query, lastBatchAt, dataMode }: MapSplitVi
           <div ref={listContainerRef} className="destination-items-scroll">
             {deals.map((deal) => {
               const isSelected = selectedCode === deal.destination_code;
+              const bestOrigin = query.cabin === "BUSINESS"
+                ? deal.best_origin_by_cabin?.BUSINESS
+                : deal.best_origin_by_cabin?.ECONOMY;
               return (
                 <article
                   key={deal.destination_code}
@@ -102,6 +108,7 @@ export function MapSplitView({ deals, query, lastBatchAt, dataMode }: MapSplitVi
                       <div>
                         <span className="fare-sub">
                           {query.cabin === "BUSINESS" ? "비즈니스석 왕복" : "일반석 왕복"}
+                          {query.origin === "SEL" && bestOrigin ? ` · ${bestOrigin === "GMP" ? "김포" : "인천"} 출발 최저` : ""}
                         </span>
                         <strong className="fare-value">
                           {formatMoney(

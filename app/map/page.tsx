@@ -95,7 +95,13 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
       {serviceUnavailable ? (
         <ServiceUnavailableNotice diagnostics={mapResponse.diagnostics} />
       ) : (
-        <MapSplitView deals={map.deals} query={query} lastBatchAt={lastBatchAt} dataMode={dataModeLabel(mapResponse.diagnostics)} />
+        <MapSplitView
+          deals={map.deals}
+          query={query}
+          lastBatchAt={lastBatchAt}
+          lastSeenAt={map.summary.last_seen_at}
+          dataMode={dataModeLabel(mapResponse.diagnostics)}
+        />
       )}
     </main>
   );

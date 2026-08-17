@@ -3,6 +3,7 @@ import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
 
 import { BookmarkButton } from "@/components/bookmark-button";
+import { RecentDestinationTracker } from "@/components/recent-destinations";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { MatrixKeyboardNavigator } from "@/components/matrix-keyboard-navigator";
 import { ShareButton } from "@/components/share-button";
@@ -127,6 +128,13 @@ export default async function DestinationPage(props: { params: Params; searchPar
             <Link href={href(`/destination/${placeId}`, { ...query, week: availableWeeks(1)[0].code })}>이번 주간으로 다시 검색</Link>해 보세요.
           </span>
         </div>
+      )}
+      {calendar.destination && (
+        <RecentDestinationTracker
+          code={calendar.destination.code}
+          city={calendar.destination.city}
+          country={calendar.destination.country}
+        />
       )}
       {/* 1. Compact Destination Header */}
       {calendar.destination && (

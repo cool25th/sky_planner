@@ -140,6 +140,7 @@ export interface MapDeal {
   economy_price_status: "active" | "stale" | "sold_out" | null;
   business_price_status: "active" | "stale" | "sold_out" | null;
   best_airline_by_cabin: { ECONOMY: string | null; BUSINESS: string | null };
+  best_origin_by_cabin: { ECONOMY: string | null; BUSINESS: string | null };
   representative_links: { ECONOMY: string | null; BUSINESS: string | null };
   last_batch_at: string;
   last_seen_at: string;
@@ -1310,6 +1311,7 @@ export function getMapData(query: MapQuery, lastBatchAt: string, sourceFlags = A
       economy_price_status: null,
       business_price_status: null,
       best_airline_by_cabin: { ECONOMY: null, BUSINESS: null },
+      best_origin_by_cabin: { ECONOMY: null, BUSINESS: null },
       representative_links: { ECONOMY: null, BUSINESS: null },
       last_batch_at: offer.last_batch_at,
       last_seen_at: offer.last_seen_at,
@@ -1318,12 +1320,14 @@ export function getMapData(query: MapQuery, lastBatchAt: string, sourceFlags = A
       source_mix: new Set<string>(),
     } satisfies MapDealAccumulator;
     const bestByCabin = current.best_airline_by_cabin as { ECONOMY: string | null; BUSINESS: string | null };
+    const bestOrigin = current.best_origin_by_cabin as { ECONOMY: string | null; BUSINESS: string | null };
     const links = current.representative_links as { ECONOMY: string | null; BUSINESS: string | null };
     if (offer.cabin_group === "ECONOMY" && ((current.economy_min_total as number | null) === null || offer.price_total < (current.economy_min_total as number))) {
       current.economy_min_total = offer.price_total;
       current.economy_discount_pct = Math.max(offer.discount_pct_30, offer.discount_pct_90);
       current.economy_price_status = offer.price_status;
       bestByCabin.ECONOMY = offer.airline_code;
+      bestOrigin.ECONOMY = offer.origin;
       links.ECONOMY = offer.deep_link;
     }
     if (offer.cabin_group === "BUSINESS" && ((current.business_min_total as number | null) === null || offer.price_total < (current.business_min_total as number))) {
@@ -1331,6 +1335,7 @@ export function getMapData(query: MapQuery, lastBatchAt: string, sourceFlags = A
       current.business_discount_pct = Math.max(offer.discount_pct_30, offer.discount_pct_90);
       current.business_price_status = offer.price_status;
       bestByCabin.BUSINESS = offer.airline_code;
+      bestOrigin.BUSINESS = offer.origin;
       links.BUSINESS = offer.deep_link;
     }
     for (const flag of offer.warning_flags) (current.warning_flags as Set<string>).add(flag);

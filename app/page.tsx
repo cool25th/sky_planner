@@ -3,6 +3,7 @@ import { unstable_noStore as noStore } from "next/cache";
 
 import { BookmarkButton } from "@/components/bookmark-button";
 import { RecentSearches } from "@/components/recent-searches";
+import { RecentDestinations } from "@/components/recent-destinations";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { dataModeLabel, resolveMapResponse } from "@/lib/data-source";
 import { formatMoney, stamp } from "@/lib/format";
@@ -176,6 +177,7 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
 
             {/* 최근 검색 조건 */}
             <RecentSearches />
+            <RecentDestinations />
           </div>
         </div>
       </section>

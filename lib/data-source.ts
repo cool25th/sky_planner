@@ -287,6 +287,8 @@ function mapDealFromSql(row: any, fallbackBatchAt: string): MapDeal {
       ECONOMY: row.economy_representative_airline ?? null,
       BUSINESS: row.business_representative_airline ?? null,
     },
+    // ponytail: null until deals_current gains representative origin columns
+    best_origin_by_cabin: { ECONOMY: null, BUSINESS: null },
     representative_links: {
       ECONOMY: row.economy_deep_link ?? null,
       BUSINESS: row.business_deep_link ?? null,
