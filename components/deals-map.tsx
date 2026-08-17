@@ -9,6 +9,7 @@ import { clusterDeals, dealMinFare, type DealCluster } from "@/lib/map-clusterin
 import { href } from "@/lib/url";
 
 const ORIGIN_COORDS: Record<string, [number, number]> = {
+  SEL: [126.9780, 37.5665],
   ICN: [126.4407, 37.4602],
   GMP: [126.7906, 37.5583],
   PUS: [128.9383, 35.1795],
@@ -146,6 +147,7 @@ export function DealsMap({ deals, query }: DealsMapProps) {
   const [clusters, setClusters] = useState<DealCluster<MapDeal>[]>(() =>
     deals.map((deal) => ({ deals: [deal], representative: deal, min_fare: dealMinFare(deal) })),
   );
+  const [sheetState, setSheetState] = useState<"peek" | "half" | "full">("half");
   const clusterSignatureRef = useRef("");
 
   const camera = useMemo(() => cameraForDeals(deals), [deals]);
@@ -319,8 +321,8 @@ export function DealsMap({ deals, query }: DealsMapProps) {
         markerEl.className = `deal-marker ${selectedCode === deal.destination_code ? "is-selected" : ""}`;
         markerEl.setAttribute("aria-label", `${deal.city} 최저가 ${formatMoney(deal.economy_min_total ?? deal.business_min_total)}`);
         markerEl.innerHTML = `
-          <span class="deal-marker__city">${deal.city}</span>
           <span class="deal-marker__fare">${formatMoney(deal.economy_min_total ?? deal.business_min_total)}</span>
+          <span class="deal-marker__city">${deal.city}</span>
         `;
         markerEl.addEventListener("mouseenter", () => setSelectedCode(deal.destination_code));
         markerEl.addEventListener("click", () => {
@@ -409,16 +411,31 @@ export function DealsMap({ deals, query }: DealsMapProps) {
       <div ref={containerRef} className="map-canvas" />
       <div className="map-overlay map-overlay--top">
         <div className="map-chip">
-          <span>Visible</span>
-          <strong>{visibleCount}</strong>
+          <span>표시된 도시</span>
+          <strong>{visibleCount}개</strong>
         </div>
         <div className="map-chip">
-          <span>Batch Scope</span>
+          <span>검색 조건</span>
           <strong>{query.origin} · {query.week}</strong>
         </div>
       </div>
       {selection ? (
-        <div className="map-overlay map-overlay--bottom">
+        <div className={`map-overlay map-overlay--bottom map-bottom-sheet is-sheet-${sheetState}`}>
+          <div className="sheet-drag-bar">
+            <button
+              type="button"
+              className="sheet-drag-handle"
+              aria-label={`바텀시트 크기 조절 (현재: ${sheetState === "peek" ? "접힘" : sheetState === "half" ? "중간" : "전체"})`}
+              onClick={() => {
+                setSheetState((prev) => (prev === "peek" ? "half" : prev === "half" ? "full" : "peek"));
+              }}
+            >
+              <span className="sheet-handle-indicator" />
+              <span className="sheet-handle-label">
+                {sheetState === "peek" ? "▲ 특가 정보 보기" : sheetState === "half" ? "▲ 더보기" : "▼ 접기"}
+              </span>
+            </button>
+          </div>
           <div className="map-selection">
             <div>
               <p className="section-kicker">{selection.region_label}</p>
@@ -426,9 +443,9 @@ export function DealsMap({ deals, query }: DealsMapProps) {
               <p className="panel-note">{selection.country}</p>
               <p className="panel-note">
                 {STAY_BUCKET_LABELS[query.stay_bucket] ?? query.stay_bucket} ·{" "}
-                {query.cabin === "BUSINESS" ? "비즈니스" : query.cabin === "ECONOMY" ? "이코노미" : "전체 캐빈"} · 왕복 · 세금 포함 KRW
+                {query.cabin === "BUSINESS" ? "비즈니스석" : query.cabin === "ECONOMY" ? "일반석" : "전체 좌석"} · 왕복 · 세금 포함 KRW
               </p>
-              <p className="panel-note">가격 확인 {stamp(selection.last_seen_at)} · 배치 기준 {stamp(selection.last_batch_at)}</p>
+              <p className="panel-note">가격 확인: {stamp(selection.last_seen_at || selection.last_batch_at)}</p>
               <button
                 type="button"
                 className="map-selection__cta"
@@ -444,16 +461,16 @@ export function DealsMap({ deals, query }: DealsMapProps) {
                   );
                 }}
               >
-                {selection.city} 오퍼 상세 보기
+                {selection.city} 날짜별 특가 보기 →
               </button>
             </div>
             <div className="map-selection__fares">
               <div>
-                <span>Eco</span>
+                <span>일반석</span>
                 <strong>{formatMoney(selection.economy_min_total)}</strong>
               </div>
               <div>
-                <span>Biz</span>
+                <span>비즈니스석</span>
                 <strong>{formatMoney(selection.business_min_total)}</strong>
               </div>
             </div>
