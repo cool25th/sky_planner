@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
 
+import { BookmarkButton } from "@/components/bookmark-button";
 import { DealsMap } from "@/components/deals-map";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { resolveMapResponse, resolveMetaResponse } from "@/lib/data-source";
@@ -23,8 +24,11 @@ function formatMoney(value: number | null) {
 function sourceLabel(flag: string) {
   const labels: Record<string, string> = {
     skyscanner_affiliate: "Skyscanner",
-    korean_air_official: "대한항공 공식",
-    asiana_official: "아시아나 공식",
+    korean_air_official: "대한항공",
+    asiana_official: "아시아나항공",
+    google_flights_direct: "Google Flights",
+    kayak_direct: "KAYAK",
+    official_promo_pages: "항공사 프로모션",
   };
   return labels[flag] ?? flag;
 }
@@ -55,28 +59,28 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
     <main className="page-grid">
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow">Route Atlas</p>
-          <h1>차분한 예약 보드에서 목적지와 대표가를 먼저 고릅니다</h1>
+          <p className="eyebrow">특가 지도</p>
+          <h1>예산과 기간에 맞는 목적지를 지도에서 발견하세요</h1>
           <p className="hero-text">
-            지역 단위로 정리된 배치 운임을 밝은 지도로 보여주고, 선택 상태만 네이비 톤으로 집중시킵니다. 이코노미와 비즈니스 가격은 같은 표면 안에서 조용하게 비교되도록 정리했습니다.
+            한국 출발 주요 취항지의 최저가와 추천 일정을 지도에서 한눈에 확인하고, 마음에 드는 목적지의 날짜 조합을 탐색할 수 있습니다.
           </p>
           <div className="hero-badges">
-            <span className="hero-badge">성인 1인</span>
-            <span className="hero-badge">일 1회 갱신</span>
-            <span className="hero-badge">체류 버킷 {TRIP_BUCKETS.find((item) => item.code === query.stay_bucket)?.label}</span>
+            <span className="hero-badge">왕복 총액 기준</span>
+            <span className="hero-badge">성인 1인 · 세금 포함</span>
+            <span className="hero-badge">여행 기간 {TRIP_BUCKETS.find((item) => item.code === query.stay_bucket)?.label}</span>
           </div>
         </div>
         <div className="hero-metrics">
           <article className="metric-card">
-            <span className="metric-label">Board Size</span>
-            <strong>{serviceUnavailable ? "중단" : `${map.summary.destinations}곳`}</strong>
+            <span className="metric-label">검색 결과</span>
+            <strong>{serviceUnavailable ? "중단" : `${map.summary.destinations}개 도시`}</strong>
           </article>
           <article className="metric-card">
-            <span className="metric-label">Best Visible Fare</span>
+            <span className="metric-label">지도 내 최저가</span>
             <strong>{serviceUnavailable ? "점검 중" : formatMoney(lowestFare)}</strong>
           </article>
           <article className="metric-card">
-            <span className="metric-label">Updated</span>
+            <span className="metric-label">가격 확인</span>
             <strong>{stamp(lastBatchAt)}</strong>
           </article>
         </div>
@@ -84,15 +88,15 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
 
       <section className="panel batch-strip">
         <div className="batch-stat">
-          <span className="metric-label">Batch</span>
-          <strong>{stamp(lastBatchAt)}</strong>
+          <span className="metric-label">데이터 기준</span>
+          <strong>최근 업데이트 {stamp(lastBatchAt)}</strong>
         </div>
         <div className="batch-stat">
-          <span className="metric-label">Traveler</span>
-          <strong>성인 1인 · 일 1회 갱신</strong>
+          <span className="metric-label">검색 조건</span>
+          <strong>성인 1인 · 왕복 · 세금 포함</strong>
         </div>
         <div className="batch-stat">
-          <span className="metric-label">Enabled Sources</span>
+          <span className="metric-label">비교 채널</span>
           <strong>{mapResponse.source_flags.map(sourceLabel).join(" · ")}</strong>
         </div>
       </section>
@@ -153,7 +157,7 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
           </div>
 
           <div className="field grow">
-            <span>지도 캐빈</span>
+            <span>좌석 등급</span>
             <div className="chip-row">
               {meta.cabins.map((cabin) => (
                 <Link
@@ -168,7 +172,7 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
           </div>
 
           <div className="field grow">
-            <span>체류 버킷</span>
+            <span>여행 기간</span>
             <div className="chip-row">
               {meta.trip_buckets
                 .filter((bucket) => bucket.code !== "ALL")
@@ -184,8 +188,24 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
             </div>
           </div>
         </div>
-        <p className="panel-note">
-          {meta.prototype_note} 반복 조회는 Vercel 캐시를 전제로 하고, 최종 결제 금액은 예약처에서 확인해야 합니다.
+
+        <div className="theme-filter-row" style={{ marginTop: "14px", paddingTop: "12px", borderTop: "1px dashed rgba(14, 49, 86, 0.08)", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px" }}>
+          <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--accent)" }}>추천 테마:</span>
+          <Link href={href("/map", { ...query, stay_bucket: "3_4" })} className={`chip chip--sm ${query.stay_bucket === "3_4" ? "is-active" : ""}`}>
+            🏖️ 주말/연차 1일 (3~4일)
+          </Link>
+          <Link href={href("/map", { ...query, stay_bucket: "5_7" })} className={`chip chip--sm ${query.stay_bucket === "5_7" ? "is-active" : ""}`}>
+            ✈️ 알찬 1주일 (5~7일)
+          </Link>
+          <Link href={href("/map", { ...query, region: "JAPAN" })} className={`chip chip--sm ${query.region === "JAPAN" ? "is-active" : ""}`}>
+            🍣 일본 특가
+          </Link>
+          <Link href={href("/map", { ...query, region: "SEA" })} className={`chip chip--sm ${query.region === "SEA" ? "is-active" : ""}`}>
+            🌴 동남아 휴양지
+          </Link>
+        </div>
+        <p className="panel-note" style={{ marginTop: "10px" }}>
+          표시된 가격은 최근 수집된 대표 운임(왕복 총액)이며, 실시간 좌석 상황 및 최종 결제 금액은 예약처에서 확인해야 합니다.
         </p>
       </section>
 
@@ -193,11 +213,11 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
         <section className="panel">
           <div className="panel-head">
           <div>
-              <p className="section-kicker">Flight Surface</p>
-              <h2>지역과 도시별 대표 특가</h2>
+              <p className="section-kicker">특가 지도</p>
+              <h2>목적지별 최저가</h2>
           </div>
             <div className="selection-pill">
-              {query.origin} · {query.week} · {TRIP_BUCKETS.find((item) => item.code === query.stay_bucket)?.label}
+              {query.origin === "SEL" ? "서울 전체 (인천/김포)" : query.origin} · {query.week} · {TRIP_BUCKETS.find((item) => item.code === query.stay_bucket)?.label}
             </div>
           </div>
 
@@ -207,44 +227,60 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
         <aside className="panel region-group">
           <div className="panel-head">
             <div>
-              <p className="section-kicker">Fare List</p>
-              <h2>지역별 대표가</h2>
+              <p className="section-kicker">목적지 목록</p>
+              <h2>대표 특가 순위</h2>
             </div>
-            <div className="selection-pill">{map.deals.length} deals</div>
+            <div className="selection-pill">{map.deals.length}개 도시</div>
           </div>
 
           {map.deals.map((deal) => (
-            <Link
-              key={deal.destination_code}
-              href={href(`/destination/${deal.destination_code}`, {
-                origin: query.origin,
-                week: query.week,
-                stay_bucket: query.stay_bucket,
-                traveler: query.traveler,
-                cabin: query.cabin,
-                airlines: query.airlines.join(",") || null,
-              })}
-              className="deal-row"
-            >
-              <div className="deal-top">
-                <div className="deal-title">
-                  <strong>{deal.city}</strong>
-                  <span>{deal.country}</span>
+            <div key={deal.destination_code} className="deal-row-wrapper" style={{ position: "relative" }}>
+              <Link
+                href={href(`/destination/${deal.destination_code}`, {
+                  origin: query.origin,
+                  week: query.week,
+                  stay_bucket: query.stay_bucket,
+                  traveler: query.traveler,
+                  cabin: query.cabin,
+                  airlines: query.airlines.join(",") || null,
+                })}
+                className="deal-row"
+              >
+                <div className="deal-top">
+                  <div className="deal-title">
+                    <strong>{deal.city}</strong>
+                    <span>{deal.country}</span>
+                  </div>
+                  <span className="pill">{deal.region_label}</span>
                 </div>
-                <span className="pill">{deal.region_label}</span>
+                <div className="stack">
+                  <div className="price-line">
+                    <span>일반석</span>
+                    <strong>{formatMoney(deal.economy_min_total as number | null)}</strong>
+                  </div>
+                  <div className="price-line">
+                    <span>비즈니스석</span>
+                    <strong>{formatMoney(deal.business_min_total as number | null)}</strong>
+                  </div>
+                </div>
+                <div className="table-note">
+                  {deal.economy_discount_pct && deal.economy_discount_pct > 10 ? (
+                    <span className="discount-tag" style={{ color: "#047857", fontWeight: 600, marginRight: "6px" }}>
+                      평균 대비 {deal.economy_discount_pct}% 저렴
+                    </span>
+                  ) : null}
+                  <span>가격 확인 {stamp(String(deal.last_batch_at))}</span>
+                </div>
+              </Link>
+              <div style={{ position: "absolute", top: "12px", right: "12px", zIndex: 2 }}>
+                <BookmarkButton
+                  deal={deal}
+                  origin={query.origin}
+                  week={query.week}
+                  stayBucket={query.stay_bucket}
+                />
               </div>
-              <div className="stack">
-                <div className="price-line">
-                  <span>Eco</span>
-                  <strong>{formatMoney(deal.economy_min_total as number | null)}</strong>
-                </div>
-                <div className="price-line">
-                  <span>Biz</span>
-                  <strong>{formatMoney(deal.business_min_total as number | null)}</strong>
-                </div>
-              </div>
-              <div className="table-note">마지막 배치 {stamp(String(deal.last_batch_at))}</div>
-            </Link>
+            </div>
           ))}
         </aside>
       </section>
@@ -252,7 +288,7 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
       <section className="panel">
         <div className="panel-head">
           <div>
-            <p className="section-kicker">Airline Lens</p>
+            <p className="section-kicker">항공사</p>
             <h2>항공사 필터</h2>
           </div>
         </div>
@@ -281,8 +317,8 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
         <section className="panel">
           <div className="panel-head">
             <div>
-              <p className="section-kicker">Next Step</p>
-              <h2>{selectedDeal.city} 날짜 매트릭스로 이동</h2>
+              <p className="section-kicker">다음 단계</p>
+              <h2>{selectedDeal.city} 저렴한 날짜 조합 보기</h2>
             </div>
           </div>
           <Link
@@ -296,7 +332,7 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
             })}
             className="cta-link"
           >
-            {selectedDeal.city} 날짜 매트릭스 보기
+            {selectedDeal.city} 날짜 매트릭스 탐색
           </Link>
         </section>
       ) : null}

@@ -32,19 +32,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="ambient ambient-right" />
         <div className="site-shell">
           <div className="beta-banner">
-            <span><strong>Limited Beta:</strong> 비상업적 제한 공개 베타 버전입니다. 실제 예약 및 결제는 제휴처/항공사 공식 페이지에서 진행됩니다.</span>
+            <span><strong>데모 데이터 안내:</strong> 본 서비스는 항공권 탐색을 위한 데모 데이터 및 예시 운임을 제공합니다. 실제 예약 및 최종 결제 금액은 해당 항공사 및 예약처에서 확인하시기 바랍니다.</span>
           </div>
           <header className="site-header">
             <Link href="/" className="site-brand">
               Sky Planner Atlas
             </Link>
             <nav className="site-nav">
-              <Link href="/fare-board">Fare Board</Link>
-              <Link href="/map">Map</Link>
-              <Link href="/offers">Offers</Link>
-              <Link href="/service-readiness">Status</Link>
-              <Link href="/policies">Policies</Link>
-              <a href="/api/meta">API</a>
+              <Link href="/map">특가 지도</Link>
+              <Link href="/offers">항공편 비교</Link>
+              <Link href="/policies">가격 안내</Link>
+              <Link href="/service-readiness">서비스 상태</Link>
             </nav>
           </header>
           {children}
@@ -52,11 +50,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="site-footer__links">
               <Link href="/terms">이용약관</Link>
               <Link href="/privacy">개인정보처리방침</Link>
-              <Link href="/affiliate-disclosure">제휴고지</Link>
+              <Link href="/affiliate-disclosure">가격 데이터 안내</Link>
               <Link href="/policies">운영정책</Link>
             </div>
             <p className="site-footer__copy">
-              &copy; 2026 Sky Planner Atlas. Non-commercial Limited Beta on Firebase Spark Plan.
+              &copy; 2026 Sky Planner Atlas. 한국 출발 여행자를 위한 지도 기반 항공권 탐색 서비스.
             </p>
           </footer>
         </div>

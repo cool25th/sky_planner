@@ -463,6 +463,40 @@ a {
   bottom: 16px;
 }
 
+.sheet-drag-bar {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.sheet-drag-handle {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 140px;
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.sheet-handle-indicator {
+  width: 40px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(14, 49, 86, 0.24);
+  margin-bottom: 4px;
+}
+
+.sheet-handle-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
 .map-chip,
 .map-selection {
   pointer-events: auto;
@@ -549,8 +583,9 @@ a {
 }
 
 .deal-marker__city {
-  font-size: 0.86rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 500;
+  opacity: 0.85;
 }
 
 .deal-marker--cluster {
@@ -566,7 +601,7 @@ a {
 }
 
 .deal-marker__cluster-count {
-  color: var(--gold);
+  color: #fbbf24;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -590,8 +625,102 @@ a {
 }
 
 .deal-marker__fare {
-  color: var(--gold);
-  font-size: 0.86rem;
+  color: #b45309;
+  font-size: 0.96rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.deal-marker:hover .deal-marker__fare,
+.deal-marker.is-selected .deal-marker__fare {
+  color: #fbbf24;
+}
+
+.bookmark-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(14, 49, 86, 0.12);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  font-size: 1.05rem;
+  transition: transform 160ms ease, background 160ms ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.bookmark-btn:hover {
+  transform: scale(1.12);
+  background: #ffffff;
+}
+
+.chip--sm {
+  font-size: 0.76rem !important;
+  padding: 4px 10px !important;
+  border-radius: 999px !important;
+}
+
+.offer-action-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.price-status-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #047857;
+  background: #ecfdf5;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(4, 120, 87, 0.2);
+}
+
+.offer-route-line {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.85);
+  border: 1px solid rgba(14, 49, 86, 0.06);
+}
+
+.route-leg {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.92rem;
+}
+
+.route-tag {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #1e3a8a;
+  background: rgba(30, 58, 138, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.route-arrow {
+  color: #94a3b8;
+  font-size: 0.78rem;
+  letter-spacing: -2px;
+}
+
+.next-day-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #b91c1c;
+  background: #fee2e2;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .pin-city,
@@ -648,6 +777,136 @@ a {
   transform: translateY(-1px);
   border-color: rgba(14, 74, 124, 0.18);
   box-shadow: 0 18px 34px rgba(24, 41, 61, 0.1);
+}
+
+/* Top Recommended Dates Styles */
+.top-dates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.top-date-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(14, 49, 86, 0.1);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.top-date-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(37, 99, 235, 0.3);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.12);
+}
+
+.top-date-card.is-best {
+  border: 1.5px solid #2563eb;
+  background: linear-gradient(180deg, #f0f7ff 0%, #e0f2fe 100%);
+}
+
+.top-date-card__badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #1e40af;
+  background: rgba(37, 99, 235, 0.1);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.top-date-card.is-best .top-date-card__badge {
+  color: #ffffff;
+  background: #2563eb;
+}
+
+.schedule-dates {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.schedule-arrow {
+  color: #64748b;
+  font-weight: normal;
+}
+
+.schedule-nights {
+  display: block;
+  font-size: 0.82rem;
+  color: #475569;
+  margin-top: 2px;
+}
+
+.top-date-card__price {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(14, 49, 86, 0.12);
+  display: flex;
+  flex-direction: column;
+}
+
+.price-type {
+  font-size: 0.76rem;
+  color: #64748b;
+}
+
+.price-amount {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #b45309;
+  letter-spacing: -0.02em;
+}
+
+.price-meta {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.top-date-card__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #1e3a8a;
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 160ms ease;
+}
+
+.top-date-card__cta:hover {
+  background: #1d4ed8;
+}
+
+.matrix-cell-link.is-best-fare {
+  background: rgba(37, 99, 235, 0.08);
+  border: 1.5px solid rgba(37, 99, 235, 0.4);
+  position: relative;
+}
+
+.cell-best-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: #2563eb;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-bottom: 4px;
 }
 
 .matrix-scroll {
@@ -2533,6 +2792,27 @@ a {
     gap: 14px;
     padding: 12px 14px;
     border-radius: 18px;
+    transition: max-height 220ms ease, opacity 180ms ease;
+  }
+
+  .map-bottom-sheet.is-sheet-peek .map-selection {
+    max-height: 60px;
+    overflow: hidden;
+  }
+
+  .map-bottom-sheet.is-sheet-peek .map-selection__fares,
+  .map-bottom-sheet.is-sheet-peek .map-selection__cta,
+  .map-bottom-sheet.is-sheet-peek .panel-note {
+    display: none;
+  }
+
+  .map-bottom-sheet.is-sheet-half .map-selection {
+    max-height: 260px;
+  }
+
+  .map-bottom-sheet.is-sheet-full .map-selection {
+    max-height: 480px;
+    overflow-y: auto;
   }
 
   .map-selection h3 {

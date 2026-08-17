@@ -4,7 +4,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { HeroPlane } from "@/components/hero-plane";
 import { resolveMapResponse } from "@/lib/data-source";
-import { getMetaData, parseMapQuery } from "@/lib/mock-market";
+import { getMetaData, parseMapQuery, TRIP_BUCKETS } from "@/lib/mock-market";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
 import { href } from "@/lib/url";
 
@@ -19,8 +19,28 @@ function stamp(value: string) {
   return new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }
 
-const AIRLINE_TONES = ["is-morning", "is-glacier", "is-cloud", "is-harbor"] as const;
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+const THEMES = [
+  {
+    title: "가벼운 주말 여행",
+    desc: "3~4일 일정 · 제주 · 후쿠오카 · 타이베이",
+    stayBucket: "3_4",
+    region: "ALL",
+  },
+  {
+    title: "알찬 1주일 휴가",
+    desc: "5~7일 일정 · 도쿄 · 방콕 · 싱가포르",
+    stayBucket: "5_7",
+    region: "ALL",
+  },
+  {
+    title: "여유로운 장거리 여행",
+    desc: "8~14일 일정 · 런던 · 시드니 · 로스앤젤레스",
+    stayBucket: "8_14",
+    region: "ALL",
+  },
+];
 
 export default async function HomePage(props: { searchParams: SearchParams }) {
   const meta = getMetaData();
@@ -47,9 +67,6 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
   if (serviceUnavailable) noStore();
   const internationalDeals = mapResponse.data.deals.filter((deal) => deal.region_code !== "DOMESTIC");
   const featuredDeals = (internationalDeals.length ? internationalDeals : mapResponse.data.deals).slice(0, 3);
-  const featuredDeal = featuredDeals[0];
-  const secondaryDeals = featuredDeals.slice(1, 3);
-  const popularAirlines = mapResponse.data.available_airlines.slice(0, 4);
   const lowestFare =
     mapResponse.data.deals.length > 0
       ? Math.min(
@@ -64,37 +81,36 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
     <main className="landing-shell">
       <section className="travel-shell">
         <div className="travel-topbar">
-          <span className="travel-mark">Sky planner.</span>
+          <span className="travel-mark">Sky Planner Atlas</span>
           <div className="travel-tabs">
-            <Link href="/fare-board" className="travel-tab is-active">Fare Board</Link>
-            <span className="travel-tab">Flights</span>
-            <span className="travel-tab">Calendar</span>
-            <span className="travel-tab">Airlines</span>
-            <span className="travel-tab">Routes</span>
+            <Link href="/map" className="travel-tab is-active">특가 지도</Link>
+            <Link href="/offers" className="travel-tab">항공편 비교</Link>
+            <Link href="/policies" className="travel-tab">가격 안내</Link>
+            <Link href="/service-readiness" className="travel-tab">서비스 상태</Link>
           </div>
           <Link href={mapHref} className="travel-signin">
-            Open Atlas
+            특가 지도 보기
           </Link>
         </div>
 
         <div className="travel-hero">
-          <p className="travel-kicker">Ready take-off</p>
-          <h1 className="travel-title">Convenient online flight deal services</h1>
+          <p className="travel-kicker">지도 기반 항공권 탐색</p>
+          <h1 className="travel-title">어디로 갈지 정하지 않아도 괜찮아요</h1>
           <p className="travel-subtitle">
-            한국 출발 특가를 정리된 예약 데스크처럼 탐색합니다. 마지막 배치 시각을 보고, 목적지와 날짜 조합을 바로 좁힌 뒤 예약처로 이동할 수 있습니다.
+            출발지, 여행 기간, 예산만 선택하면 갈 수 있는 목적지와 저렴한 날짜 조합을 지도에서 찾아드립니다.
           </p>
           <div className="travel-summary-grid">
             <article className="travel-summary-card">
-              <span>Last batch</span>
+              <span>가격 확인</span>
               <strong>{stamp(mapResponse.last_batch_at)}</strong>
             </article>
             <article className="travel-summary-card">
-              <span>Lowest fare</span>
+              <span>지도 내 최저가</span>
               <strong>{serviceUnavailable ? "점검 중" : formatMoney(lowestFare)}</strong>
             </article>
             <article className="travel-summary-card">
-              <span>Destinations</span>
-              <strong>{serviceUnavailable ? "일시 중단" : `${mapResponse.data.summary.destinations} routes`}</strong>
+              <span>탐색 가능 도시</span>
+              <strong>{serviceUnavailable ? "일시 중단" : `${mapResponse.data.summary.destinations}개 취항지`}</strong>
             </article>
           </div>
         </div>
@@ -104,26 +120,17 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
         <section className="travel-search">
           <div className="travel-search-head">
             <div>
-              <p className="featured-label">Quick Search</p>
-              <h2>추천 최저가와 주요 도시로 바로 시작</h2>
+              <p className="featured-label">빠른 조건 검색</p>
+              <h2>출발지와 일정으로 갈 수 있는 도시 찾기</h2>
             </div>
             <div className="travel-search-head-aside">
-              <span className="travel-search-caption">입력 수를 줄이고 바로 Fare Board로 이동합니다.</span>
-              <Link
-                href={href("/map", {
-                  origin: searchState.origin,
-                  week: searchState.week,
-                  region: searchState.region,
-                  stay_bucket: searchState.stay_bucket,
-                  traveler: searchState.traveler,
-                  cabin: "ALL",
-                })}
-                className="travel-search-inline"
-              >
-                Explore Map
+              <span className="travel-search-caption">왕복 총액 기준 · 성인 1인 · 유류세 및 공항세 포함</span>
+              <Link href={mapHref} className="travel-search-inline">
+                전체 지도 보기 →
               </Link>
             </div>
           </div>
+
           {serviceUnavailable ? (
             <ServiceUnavailableNotice diagnostics={mapResponse.diagnostics} />
           ) : (
@@ -141,14 +148,15 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
                   className="travel-recommendation"
                 >
                   <strong>{deal.city}</strong>
-                  <span>{formatMoney(deal.economy_min_total)}</span>
+                  <span>{formatMoney(deal.economy_min_total)}~</span>
                 </Link>
               ))}
             </div>
           )}
+
           <div className="travel-search-board">
             <div className="travel-selector">
-              <span>출발지</span>
+              <span>출발 공항</span>
               <div className="travel-selector-row">
                 {meta.origins.map((origin) => (
                   <Link
@@ -156,11 +164,12 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
                     href={href("/", { ...searchState, origin: origin.code, cabin: null, traveler: null })}
                     className={`search-chip ${searchState.origin === origin.code ? "is-active" : ""}`}
                   >
-                    {origin.code}
+                    {origin.city} ({origin.code})
                   </Link>
                 ))}
               </div>
             </div>
+
             <div className="travel-selector">
               <span>출발 주간</span>
               <div className="travel-selector-row">
@@ -175,8 +184,9 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
                 ))}
               </div>
             </div>
+
             <div className="travel-selector">
-              <span>지역</span>
+              <span>여행 지역</span>
               <div className="travel-selector-row">
                 {meta.regions
                   .filter((region) => ["ALL", "JAPAN", "GREATER_CHINA", "SEA", "EUROPE"].includes(region.code))
@@ -191,8 +201,9 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
                   ))}
               </div>
             </div>
+
             <div className="travel-selector">
-              <span>체류 버킷</span>
+              <span>여행 기간</span>
               <div className="travel-selector-row">
                 {meta.trip_buckets
                   .filter((bucket) => bucket.code !== "ALL")
@@ -207,113 +218,55 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
                   ))}
               </div>
             </div>
+
             <Link
-              href={href("/map", {
-                origin: searchState.origin,
-                week: searchState.week,
-                region: searchState.region,
-                stay_bucket: searchState.stay_bucket,
-                traveler: searchState.traveler,
-                cabin: "ALL",
-              })}
+              href={mapHref}
               className="travel-search-action"
-              aria-label="지도 탐색 시작"
+              aria-label="갈 수 있는 도시 지도에서 보기"
             >
-              <span>View Map</span>
+              <span>갈 수 있는 도시 보기</span>
             </Link>
           </div>
+
           <div className="travel-search-meta">
             <span>
-              활성 소스: {serviceUnavailable ? "점검 중" : mapResponse.source_flags.map((source) => source.replaceAll("_", " ")).join(" · ")}
+              기준: 최근 가격 확인 ({stamp(mapResponse.last_batch_at)}) · 왕복 총액 · 성인 1인 · 세금 포함
             </span>
-            <span>세금 포함 총액 기준 · 성인 1인</span>
+            <span>최종 결제 금액은 예약처에서 확인하세요</span>
           </div>
         </section>
-      </section>
-
-      <section className="landing-copy-block">
-        <div className="landing-copy-intro">
-          <p className="section-kicker">Operating Model</p>
-          <h2>일 1회 배치 구조를 중심으로 실제 예약 판단에 필요한 흐름만 남겼습니다</h2>
-          <p className="aside-copy">
-            첫 화면에서는 빠른 선택만 하고, 실제 세부 비교는 지도와 날짜 매트릭스로 내려갑니다. 홈은 길게 설명하는 랜딩이 아니라 바로 탐색을 시작하는 입구 역할에 집중합니다.
-          </p>
-        </div>
       </section>
 
       {!serviceUnavailable && (
         <section className="landing-section">
           <div className="landing-section-head">
-            <p className="section-kicker">Top Flight Deals</p>
-            <h2>배치 결과에서 바로 읽히는 대표 목적지</h2>
-            <p className="panel-note">카드 모자이크 대신 넓은 히어로 타일과 두 개의 보조 타일로 목적지 선택을 먼저 유도합니다.</p>
+            <p className="section-kicker">주요 추천 특가</p>
+            <h2>지금 가장 저렴한 인기 목적지</h2>
+            <p className="panel-note">목적지를 선택하면 가장 저렴한 날짜 조합을 바로 확인할 수 있습니다.</p>
           </div>
 
           <div className="featured-grid">
-            <article className="featured-story">
-              <div className="featured-story__visual is-cabin" />
-              <div className="featured-story__copy">
-                <p className="featured-label">{featuredDeal?.region_label ?? "JAPAN"}</p>
-                <h3>{featuredDeal?.city ?? "Tokyo"}</h3>
-                <p className="aside-copy">
-                  {featuredDeal ? `${featuredDeal.city} 대표가는 ${formatMoney(featuredDeal.economy_min_total)}부터 시작합니다.` : "지도와 날짜 매트릭스로 바로 이어지는 대표 특가입니다."}
-                </p>
-                <Link
-                  href={href("/map", {
-                    origin: searchState.origin,
-                    week: searchState.week,
-                    stay_bucket: searchState.stay_bucket,
-                    traveler: searchState.traveler,
-                    region: featuredDeal?.region_code ?? "ALL",
-                    cabin: "ALL",
-                  })}
-                  className="featured-link"
-                >
-                  Explore Fare Board
-                </Link>
-              </div>
-            </article>
-
-            {secondaryDeals.map((deal, index) => (
-              <Link
-                key={deal.destination_code}
-                href={href(`/destination/${deal.destination_code}`, {
-                  origin: searchState.origin,
-                  week: searchState.week,
-                  stay_bucket: searchState.stay_bucket,
-                  traveler: searchState.traveler,
-                  cabin: "ALL",
-                })}
-                className={`destination-card ${index === 0 ? "is-city" : "is-tower"}`}
-              >
-                <div className="destination-card__art" />
-                <div className="destination-card__footer">
-                  <div>
-                    <strong>{deal.city}</strong>
-                    <span>{formatMoney(deal.economy_min_total)}</span>
-                  </div>
-                  <span className="destination-card__arrow">↗</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {!serviceUnavailable && (
-        <section className="landing-section">
-          <div className="landing-section-head">
-            <p className="section-kicker">Most Popular Airlines</p>
-            <h2>현재 배치 범위에서 자주 노출되는 항공사</h2>
-            <p className="panel-note">실제 사진 대신 밝은 그라데이션과 넓은 비율로 항공사 카드 리듬만 가져왔습니다.</p>
-          </div>
-          <div className="airline-strip">
-            {popularAirlines.map((airline, index) => (
-              <article key={airline.code} className={`airline-card ${AIRLINE_TONES[index % AIRLINE_TONES.length]}`}>
-                <div className="airline-card__image" />
-                <div className="airline-card__label">
-                  <strong>{airline.name}</strong>
-                  <span>{airline.code}</span>
+            {featuredDeals.map((deal, index) => (
+              <article key={deal.destination_code} className={`featured-story ${index > 0 ? "is-secondary" : ""}`}>
+                <div className={`featured-story__visual ${index === 0 ? "is-cabin" : index === 1 ? "is-city" : "is-tower"}`} />
+                <div className="featured-story__copy">
+                  <p className="featured-label">{deal.region_label}</p>
+                  <h3>{deal.city}</h3>
+                  <p className="aside-copy">
+                    {deal.city} ({deal.country}) 최저가 {formatMoney(deal.economy_min_total)}부터
+                  </p>
+                  <Link
+                    href={href(`/destination/${deal.destination_code}`, {
+                      origin: searchState.origin,
+                      week: searchState.week,
+                      stay_bucket: searchState.stay_bucket,
+                      traveler: searchState.traveler,
+                      cabin: "ALL",
+                    })}
+                    className="featured-link"
+                  >
+                    {deal.city} 날짜별 특가 보기 →
+                  </Link>
                 </div>
               </article>
             ))}
@@ -324,35 +277,31 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
       {!serviceUnavailable && (
         <section className="landing-section">
           <div className="landing-section-head">
-            <p className="section-kicker">Plan Your Stay</p>
-            <h2>특가 탐색 이후 바로 이어지는 체류 패턴</h2>
-            <p className="panel-note">원본 레퍼런스의 하단 카드 리듬은 유지하되, 우리 서비스 문맥에 맞게 체류 버킷과 예약 흐름으로 바꿨습니다.</p>
+            <p className="section-kicker">여행 테마별 탐색</p>
+            <h2>나에게 맞는 여행 일정 선택</h2>
+            <p className="panel-note">일정에 맞는 체류 기간을 선택하고 해당 조건의 목적지를 탐색하세요.</p>
           </div>
           <div className="stay-grid">
-            <article className="stay-card is-waterfront">
-              <div className="stay-card__image" />
-              <div className="stay-card__body">
-                <strong>Short City Break</strong>
-                <span>3-4일 · 도쿄 · 후쿠오카 · 타이베이</span>
-              </div>
-            </article>
-            <article className="stay-card is-villa is-featured">
-              <div className="stay-card__image" />
-              <div className="stay-card__body">
-                <strong>Balanced Fare Window</strong>
-                <span>가장 많이 쓰는 5-7일 체류 버킷</span>
-                <Link href={mapHref} className="stay-card__cta">
-                  Open Map
-                </Link>
-              </div>
-            </article>
-            <article className="stay-card is-coast">
-              <div className="stay-card__image" />
-              <div className="stay-card__body">
-                <strong>Long-Haul Comfort</strong>
-                <span>8-14일 · 시드니 · 런던 · 로스앤젤레스</span>
-              </div>
-            </article>
+            {THEMES.map((theme) => (
+              <Link
+                key={theme.title}
+                href={href("/map", {
+                  origin: searchState.origin,
+                  week: searchState.week,
+                  stay_bucket: theme.stayBucket,
+                  traveler: searchState.traveler,
+                  region: theme.region,
+                  cabin: "ALL",
+                })}
+                className="stay-card is-waterfront"
+              >
+                <div className="stay-card__body">
+                  <strong>{theme.title}</strong>
+                  <span>{theme.desc}</span>
+                  <span className="stay-card__cta">이 일정으로 지도 보기</span>
+                </div>
+              </Link>
+            ))}
           </div>
         </section>
       )}
