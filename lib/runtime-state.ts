@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { ACTIVE_SOURCE_FLAGS, DEFAULT_LAST_BATCH_AT, GENERATED_AT } from "./mock-market";
+import { isHiddenFare } from "./fare-freshness.ts";
 
 const runtimeDir = join(process.cwd(), "runtime");
 const batchStatePath = join(runtimeDir, "batch-state.json");
@@ -41,7 +42,10 @@ async function getPostgresBatchState(): Promise<BatchState | null> {
 async function getFileBatchState(): Promise<BatchState | null> {
   try {
     const raw = await readFile(batchStatePath, "utf-8");
-    return normalizeBatchState(JSON.parse(raw));
+    const state = normalizeBatchState(JSON.parse(raw));
+    // 72시간 정책: 오래된 배치 기록을 데모 폴백에 그대로 싣지 않고 롤링 기본값으로 떨어뜨린다.
+    if (!state || isHiddenFare(state.lastBatchAt)) return null;
+    return state;
   } catch {
     return null;
   }
