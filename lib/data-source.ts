@@ -193,6 +193,10 @@ function normalizeRegion(region?: string) {
   return (region?.toUpperCase() ?? "ALL") as MapQuery["region"];
 }
 
+function queryOrigins(origin: string): string[] {
+  return origin === "SEL" ? ["ICN", "GMP"] : [origin];
+}
+
 function regionLabel(region?: string) {
   const normalized = normalizeRegion(region);
   return REGION_LABEL_BY_CODE.get(normalized) ?? String(region ?? "");
@@ -269,6 +273,8 @@ function mapDealFromSql(row: any, fallbackBatchAt: string): MapDeal {
     resolveDateStr(row.business_last_seen_at) ||
     fallbackBatchAt;
 
+  const originCode = String(row.origin ?? "") || null;
+
   return {
     destination_code: String(row.destination_city_id ?? ""),
     city: String(row.destination_display_name ?? row.destination_city_id ?? ""),
@@ -287,8 +293,10 @@ function mapDealFromSql(row: any, fallbackBatchAt: string): MapDeal {
       ECONOMY: row.economy_representative_airline ?? null,
       BUSINESS: row.business_representative_airline ?? null,
     },
-    // ponytail: null until deals_current gains representative origin columns
-    best_origin_by_cabin: { ECONOMY: null, BUSINESS: null },
+    best_origin_by_cabin: {
+      ECONOMY: row.economy_min_total_krw != null ? originCode : null,
+      BUSINESS: row.business_min_total_krw != null ? originCode : null,
+    },
     representative_links: {
       ECONOMY: row.economy_deep_link ?? null,
       BUSINESS: row.business_deep_link ?? null,
@@ -298,6 +306,36 @@ function mapDealFromSql(row: any, fallbackBatchAt: string): MapDeal {
     warning_flags: Array.isArray(row.warning_flags) ? row.warning_flags : [],
     promotion_tags: [row.economy_badge_type, row.business_badge_type].filter((value): value is string => Boolean(value)),
     source_mix: Array.isArray(row.enabled_sources) ? row.enabled_sources : [],
+  };
+}
+
+function mergeMapDeals(deals: MapDeal[]): MapDeal {
+  if (deals.length === 1) return deals[0];
+  const cheapest = (deal: MapDeal, other: MapDeal, cabin: "economy_min_total" | "business_min_total") =>
+    (deal[cabin] ?? Number.MAX_SAFE_INTEGER) <= (other[cabin] ?? Number.MAX_SAFE_INTEGER) ? deal : other;
+  const eco = deals.reduce((acc, deal) => cheapest(acc, deal, "economy_min_total"));
+  const biz = deals.reduce((acc, deal) => cheapest(acc, deal, "business_min_total"));
+  const latestStamp = (key: "last_batch_at" | "last_seen_at") =>
+    deals.reduce((latest, deal) => (deal[key] > latest ? deal[key] : latest), deals[0][key]);
+  return {
+    ...deals[0],
+    economy_min_total: eco.economy_min_total,
+    economy_discount_pct: eco.economy_discount_pct,
+    economy_price_status: eco.economy_price_status,
+    business_min_total: biz.business_min_total,
+    business_discount_pct: biz.business_discount_pct,
+    business_price_status: biz.business_price_status,
+    best_airline_by_cabin: { ECONOMY: eco.best_airline_by_cabin.ECONOMY, BUSINESS: biz.best_airline_by_cabin.BUSINESS },
+    best_origin_by_cabin: {
+      ECONOMY: eco.economy_min_total != null ? eco.best_origin_by_cabin.ECONOMY : null,
+      BUSINESS: biz.business_min_total != null ? biz.best_origin_by_cabin.BUSINESS : null,
+    },
+    representative_links: { ECONOMY: eco.representative_links.ECONOMY, BUSINESS: biz.representative_links.BUSINESS },
+    last_batch_at: latestStamp("last_batch_at"),
+    last_seen_at: latestStamp("last_seen_at"),
+    warning_flags: [...new Set(deals.flatMap((deal) => deal.warning_flags))],
+    promotion_tags: [...new Set(deals.flatMap((deal) => deal.promotion_tags))],
+    source_mix: [...new Set(deals.flatMap((deal) => deal.source_mix))],
   };
 }
 
@@ -389,7 +427,8 @@ async function resolveMapDataFromPostgres(query: MapQuery, lastBatchAt: string, 
   if (!eligibleSourceKeys.size) return null;
 
   let sql = `
-    SELECT 
+    SELECT
+      origin,
       destination_city_id,
       destination_display_name,
       country_code,
@@ -423,14 +462,14 @@ async function resolveMapDataFromPostgres(query: MapQuery, lastBatchAt: string, 
       warning_flags,
       enabled_sources
     FROM deals_current
-    WHERE origin = $1
+    WHERE origin = ANY($1::text[])
       AND week = $2
       AND traveler = $3
       AND stay_bucket = $4
       AND is_active = true
       AND GREATEST(COALESCE(economy_best_depart_date, '1970-01-01'), COALESCE(business_best_depart_date, '1970-01-01')) >= to_char(CURRENT_DATE, 'YYYY-MM-DD')
   `;
-  const params: any[] = [query.origin, query.week, query.traveler, query.stay_bucket];
+  const params: any[] = [queryOrigins(query.origin), query.week, query.traveler, query.stay_bucket];
 
   if (query.region !== "ALL") {
     sql += ` AND region = $5`;
@@ -440,13 +479,24 @@ async function resolveMapDataFromPostgres(query: MapQuery, lastBatchAt: string, 
   const { rows } = await pgQuery(sql, params);
   if (!rows.length) return null;
 
+  const rowsByDestination = new Map<string, any[]>();
+  for (const row of rows) {
+    const key = String(row.destination_city_id ?? "");
+    rowsByDestination.set(key, [...(rowsByDestination.get(key) ?? []), row]);
+  }
+
   const deals = sortDeals(
-    rows
-      .map((row) => filterMapDealForSourceFlags(mapDealFromSql(row, lastBatchAt), {
-        economy_representative_source: row.economy_representative_source,
-        business_representative_source: row.business_representative_source,
-      }, sourceFlags))
-      .filter((deal): deal is MapDeal => Boolean(deal))
+    [...rowsByDestination.values()]
+      .map((groupRows) => {
+        const mapped = groupRows
+          .map((row) => filterMapDealForSourceFlags(mapDealFromSql(row, lastBatchAt), {
+            economy_representative_source: row.economy_representative_source,
+            business_representative_source: row.business_representative_source,
+          }, sourceFlags))
+          .filter((deal): deal is MapDeal => Boolean(deal));
+        return mapped.length ? mergeMapDeals(mapped) : null;
+      })
+      .filter((deal): deal is MapDeal => deal !== null)
       .filter((deal) => {
         if (!mapDealMatchesCabin(deal, query.cabin)) return false;
         if (query.budget != null) {
@@ -507,7 +557,7 @@ async function resolveCalendarDataFromPostgres(query: CalendarQuery, lastBatchAt
       calendar_matrix,
       stay_bucket
     FROM deals_current
-    WHERE origin = $1
+    WHERE origin = ANY($1::text[])
       AND week = $2
       AND traveler = $3
       AND stay_bucket = $4
@@ -516,7 +566,7 @@ async function resolveCalendarDataFromPostgres(query: CalendarQuery, lastBatchAt
     LIMIT 1
   `;
   const { rows: dealRows } = await pgQuery(dealSql, [
-    query.origin,
+    queryOrigins(query.origin),
     query.week,
     query.traveler,
     query.stay_bucket,
@@ -537,7 +587,7 @@ async function resolveCalendarDataFromPostgres(query: CalendarQuery, lastBatchAt
       p.region as dest_region
     FROM offers o
     LEFT JOIN places p ON p.place_id = o.destination_city_id
-    WHERE o.origin_airport = $1
+    WHERE o.origin_airport = ANY($1::text[])
       AND o.destination_city_id = $2
       AND o.week = $3
       AND o.traveler = $4
@@ -557,7 +607,7 @@ async function resolveCalendarDataFromPostgres(query: CalendarQuery, lastBatchAt
       )
   `;
   const params: any[] = [
-    query.origin,
+    queryOrigins(query.origin),
     query.destination,
     query.week,
     query.traveler,
@@ -607,7 +657,7 @@ async function resolveOffersDataFromPostgres(query: OffersQuery, lastBatchAt: st
       p.region as dest_region
     FROM offers o
     LEFT JOIN places p ON p.place_id = o.destination_city_id
-    WHERE o.origin_airport = $1
+    WHERE o.origin_airport = ANY($1::text[])
       AND o.destination_city_id = $2
       AND o.depart_date = $3
       AND o.return_date = $4
@@ -623,7 +673,7 @@ async function resolveOffersDataFromPostgres(query: OffersQuery, lastBatchAt: st
       )
   `;
   const { rows } = await pgQuery(sql, [
-    query.origin,
+    queryOrigins(query.origin),
     query.destination,
     query.depart,
     query.return,
