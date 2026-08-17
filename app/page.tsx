@@ -42,6 +42,15 @@ const THEMES = [
   },
 ];
 
+const BUDGET_OPTIONS = [
+  { value: null, label: "제한없음" },
+  { value: 300000, label: "30만 원 이하" },
+  { value: 400000, label: "40만 원 이하" },
+  { value: 500000, label: "50만 원 이하" },
+  { value: 700000, label: "70만 원 이하" },
+  { value: 1000000, label: "100만 원 이하" },
+];
+
 export default async function HomePage(props: { searchParams: SearchParams }) {
   const meta = getMetaData();
   const initialQuery = parseMapQuery(await props.searchParams);
@@ -53,6 +62,7 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
     stay_bucket: initialQuery.stay_bucket === "ALL" ? "5_7" : initialQuery.stay_bucket,
     traveler: "adt1",
     cabin: "ALL" as const,
+    budget: initialQuery.budget ?? null,
   };
   const mapResponse = await resolveMapResponse({
     origin: searchState.origin,
@@ -62,6 +72,7 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
     region: searchState.region,
     cabin: searchState.cabin,
     airlines: [],
+    budget: searchState.budget,
   });
   const serviceUnavailable = isServiceUnavailableDiagnostics(mapResponse.diagnostics);
   if (serviceUnavailable) noStore();
@@ -216,6 +227,21 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
                       {bucket.label}
                     </Link>
                   ))}
+              </div>
+            </div>
+
+            <div className="travel-selector">
+              <span>최대 예산 (왕복 총액)</span>
+              <div className="travel-selector-row">
+                {BUDGET_OPTIONS.map((budget) => (
+                  <Link
+                    key={budget.label}
+                    href={href("/", { ...searchState, budget: budget.value, cabin: null, traveler: null })}
+                    className={`search-chip ${searchState.budget === budget.value ? "is-active" : ""}`}
+                  >
+                    {budget.label}
+                  </Link>
+                ))}
               </div>
             </div>
 

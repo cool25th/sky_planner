@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Script from "next/script";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 import { SavedDealsDrawer } from "@/components/saved-deals-drawer";
@@ -27,20 +26,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko">
       <body>
-        <Script id="figma-capture-loader" strategy="afterInteractive">
-          {`
-            (() => {
-              if (typeof window === "undefined") return;
-              if (!window.location.hash.includes("figmacapture=")) return;
-              if (document.querySelector('script[data-figma-capture="true"]')) return;
-              const script = document.createElement("script");
-              script.src = "https://mcp.figma.com/mcp/html-to-design/capture.js";
-              script.async = true;
-              script.dataset.figmaCapture = "true";
-              document.head.appendChild(script);
-            })();
-          `}
-        </Script>
         <div className="ambient ambient-left" />
         <div className="ambient ambient-right" />
         <div className="site-shell">

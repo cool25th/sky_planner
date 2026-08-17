@@ -133,7 +133,7 @@ function cameraForDeals(deals: MapDeal[]) {
 
 interface DealsMapProps {
   deals: MapDeal[];
-  query: Pick<MapQuery, "origin" | "week" | "stay_bucket" | "traveler" | "cabin">;
+  query: Pick<MapQuery, "origin" | "week" | "stay_bucket" | "traveler" | "cabin" | "budget">;
 }
 
 export function DealsMap({ deals, query }: DealsMapProps) {
@@ -334,6 +334,7 @@ export function DealsMap({ deals, query }: DealsMapProps) {
               stay_bucket: query.stay_bucket,
               traveler: query.traveler,
               cabin: query.cabin,
+              budget: query.budget,
             }),
           );
         });
@@ -388,6 +389,7 @@ export function DealsMap({ deals, query }: DealsMapProps) {
                     stay_bucket: query.stay_bucket,
                     traveler: query.traveler,
                     cabin: query.cabin,
+                    budget: query.budget,
                   }),
                 );
               }}
@@ -457,6 +459,7 @@ export function DealsMap({ deals, query }: DealsMapProps) {
                       stay_bucket: query.stay_bucket,
                       traveler: query.traveler,
                       cabin: query.cabin,
+                      budget: query.budget,
                     }),
                   );
                 }}

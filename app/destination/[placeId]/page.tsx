@@ -80,6 +80,7 @@ export default async function DestinationPage(props: { params: Params; searchPar
               stay_bucket: query.stay_bucket,
               traveler: query.traveler,
               airlines: query.airlines.join(",") || null,
+              budget: query.budget,
             })}
             className="chip"
           >

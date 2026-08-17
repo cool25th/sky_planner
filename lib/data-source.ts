@@ -442,6 +442,15 @@ async function resolveMapDataFromPostgres(query: MapQuery, lastBatchAt: string, 
       .filter((deal): deal is MapDeal => Boolean(deal))
       .filter((deal) => {
         if (!mapDealMatchesCabin(deal, query.cabin)) return false;
+        if (query.budget != null) {
+          const fare =
+            query.cabin === "ECONOMY"
+              ? deal.economy_min_total
+              : query.cabin === "BUSINESS"
+                ? deal.business_min_total
+                : deal.economy_min_total ?? deal.business_min_total;
+          if (fare == null || fare > query.budget) return false;
+        }
         return passesAirlineFilter(deal, query.airlines);
       }),
     query.cabin,

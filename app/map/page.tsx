@@ -22,18 +22,6 @@ function formatMoney(value: number | null) {
   return new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(value);
 }
 
-function sourceLabel(flag: string) {
-  const labels: Record<string, string> = {
-    skyscanner_affiliate: "Skyscanner",
-    korean_air_official: "대한항공",
-    asiana_official: "아시아나항공",
-    google_flights_direct: "Google Flights",
-    kayak_direct: "KAYAK",
-    official_promo_pages: "항공사 프로모션",
-  };
-  return labels[flag] ?? flag;
-}
-
 function stamp(value: string) {
   return new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }
@@ -96,10 +84,6 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
         <div className="batch-stat">
           <span className="metric-label">검색 조건</span>
           <strong>성인 1인 · 왕복 · 세금 포함</strong>
-        </div>
-        <div className="batch-stat">
-          <span className="metric-label">비교 채널</span>
-          <strong>{mapResponse.source_flags.map(sourceLabel).join(" · ")}</strong>
         </div>
       </section>
 
@@ -220,6 +204,7 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
           </div>
             <div className="selection-pill">
               {query.origin === "SEL" ? "서울 전체 (인천/김포)" : query.origin} · {query.week} · {TRIP_BUCKETS.find((item) => item.code === query.stay_bucket)?.label}
+              {query.budget != null ? ` · 예산 ${Math.round(query.budget / 10000)}만 원 이하` : ""}
             </div>
           </div>
 
@@ -245,6 +230,7 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
                   traveler: query.traveler,
                   cabin: query.cabin,
                   airlines: query.airlines.join(",") || null,
+                  budget: query.budget,
                 })}
                 className="deal-row"
               >
@@ -266,11 +252,6 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
                   </div>
                 </div>
                 <div className="table-note">
-                  {deal.economy_discount_pct && deal.economy_discount_pct > 10 ? (
-                    <span className="discount-tag" style={{ color: "#047857", fontWeight: 600, marginRight: "6px" }}>
-                      평균 대비 {deal.economy_discount_pct}% 저렴
-                    </span>
-                  ) : null}
                   <span>가격 확인 {stamp(String(deal.last_batch_at))}</span>
                 </div>
               </Link>
@@ -331,6 +312,7 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
               traveler: query.traveler,
               cabin: query.cabin,
               airlines: query.airlines.join(",") || null,
+              budget: query.budget,
             })}
             className="cta-link"
           >

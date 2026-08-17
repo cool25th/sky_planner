@@ -189,11 +189,6 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
                     )}
                   </div>
                   <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                    {offer.discount_pct_30 > 10 ? (
-                      <span className="discount-tag" style={{ fontSize: "0.72rem", color: "#047857", fontWeight: 700 }}>
-                        평균 대비 {offer.discount_pct_30}% 저렴
-                      </span>
-                    ) : null}
                     {freshness.level === "fresh" ? (
                       <span className="price-status-badge">최근 확인 운임</span>
                     ) : (

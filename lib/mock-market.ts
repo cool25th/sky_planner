@@ -236,6 +236,7 @@ export interface MapQuery {
   stay_bucket: StayBucket;
   traveler: string;
   airlines: string[];
+  budget?: number | null;
 }
 
 export interface CalendarQuery {
@@ -246,6 +247,7 @@ export interface CalendarQuery {
   stay_bucket: StayBucket;
   traveler: string;
   airlines: string[];
+  budget?: number | null;
 }
 
 export interface OffersQuery {
@@ -1240,6 +1242,12 @@ function filterOffers(
   });
 }
 
+function parseBudget(value?: string | string[]) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const parsed = Number(raw);
+  return raw && Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : null;
+}
+
 export function parseMapQuery(input: Record<string, string | string[] | undefined>): MapQuery {
   return {
     origin: (Array.isArray(input.origin) ? input.origin[0] : input.origin ?? "ICN").toUpperCase(),
@@ -1249,6 +1257,7 @@ export function parseMapQuery(input: Record<string, string | string[] | undefine
     stay_bucket: normalizeStayBucket(Array.isArray(input.stay_bucket) ? input.stay_bucket[0] : input.stay_bucket),
     traveler: normalizeTraveler(Array.isArray(input.traveler) ? input.traveler[0] : input.traveler),
     airlines: normalizeAirlines(input.airlines),
+    budget: parseBudget(input.budget),
   };
 }
 
@@ -1330,7 +1339,16 @@ export function getMapData(query: MapQuery, lastBatchAt: string, sourceFlags = A
       source_mix: [...(deal.source_mix as Set<string>)].sort(),
       warning_flags: [...(deal.warning_flags as Set<string>)].sort(),
     }) as MapDeal)
-    .filter((deal) => (query.cabin === "ECONOMY" ? deal.economy_min_total : query.cabin === "BUSINESS" ? deal.business_min_total : deal.economy_min_total ?? deal.business_min_total))
+    .filter((deal) => {
+      const fare =
+        query.cabin === "ECONOMY"
+          ? deal.economy_min_total
+          : query.cabin === "BUSINESS"
+            ? deal.business_min_total
+            : deal.economy_min_total ?? deal.business_min_total;
+      if (!fare) return false;
+      return query.budget == null || fare <= query.budget;
+    })
     .map((deal) => {
       if (query.cabin === "ECONOMY") {
         return { ...deal, business_min_total: null, business_discount_pct: null, business_price_status: null };
