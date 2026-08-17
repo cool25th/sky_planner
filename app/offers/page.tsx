@@ -3,6 +3,7 @@ import { unstable_noStore as noStore } from "next/cache";
 
 import { BookmarkButton } from "@/components/bookmark-button";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
+import { ShareButton } from "@/components/share-button";
 import { resolveOffersResponse } from "@/lib/data-source";
 import { parseOffersQuery } from "@/lib/mock-market";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
@@ -60,18 +61,24 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
             </p>
             <p className="offers-summary-inline">{offersSummaryLine}</p>
           </div>
-          <Link
-            href={href(`/destination/${query.destination || "TYO"}`, {
-              origin: query.origin,
-              week: query.week,
-              stay_bucket: "5_7",
-              traveler: query.traveler,
-              cabin: query.cabin,
-            })}
-            className="chip"
-          >
-            날짜 선택으로 돌아가기
-          </Link>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            <ShareButton
+              title="항공편 가격 비교 공유"
+              text={`${query.origin} 출발 특가 항공편 가격 비교 결과를 확인해보세요!`}
+            />
+            <Link
+              href={href(`/destination/${query.destination || "TYO"}`, {
+                origin: query.origin,
+                week: query.week,
+                stay_bucket: "5_7",
+                traveler: query.traveler,
+                cabin: query.cabin,
+              })}
+              className="chip"
+            >
+              날짜 선택으로 돌아가기
+            </Link>
+          </div>
         </div>
       </section>
 

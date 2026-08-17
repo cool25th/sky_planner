@@ -66,6 +66,7 @@ export function BookmarkButton({
         localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
         setIsSaved(true);
       }
+      window.dispatchEvent(new Event("saved_deals_updated"));
     } catch {
       // localStorage write error
     }

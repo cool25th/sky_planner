@@ -4,6 +4,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import { BookmarkButton } from "@/components/bookmark-button";
 import { DealsMap } from "@/components/deals-map";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
+import { ShareButton } from "@/components/share-button";
 import { resolveMapResponse, resolveMetaResponse } from "@/lib/data-source";
 import {
   TRIP_BUCKETS,
@@ -64,10 +65,11 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
           <p className="hero-text">
             한국 출발 주요 취항지의 최저가와 추천 일정을 지도에서 한눈에 확인하고, 마음에 드는 목적지의 날짜 조합을 탐색할 수 있습니다.
           </p>
-          <div className="hero-badges">
+          <div className="hero-badges" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
             <span className="hero-badge">왕복 총액 기준</span>
             <span className="hero-badge">성인 1인 · 세금 포함</span>
             <span className="hero-badge">여행 기간 {TRIP_BUCKETS.find((item) => item.code === query.stay_bucket)?.label}</span>
+            <ShareButton title="Sky Planner 특가 지도 공유" text="지도에서 출발지/기간별 항공 최저가를 확인해보세요!" />
           </div>
         </div>
         <div className="hero-metrics">

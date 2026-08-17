@@ -3,6 +3,7 @@ import { unstable_noStore as noStore } from "next/cache";
 
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { MatrixKeyboardNavigator } from "@/components/matrix-keyboard-navigator";
+import { ShareButton } from "@/components/share-button";
 import { resolveCalendarResponse, resolveMapResponse } from "@/lib/data-source";
 import { TRIP_BUCKETS, parseCalendarQuery, parseMapQuery } from "@/lib/mock-market";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
@@ -98,9 +99,15 @@ export default async function DestinationPage(props: { params: Params; searchPar
                 <p className="section-kicker">Best Deals</p>
                 <h2>가장 저렴한 추천 날짜 조합 Top 3</h2>
               </div>
-              <span className="selection-pill">
-                최저 {formatMoney(lowestCellPrice)}부터 · 가격 확인 {stamp(calendarResponse.last_batch_at)}
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                <span className="selection-pill">
+                  최저 {formatMoney(lowestCellPrice)}부터 · 가격 확인 {stamp(calendarResponse.last_batch_at)}
+                </span>
+                <ShareButton
+                  title={`${calendar.destination.city} 항공 특가 날짜 조합`}
+                  text={`${calendar.destination.city} 최저가 ${formatMoney(lowestCellPrice)}부터 시작하는 날짜별 특가를 확인해보세요!`}
+                />
+              </div>
             </div>
 
             {topRecommendations.length > 0 ? (

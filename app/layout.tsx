@@ -3,11 +3,24 @@ import Link from "next/link";
 import Script from "next/script";
 import "maplibre-gl/dist/maplibre-gl.css";
 
+import { SavedDealsDrawer } from "@/components/saved-deals-drawer";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Sky Planner Atlas",
-  description: "한국 출발 항공 특가를 지도와 날짜 축으로 탐색하는 일 1회 배치 캐시 서비스",
+  title: "Sky Planner Atlas | 지도 기반 항공 특가 & 저렴한 날짜 탐색",
+  description: "한국 출발 여행자를 위해 예산과 기간에 맞는 목적지와 저렴한 출발/귀국 날짜 조합을 지도에서 찾아주는 항공권 탐색 서비스",
+  openGraph: {
+    title: "Sky Planner Atlas | 지도 기반 항공 특가 탐색",
+    description: "어디로 갈지 정하지 않아도 괜찮아요. 출발지, 일정, 예산만 선택하면 저렴한 목적지와 날짜를 지도에서 찾아드립니다.",
+    siteName: "Sky Planner Atlas",
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sky Planner Atlas | 지도 기반 항공 특가 탐색",
+    description: "한국 출발 항공 특가를 지도와 날짜 축으로 탐색하는 스마트 항공 플래너",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -38,12 +51,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" className="site-brand">
               Sky Planner Atlas
             </Link>
-            <nav className="site-nav">
-              <Link href="/map">특가 지도</Link>
-              <Link href="/offers">항공편 비교</Link>
-              <Link href="/policies">가격 안내</Link>
-              <Link href="/service-readiness">서비스 상태</Link>
-            </nav>
+            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <nav className="site-nav">
+                <Link href="/map">특가 지도</Link>
+                <Link href="/offers">항공편 비교</Link>
+                <Link href="/policies">가격 안내</Link>
+                <Link href="/service-readiness">서비스 상태</Link>
+              </nav>
+              <SavedDealsDrawer />
+            </div>
           </header>
           {children}
           <footer className="site-footer">
