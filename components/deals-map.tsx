@@ -143,15 +143,24 @@ function cameraForDeals(deals: MapDeal[]) {
 interface DealsMapProps {
   deals: MapDeal[];
   query: Pick<MapQuery, "origin" | "region" | "week" | "stay_bucket" | "traveler" | "cabin" | "budget">;
+  selectedCode?: string | null;
+  onSelectCode?: (code: string) => void;
 }
 
-export function DealsMap({ deals, query }: DealsMapProps) {
+export function DealsMap({ deals, query, selectedCode: controlledCode, onSelectCode }: DealsMapProps) {
   const router = useRouter();
   const mapRef = useRef<Map | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const markerRefs = useRef<maplibregl.Marker[]>([]);
   const [visibleCount, setVisibleCount] = useState(deals.length);
-  const [selectedCode, setSelectedCode] = useState<string | null>(deals[0]?.destination_code ?? null);
+  const [internalCode, setInternalCode] = useState<string | null>(deals[0]?.destination_code ?? null);
+  const selectedCode = controlledCode !== undefined ? controlledCode : internalCode;
+
+  const setSelectedCode = (code: string | null) => {
+    if (code) onSelectCode?.(code);
+    setInternalCode(code);
+  };
+
   const [webglSupported, setWebglSupported] = useState(true);
   const [clusters, setClusters] = useState<DealCluster<MapDeal>[]>(() =>
     deals.map((deal) => ({ deals: [deal], representative: deal, min_fare: dealMinFare(deal) })),
@@ -161,6 +170,20 @@ export function DealsMap({ deals, query }: DealsMapProps) {
 
   const camera = useMemo(() => cameraForDeals(deals), [deals]);
   const cameraBounds = "bounds" in camera ? camera.bounds : null;
+
+  useEffect(() => {
+    if (!controlledCode || !mapRef.current) return;
+    const deal = deals.find((d) => d.destination_code === controlledCode);
+    if (!deal) return;
+    const map = mapRef.current;
+    const bounds = map.getBounds();
+    if (!bounds.contains([deal.lon, deal.lat])) {
+      map.easeTo({
+        center: [deal.lon, deal.lat],
+        duration: 500,
+      });
+    }
+  }, [controlledCode, deals]);
 
   useEffect(() => {
     // Check WebGL availability

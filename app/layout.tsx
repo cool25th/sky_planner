@@ -4,6 +4,7 @@ import Script from "next/script";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 import { SavedDealsDrawer } from "@/components/saved-deals-drawer";
+import { ThemeToggle } from "@/components/theme-toggle";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -30,6 +31,7 @@ export const metadata: Metadata = {
     description: "한국 출발 항공 특가를 지도와 날짜 축으로 탐색하는 스마트 항공 플래너",
     images: ["/og-image.png"],
   },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -76,6 +78,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Link href="/policies" className="nav-link">가격 안내</Link>
               </nav>
               <SavedDealsDrawer />
+              <ThemeToggle />
             </div>
           </header>
           {children}

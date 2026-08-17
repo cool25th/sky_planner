@@ -56,6 +56,71 @@
   --content-max: 1280px;
 }
 
+[data-theme="dark"],
+:root.dark {
+  --color-bg: #090d16;
+  --color-surface: #111827;
+  --color-surface-subtle: #1e293b;
+  --color-surface-selected: #172554;
+
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #cbd5e1;
+  --color-text-tertiary: #94a3b8;
+  --color-text-inverse: #0f172a;
+
+  --color-border: #1e293b;
+  --color-border-strong: #334155;
+
+  --color-primary: #3b82f6;
+  --color-primary-hover: #60a5fa;
+  --color-primary-soft: #1e3a8a;
+
+  --color-price: #f8fafc;
+  --color-best: #34d399;
+  --color-best-soft: #064e3b;
+  --color-warning: #fbbf24;
+  --color-warning-soft: #78350f;
+  --color-danger: #f87171;
+  --color-danger-soft: #7f1d1d;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px -2px rgba(0, 0, 0, 0.5);
+  --shadow-floating: 0 12px 32px -4px rgba(0, 0, 0, 0.7);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #090d16;
+    --color-surface: #111827;
+    --color-surface-subtle: #1e293b;
+    --color-surface-selected: #172554;
+
+    --color-text-primary: #f8fafc;
+    --color-text-secondary: #cbd5e1;
+    --color-text-tertiary: #94a3b8;
+    --color-text-inverse: #0f172a;
+
+    --color-border: #1e293b;
+    --color-border-strong: #334155;
+
+    --color-primary: #3b82f6;
+    --color-primary-hover: #60a5fa;
+    --color-primary-soft: #1e3a8a;
+
+    --color-price: #f8fafc;
+    --color-best: #34d399;
+    --color-best-soft: #064e3b;
+    --color-warning: #fbbf24;
+    --color-warning-soft: #78350f;
+    --color-danger: #f87171;
+    --color-danger-soft: #7f1d1d;
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 16px -2px rgba(0, 0, 0, 0.5);
+    --shadow-floating: 0 12px 32px -4px rgba(0, 0, 0, 0.7);
+  }
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -158,6 +223,26 @@ select {
 .nav-link:hover {
   color: var(--color-primary);
   background: var(--color-surface-subtle);
+}
+
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: all 150ms ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.theme-toggle-btn:hover {
+  background: var(--color-surface-subtle);
+  border-color: var(--color-border-strong);
 }
 
 /* Footer */
@@ -327,6 +412,76 @@ select {
 .quick-tag:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
+}
+
+/* Recent Searches */
+.recent-searches-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--color-border);
+}
+
+.recent-searches-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+}
+
+.recent-chips-list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.recent-chip-badge {
+  display: inline-flex;
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  padding: 3px 6px 3px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  transition: all 150ms ease;
+}
+
+.recent-chip-badge:hover {
+  border-color: var(--color-primary);
+  background: var(--color-surface-selected);
+}
+
+.recent-chip-link {
+  color: inherit;
+  display: flex;
+  align-items: center;
+}
+
+.recent-chip-link:hover {
+  color: var(--color-primary);
+}
+
+.recent-chip-remove {
+  background: transparent;
+  border: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 0 4px;
+  margin-left: 4px;
+  font-size: 0.72rem;
+  line-height: 1;
+  border-radius: var(--radius-pill);
+  transition: color 150ms ease;
+}
+
+.recent-chip-remove:hover {
+  color: var(--color-danger);
 }
 
 /* Home Section */
@@ -627,8 +782,10 @@ select {
   transition: all 150ms ease;
 }
 
-.dest-list-card:hover {
+.dest-list-card:hover,
+.dest-list-card.is-active {
   border-color: var(--color-primary);
+  background: var(--color-surface-selected);
   box-shadow: var(--shadow-sm);
 }
 

@@ -35,7 +35,7 @@ export async function userExperienceArtifactSnapshot(baseDir = process.cwd()): P
     offersUnavailableUi,
     destinationUnavailableUi,
   ] = await Promise.all([
-    artifactContains("app/map/page.tsx", ["MapFilterSelect", "DealsMap", "resolveMapResponse", "resolveMetaResponse"], baseDir),
+    artifactContains("app/map/page.tsx", ["MapFilterSelect", "MapSplitView", "resolveMapResponse", "resolveMetaResponse"], baseDir),
     artifactContains("lib/service-unavailable.ts", ["isServiceUnavailableDiagnostics", "Read model unavailable"], baseDir),
     artifactContains("components/service-unavailable-notice.tsx", ["ServiceUnavailableNotice", "service-unavailable-panel"], baseDir),
     artifactContains("app/page.tsx", ["dynamic = \"force-dynamic\"", "ServiceUnavailableNotice", "isServiceUnavailableDiagnostics", "unstable_noStore", "noStore();"], baseDir),

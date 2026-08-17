@@ -2,6 +2,7 @@ import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
 
 import { BookmarkButton } from "@/components/bookmark-button";
+import { RecentSearches } from "@/components/recent-searches";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { resolveMapResponse } from "@/lib/data-source";
 import { getMetaData, parseMapQuery, formatWeekNatural, TRIP_BUCKETS } from "@/lib/mock-market";
@@ -180,6 +181,9 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
                 ✈️ 알찬 1주일
               </Link>
             </div>
+
+            {/* 최근 검색 조건 */}
+            <RecentSearches />
           </div>
         </div>
       </section>

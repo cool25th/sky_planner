@@ -133,6 +133,34 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
             </div>
 
             <div className="filter-chips-group">
+              <span className="filter-group-label">항공사:</span>
+              {[
+                { code: "ALL", name: "전체 항공사" },
+                { code: "KE", name: "대한항공" },
+                { code: "OZ", name: "아시아나" },
+                { code: "7C", name: "제주항공" },
+                { code: "TW", name: "티웨이" },
+                { code: "BX", name: "에어부산" },
+              ].map((al) => {
+                const isActive = al.code === "ALL" ? query.airline.length === 0 : query.airline.includes(al.code);
+                const nextAirline = al.code === "ALL" ? null : al.code;
+                return (
+                  <Link
+                    key={al.code}
+                    href={href("/offers", {
+                      ...query,
+                      airline: nextAirline,
+                      sort: sortBy !== "price" ? sortBy : null,
+                    })}
+                    className={`filter-chip ${isActive ? "is-active" : ""}`}
+                  >
+                    {al.name}
+                  </Link>
+                );
+              })}
+            </div>
+
+            <div className="filter-chips-group">
               <span className="filter-group-label">정렬:</span>
               <Link
                 href={href("/offers", { ...query, sort: "price" })}

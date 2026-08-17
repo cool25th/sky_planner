@@ -1,0 +1,17 @@
+{
+  "name": "Sky Planner Atlas | 스마트 항공 특가 탐색",
+  "short_name": "SkyPlanner",
+  "description": "한국 출발 여행자를 위한 지도 기반 항공 특가 & 저렴한 날짜 탐색 서비스",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/og-image.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
