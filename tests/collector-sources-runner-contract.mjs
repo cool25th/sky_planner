@@ -280,6 +280,43 @@ test("collector source manifest runner skips aggregate last batch write on rollb
 
       assert.equal(summary.status, "success");
       assert.equal(summary.batch_state, null);
+      assert.equal(summary.batch_state_skipped_reason, "rollback");
+      assert.equal(wroteBatchState, false);
+    });
+  } finally {
+    await rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("collector source manifest runner keeps previous batch state when all sources fail", async () => {
+  const tmpDir = await mkdtemp(path.join(os.tmpdir(), "sky-planner-sources-empty-run-"));
+  try {
+    await withMixedSourceServer(async ({ baseUrl }) => {
+      let wroteBatchState = false;
+      const summary = await runCollectorSources({
+        schema_version: "collector.source_manifest.v1",
+        artifact_root: tmpDir,
+        sources: [
+          { config: sourceConfig("partner_failure_a", `${baseUrl}/fail`) },
+          { config: sourceConfig("partner_failure_b", `${baseUrl}/fail`) },
+        ],
+      }, {
+        runId: "collector_empty_run_batch_state_test",
+        ingest: true,
+        ingestBatch: async () => {
+          throw new Error("should not ingest a failed source");
+        },
+        recordRunBatchState: async () => {
+          wroteBatchState = true;
+          return { status: "recorded" };
+        },
+      });
+
+      assert.equal(summary.status, "failed");
+      assert.equal(summary.succeeded, 0);
+      assert.equal(summary.failed, 2);
+      assert.equal(summary.batch_state, null);
+      assert.equal(summary.batch_state_skipped_reason, "no_successful_sources");
       assert.equal(wroteBatchState, false);
     });
   } finally {

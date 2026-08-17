@@ -295,7 +295,8 @@ export async function runCollectorSources(manifest, options = {}) {
     skipped,
     revalidation_status: revalidation?.status ?? null,
   };
-  const batchState = options.ingest && !options.rollback
+  // 0건(전체 소스 실패) 배치는 기존 정상 batch_state를 덮어쓰지 않는다.
+  const batchState = options.ingest && !options.rollback && succeeded > 0
     ? await recordRunBatchState(aggregateLastBatch, {
       connectionString: options.connectionString,
     })
@@ -310,6 +311,13 @@ export async function runCollectorSources(manifest, options = {}) {
     skipped,
     revalidation,
     batch_state: batchState,
+    batch_state_skipped_reason: batchState
+      ? null
+      : !options.ingest
+        ? "not_ingesting"
+        : options.rollback
+          ? "rollback"
+          : "no_successful_sources",
     results,
   };
 }
