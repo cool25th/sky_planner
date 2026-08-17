@@ -15,6 +15,14 @@ export const metadata: Metadata = {
     siteName: "Sky Planner Atlas",
     locale: "ko_KR",
     type: "website",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Sky Planner Atlas – 지도 기반 항공 특가 탐색",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -26,6 +34,17 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
+      <head>
+        <link
+          rel="preconnect"
+          href="https://cdn.jsdelivr.net"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+        />
+      </head>
       <body>
         <Script id="figma-capture-loader" strategy="afterInteractive">
           {`
