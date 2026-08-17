@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { query } from "@/lib/db";
 import { redactServiceReadinessSnapshot } from "@/lib/ops-visibility";
 import { getServiceReadinessSnapshot } from "@/lib/service-readiness-runtime";
 
@@ -126,8 +127,33 @@ function formatDetail(detail: Record<string, unknown> | undefined) {
 
 export const dynamic = "force-dynamic";
 
+interface SourceHealthRow {
+  source_id: string;
+  is_paused: boolean;
+  circuit_breaker_open: boolean;
+  consecutive_failures: number;
+  last_success_at: string | null;
+  last_failure_code: string | null;
+}
+
+async function loadSourceHealthRows(): Promise<SourceHealthRow[]> {
+  if (!process.env.DATABASE_URL && !process.env.DATABASE_READ_URL) return [];
+  try {
+    const { rows } = await query(`
+      SELECT source_id, is_paused, circuit_breaker_open, consecutive_failures,
+             last_success_at, last_failure_code
+      FROM source_health
+      ORDER BY source_id
+    `);
+    return rows as SourceHealthRow[];
+  } catch {
+    return [];
+  }
+}
+
 export default async function ServiceReadinessPage() {
   const snapshot = redactServiceReadinessSnapshot(await getServiceReadinessSnapshot());
+  const sourceHealthRows = await loadSourceHealthRows();
   const failedAxes = snapshot.axes.filter((axis) => axis.status === "fail");
   const blockers = [...new Set(snapshot.launch_blockers)];
   const operatorActions = snapshot.operator_actions;
@@ -167,6 +193,46 @@ export default async function ServiceReadinessPage() {
           <strong>{failedAxes.length}</strong>
         </article>
       </section>
+
+      {sourceHealthRows.length > 0 && (
+        <section className="service-axis-grid">
+          <article className="service-axis-card">
+            <div className="service-axis-head">
+              <div>
+                <span>Source Health</span>
+                <h2>소스별 수집 상태</h2>
+              </div>
+              <strong>
+                {sourceHealthRows.filter((row) => !row.is_paused && !row.circuit_breaker_open && row.consecutive_failures === 0).length}/{sourceHealthRows.length}
+              </strong>
+            </div>
+            <div className="service-check-list">
+              {sourceHealthRows.map((row) => {
+                const issues = [
+                  row.consecutive_failures > 0 ? `실패 ${row.consecutive_failures}회 연속` : null,
+                  row.circuit_breaker_open ? "서킷 오픈" : null,
+                  row.is_paused ? "일시 중지" : null,
+                  row.last_failure_code ? `코드 ${row.last_failure_code}` : null,
+                ].filter(Boolean).join(" · ");
+                const healthy = !issues;
+                return (
+                  <div key={row.source_id} className={`service-check ${healthy ? "is-ready" : "is-blocked"}`}>
+                    <span>
+                      {row.source_id}
+                      <small>
+                        {healthy
+                          ? row.last_success_at ? `최근 성공 ${formatStamp(row.last_success_at)}` : "성공 기록 없음"
+                          : issues}
+                      </small>
+                    </span>
+                    <strong>{healthy ? "Ready" : "Blocked"}</strong>
+                  </div>
+                );
+              })}
+            </div>
+          </article>
+        </section>
+      )}
 
       {blockers.length > 0 && (
         <section className="service-blockers">
