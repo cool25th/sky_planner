@@ -2135,6 +2135,261 @@ select {
   color: var(--color-danger);
 }
 
+/* Shimmer Skeleton */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-subtle) 25%,
+    var(--color-border) 37%,
+    var(--color-surface-subtle) 63%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-box {
+  width: 100%;
+  height: 20px;
+}
+
+/* Status / Error / 404 Pages */
+.status-page-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 55vh;
+  padding: 48px 20px;
+}
+
+.status-icon {
+  font-size: 3.5rem;
+  margin-bottom: 16px;
+}
+
+.status-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin-bottom: 12px;
+}
+
+.status-desc {
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+  max-width: 480px;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.status-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.status-btn-primary {
+  padding: 10px 20px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.status-btn-primary:hover {
+  background: var(--color-primary-hover);
+}
+
+.status-btn-secondary {
+  padding: 10px 20px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.status-btn-secondary:hover {
+  background: var(--color-surface-subtle);
+  border-color: var(--color-border-strong);
+}
+
+/* Price Trend Indicator */
+.price-trend-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-6);
+}
+
+.price-trend-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.price-trend-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.price-trend-badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+}
+
+.price-trend-badge.deal-hot {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.price-trend-badge.deal-fair {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.price-trend-badge.deal-high {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+[data-theme="dark"] .price-trend-badge.deal-hot {
+  background: #064e3b;
+  color: #34d399;
+}
+
+[data-theme="dark"] .price-trend-badge.deal-fair {
+  background: #1e3a8a;
+  color: #60a5fa;
+}
+
+[data-theme="dark"] .price-trend-badge.deal-high {
+  background: #7f1d1d;
+  color: #f87171;
+}
+
+.price-gauge-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.price-gauge-bar {
+  height: 8px;
+  background: linear-gradient(90deg, #10b981 0%, #3b82f6 40%, #f59e0b 75%, #ef4444 100%);
+  border-radius: var(--radius-pill);
+  position: relative;
+  margin: 12px 0 6px;
+}
+
+.price-gauge-marker {
+  position: absolute;
+  top: -6px;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 20px;
+  background: #ffffff;
+  border: 3px solid var(--color-primary);
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+  transition: left 300ms ease;
+}
+
+.price-gauge-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+
+/* Destination Travel Info Grid */
+.dest-travel-info {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.travel-info-chip {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.travel-info-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.travel-info-label {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--color-text-tertiary);
+  font-weight: 600;
+}
+
+.travel-info-val {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* Currency Switcher */
+.currency-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  transition: all 150ms ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.currency-toggle-btn:hover {
+  background: var(--color-surface-subtle);
+  border-color: var(--color-border-strong);
+}
+
 /* Responsive Media Queries */
 @media (max-width: 1024px) {
   .deals-grid {

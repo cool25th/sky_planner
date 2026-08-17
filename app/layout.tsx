@@ -5,6 +5,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 import { SavedDealsDrawer } from "@/components/saved-deals-drawer";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { CurrencyToggle } from "@/components/currency-toggle";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -78,6 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Link href="/policies" className="nav-link">가격 안내</Link>
               </nav>
               <SavedDealsDrawer />
+              <CurrencyToggle />
               <ThemeToggle />
             </div>
           </header>

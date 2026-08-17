@@ -255,6 +255,109 @@ export default async function DestinationPage(props: { params: Params; searchPar
         <ServiceUnavailableNotice diagnostics={unavailableDiagnostics} />
       ) : calendar.destination ? (
         <>
+          {/* Travel Info Quick Grid */}
+          {(() => {
+            const TRAVEL_INFO_MAP: Record<string, { flightTime: string; timeDiff: string; visa: string; currency: string }> = {
+              TYO: { flightTime: "약 2시간 15분", timeDiff: "시차 없음 (0h)", visa: "무비자 (90일)", currency: "일본 엔 (JPY)" },
+              FUK: { flightTime: "약 1시간 15분", timeDiff: "시차 없음 (0h)", visa: "무비자 (90일)", currency: "일본 엔 (JPY)" },
+              OSA: { flightTime: "약 1시간 45분", timeDiff: "시차 없음 (0h)", visa: "무비자 (90일)", currency: "일본 엔 (JPY)" },
+              BKK: { flightTime: "약 5시간 45분", timeDiff: "2시간 느림 (-2h)", visa: "무비자 (90일)", currency: "태국 바트 (THB)" },
+              DAD: { flightTime: "약 4시간 30분", timeDiff: "2시간 느림 (-2h)", visa: "무비자 (45일)", currency: "베트남 동 (VND)" },
+              TPE: { flightTime: "약 2시간 30분", timeDiff: "1시간 느림 (-1h)", visa: "무비자 (90일)", currency: "대만 달러 (TWD)" },
+              HKG: { flightTime: "약 3시간 45분", timeDiff: "1시간 느림 (-1h)", visa: "무비자 (90일)", currency: "홍콩 달러 (HKD)" },
+              SIN: { flightTime: "약 6시간 15분", timeDiff: "1시간 느림 (-1h)", visa: "무비자 (90일)", currency: "싱가포르 달러 (SGD)" },
+              PAR: { flightTime: "약 12시간 30분", timeDiff: "8시간 느림 (-8h)", visa: "무비자 (90일)", currency: "유로 (EUR)" },
+              LON: { flightTime: "약 12시간 45분", timeDiff: "9시간 느림 (-9h)", visa: "무비자 (6개월)", currency: "영국 파운드 (GBP)" },
+              NYC: { flightTime: "약 14시간", timeDiff: "14시간 느림 (-14h)", visa: "ESTA 전자비자", currency: "미국 달러 (USD)" },
+              HNL: { flightTime: "약 8시간 10분", timeDiff: "19시간 느림 (-19h)", visa: "ESTA 전자비자", currency: "미국 달러 (USD)" },
+            };
+            const travelInfo = TRAVEL_INFO_MAP[placeId] || {
+              flightTime: "직항/경유 탐색",
+              timeDiff: "현지 시차 확인",
+              visa: "대한민국 여권 기준",
+              currency: "현지 통화 결제",
+            };
+            return (
+              <section className="dest-travel-info">
+                <div className="travel-info-chip">
+                  <span className="travel-info-icon">⏱️</span>
+                  <div>
+                    <span className="travel-info-label">직항 비행시간</span>
+                    <strong className="travel-info-val">{travelInfo.flightTime}</strong>
+                  </div>
+                </div>
+                <div className="travel-info-chip">
+                  <span className="travel-info-icon">🌐</span>
+                  <div>
+                    <span className="travel-info-label">한국 대비 시차</span>
+                    <strong className="travel-info-val">{travelInfo.timeDiff}</strong>
+                  </div>
+                </div>
+                <div className="travel-info-chip">
+                  <span className="travel-info-icon">🛂</span>
+                  <div>
+                    <span className="travel-info-label">관광 비자</span>
+                    <strong className="travel-info-val">{travelInfo.visa}</strong>
+                  </div>
+                </div>
+                <div className="travel-info-chip">
+                  <span className="travel-info-icon">💵</span>
+                  <div>
+                    <span className="travel-info-label">현지 화폐</span>
+                    <strong className="travel-info-val">{travelInfo.currency}</strong>
+                  </div>
+                </div>
+              </section>
+            );
+          })()}
+
+          {/* Price Trend Gauge */}
+          {(() => {
+            const discountPct = spotlight
+              ? (query.cabin === "BUSINESS" ? spotlight.business_discount_pct : spotlight.economy_discount_pct) ?? 0
+              : 0;
+
+            let trendStatus = "deal-fair";
+            let trendLabel = "✨ 적정 가격 구간 (평균 수준)";
+            let gaugePos = "50%";
+
+            if (discountPct >= 15) {
+              trendStatus = "deal-hot";
+              trendLabel = `🔥 최근 30일 평균 대비 ${discountPct}% 저렴한 역대급 특가!`;
+              gaugePos = "15%";
+            } else if (discountPct >= 5) {
+              trendStatus = "deal-hot";
+              trendLabel = `✨ 최근 평균 대비 ${discountPct}% 알뜰한 가격`;
+              gaugePos = "32%";
+            } else if (discountPct < -10) {
+              trendStatus = "deal-high";
+              trendLabel = "⚠️ 평소보다 다소 높은 가격 구간";
+              gaugePos = "85%";
+            }
+
+            return (
+              <section className="price-trend-card">
+                <div className="price-trend-header">
+                  <div className="price-trend-title">
+                    <span>📊</span>
+                    <strong>가격 수준 분석 & 최근 트렌드</strong>
+                  </div>
+                  <span className={`price-trend-badge ${trendStatus}`}>{trendLabel}</span>
+                </div>
+                <div className="price-gauge-wrap">
+                  <div className="price-gauge-bar">
+                    <div className="price-gauge-marker" style={{ left: gaugePos }} title={`현재 가격 위치: ${trendLabel}`} />
+                  </div>
+                  <div className="price-gauge-labels">
+                    <span>🟢 특가 구간 ({lowestCellPrice ? formatMoney(lowestCellPrice) : "최저"})</span>
+                    <span>🟡 평균</span>
+                    <span>🔴 성수기 / 고가</span>
+                  </div>
+                </div>
+              </section>
+            );
+          })()}
+
           {/* 2. Top 3 Recommended Date Combinations */}
           <section className="dest-section">
             <div className="section-header">
