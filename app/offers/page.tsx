@@ -26,7 +26,7 @@ function formatTime(value: string) {
 
 function formatCompactDate(value: string) {
   const date = new Date(value);
-  return `${date.getMonth() + 1}/${date.getDate()} ${WEEKDAYS[date.getDay()]}`;
+  return `${date.getMonth() + 1}/${date.getDate()} (${WEEKDAYS[date.getDay()]})`;
 }
 
 function stamp(value: string) {
@@ -39,33 +39,31 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
   const offersData = offersResponse.data;
   const serviceUnavailable = isServiceUnavailableDiagnostics(offersResponse.diagnostics);
   if (serviceUnavailable) noStore();
-  const airlineSummary = query.airline.length ? `항공사 ${query.airline.length}` : "항공사 전체";
-  const cabinSummary = query.cabin === "ALL" ? "전체 좌석" : query.cabin === "ECONOMY" ? "일반석" : "비즈니스석";
-  const stopsSummary = query.stops === "ALL" ? "전체 여정" : query.stops === "0" ? "직항" : "1회 경유";
-  const offersSummaryLine = serviceUnavailable
-    ? "서비스 점검 중입니다"
-    : [
-        `검색 결과 ${offersData.summary.count}건`,
-        `최저 ${formatMoney(offersData.summary.lowest_total)}`,
-        `가격 확인: ${stamp(offersResponse.last_batch_at)}`,
-      ].join(" · ");
+
+  const cabinLabel = query.cabin === "BUSINESS" ? "비즈니스석" : query.cabin === "ECONOMY" ? "일반석" : "전체 좌석";
+  const dateRangeLabel = query.depart && query.return
+    ? `${formatCompactDate(query.depart)} ~ ${formatCompactDate(query.return)}`
+    : "일정 선택됨";
 
   return (
-    <main className={`page-grid offers-page ${offersData.offers.length && !serviceUnavailable ? "has-results" : ""}`}>
-      <section className="panel offers-summary-panel">
-        <div className="panel-head">
+    <main className="offers-page-container">
+      {/* 1. Natural Language Search Summary Bar */}
+      <section className="offers-summary-banner">
+        <div className="summary-banner-main">
           <div>
-            <p className="section-kicker">Flight Offers</p>
-            <h1>항공편 가격 비교</h1>
-            <p className="panel-note">
-              왕복 총액 · 성인 1인 · 유류세/공항세 포함 · 수하물 및 최종 결제 금액은 예약처에서 확인하세요
+            <div className="summary-route">
+              <strong>{query.origin}</strong>
+              <span className="route-arrow">✈</span>
+              <strong>{query.destination || "목적지"}</strong>
+            </div>
+            <p className="summary-conditions">
+              {dateRangeLabel} · 성인 1인 · {cabinLabel} · 왕복
             </p>
-            <p className="offers-summary-inline">{offersSummaryLine}</p>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+          <div className="summary-banner-actions">
             <ShareButton
-              title="항공편 가격 비교 공유"
-              text={`${query.origin} 출발 특가 항공편 가격 비교 결과를 확인해보세요!`}
+              title={`${query.origin} → ${query.destination} 항공편 가격 비교`}
+              text={`${query.origin}에서 ${query.destination} 가는 항공편 최저가 비교 결과를 확인해보세요!`}
             />
             <Link
               href={href(`/destination/${query.destination || "TYO"}`, {
@@ -75,155 +73,137 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
                 traveler: query.traveler,
                 cabin: query.cabin,
               })}
-              className="chip"
+              className="change-dates-btn"
             >
-              날짜 선택으로 돌아가기
+              날짜 변경하기 →
             </Link>
           </div>
         </div>
       </section>
 
+      {/* 2. Compact Filter & Sort Bar */}
       {!serviceUnavailable && (
-      <details className="panel offers-filter-panel filter-drawer" open={offersData.offers.length === 0}>
-        <summary className="filter-drawer-summary">
-          <span className="filter-drawer-label">필터</span>
-          <span className="filter-drawer-value">
-            {airlineSummary} · {cabinSummary} · {stopsSummary}
-          </span>
-        </summary>
-        <div className="filter-drawer-body">
-          <div className="controls-grid">
-            <div className="field grow">
-              <span>항공사</span>
-              <div className="chip-row">
-                <Link href={href("/offers", { ...query, airline: null })} className={`chip ${query.airline.length === 0 ? "is-active" : ""}`}>
-                  전체
-                </Link>
-                {offersData.filters.available_airlines.map((airline) => (
-                  <Link
-                    key={airline.code}
-                    href={href("/offers", { ...query, airline: airline.code })}
-                    className={`chip ${query.airline.includes(airline.code) ? "is-active" : ""}`}
-                  >
-                    {airline.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            <div className="field grow">
-              <span>좌석 등급</span>
-              <div className="chip-row">
-                <Link href={href("/offers", { ...query, cabin: "ALL" })} className={`chip ${query.cabin === "ALL" ? "is-active" : ""}`}>
-                  전체
-                </Link>
-                <Link href={href("/offers", { ...query, cabin: "ECONOMY" })} className={`chip ${query.cabin === "ECONOMY" ? "is-active" : ""}`}>
-                  일반석
-                </Link>
-                <Link href={href("/offers", { ...query, cabin: "BUSINESS" })} className={`chip ${query.cabin === "BUSINESS" ? "is-active" : ""}`}>
-                  비즈니스석
-                </Link>
-              </div>
-            </div>
-
-            <div className="field grow">
-              <span>직항/경유</span>
-              <div className="chip-row">
-                <Link href={href("/offers", { ...query, stops: "ALL" })} className={`chip ${query.stops === "ALL" ? "is-active" : ""}`}>
-                  전체
-                </Link>
-                <Link href={href("/offers", { ...query, stops: "0" })} className={`chip ${query.stops === "0" ? "is-active" : ""}`}>
-                  직항
-                </Link>
-                <Link href={href("/offers", { ...query, stops: "1" })} className={`chip ${query.stops === "1" ? "is-active" : ""}`}>
-                  1회 경유
-                </Link>
-              </div>
-            </div>
+        <section className="offers-filter-bar">
+          <div className="filter-chips-group">
+            <span className="filter-group-label">필터:</span>
+            <Link
+              href={href("/offers", { ...query, stops: "ALL" })}
+              className={`filter-chip ${query.stops === "ALL" ? "is-active" : ""}`}
+            >
+              전체 여정
+            </Link>
+            <Link
+              href={href("/offers", { ...query, stops: "0" })}
+              className={`filter-chip ${query.stops === "0" ? "is-active" : ""}`}
+            >
+              직항만
+            </Link>
+            <Link
+              href={href("/offers", { ...query, cabin: "ALL" })}
+              className={`filter-chip ${query.cabin === "ALL" ? "is-active" : ""}`}
+            >
+              전체 좌석
+            </Link>
+            <Link
+              href={href("/offers", { ...query, cabin: "ECONOMY" })}
+              className={`filter-chip ${query.cabin === "ECONOMY" ? "is-active" : ""}`}
+            >
+              일반석
+            </Link>
           </div>
-        </div>
-      </details>
+          <span className="results-badge">검색 결과 {offersData.summary.count}건</span>
+        </section>
       )}
 
-      <section className="offers-list">
+      {/* 3. Modern Timeline Flight Offers List */}
+      <section className="offers-card-list">
         {serviceUnavailable ? (
           <ServiceUnavailableNotice diagnostics={offersResponse.diagnostics} />
         ) : offersData.offers.length ? (
           offersData.offers.map((offer) => {
             const freshness = fareFreshness(offer.last_seen_at || offer.last_batch_at);
+            const isOutboundNextDay = new Date(offer.outbound_arrival_at).getDate() !== new Date(offer.outbound_departure_at).getDate();
+            const isInboundNextDay = new Date(offer.inbound_arrival_at).getDate() !== new Date(offer.inbound_departure_at).getDate();
+
             return (
-            <article key={offer.offer_id} className="offer-card">
-              <div className="offer-head">
-                <div>
-                  <p className="offer-summary-line">
-                    <strong>{offer.airline_name}</strong>
-                    <span>{offer.cabin_label_raw || (offer.cabin_group === "ECONOMY" ? "일반석" : "비즈니스석")}</span>
-                    <span className="pill">{offer.is_direct ? "직항" : `${offer.stops}회 경유`}</span>
-                    <span>총 {offer.duration_hours}시간</span>
-                    {offer.official_promotion ? <span className="offer-meta-accent">특가 프로모션</span> : null}
-                  </p>
-                  <h3>{formatMoney(offer.price_total)}</h3>
-                </div>
-                <div className="offer-action-stack">
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <BookmarkButton
-                      deal={{
-                        destination_code: offer.destination_code,
-                        city: offer.destination_city,
-                        country: offer.destination_country,
-                        economy_min_total: offer.cabin_group === "ECONOMY" ? offer.price_total : null,
-                        business_min_total: offer.cabin_group === "BUSINESS" ? offer.price_total : null,
-                      }}
-                      origin={offer.origin}
-                      week={query.week}
-                      stayBucket="5_7"
-                    />
-                    {freshness.level === "cta_disabled" ? (
-                      <span className="cta-link is-disabled" aria-disabled="true" title="확인된 지 28시간이 넘은 가격입니다. 갱신 후 이용할 수 있습니다.">
-                        가격 갱신 대기 중
+              <article key={offer.offer_id} className="flight-offer-card">
+                <div className="flight-card-body">
+                  {/* Left: Flight Legs Timeline */}
+                  <div className="flight-legs-container">
+                    {/* Outbound Leg */}
+                    <div className="flight-leg-row">
+                      <span className="leg-tag">가는 편</span>
+                      <div className="leg-timeline">
+                        <div className="leg-endpoint">
+                          <strong>{formatTime(offer.outbound_departure_at)}</strong>
+                          <span>{offer.origin}</span>
+                        </div>
+                        <div className="leg-duration-bar">
+                          <span className="duration-text">{offer.is_direct ? "직항" : `${offer.stops}회 경유`} · {offer.duration_hours}시간</span>
+                          <div className="duration-line" />
+                        </div>
+                        <div className="leg-endpoint">
+                          <strong>{formatTime(offer.outbound_arrival_at)}</strong>
+                          <span>{offer.destination_code}</span>
+                        </div>
+                        {isOutboundNextDay && <span className="next-day-pill">+1일</span>}
+                      </div>
+                    </div>
+
+                    {/* Inbound Leg */}
+                    <div className="flight-leg-row">
+                      <span className="leg-tag">오는 편</span>
+                      <div className="leg-timeline">
+                        <div className="leg-endpoint">
+                          <strong>{formatTime(offer.inbound_departure_at)}</strong>
+                          <span>{offer.destination_code}</span>
+                        </div>
+                        <div className="leg-duration-bar">
+                          <span className="duration-text">{offer.is_direct ? "직항" : `${offer.stops}회 경유`} · {offer.duration_hours}시간</span>
+                          <div className="duration-line" />
+                        </div>
+                        <div className="leg-endpoint">
+                          <strong>{formatTime(offer.inbound_arrival_at)}</strong>
+                          <span>{offer.origin}</span>
+                        </div>
+                        {isInboundNextDay && <span className="next-day-pill">+1일</span>}
+                      </div>
+                    </div>
+
+                    <div className="flight-airline-meta">
+                      <strong>{offer.airline_name}</strong>
+                      <span>·</span>
+                      <span>{offer.cabin_label_raw || (offer.cabin_group === "ECONOMY" ? "일반석" : "비즈니스석")}</span>
+                      <span>·</span>
+                      <span>위탁수하물 규정은 항공사 기준 확인</span>
+                    </div>
+                  </div>
+
+                  {/* Right: Fare Box & CTA */}
+                  <div className="flight-fare-box">
+                    <div className="fare-amount-group">
+                      <span className="fare-type-label">왕복 총액 (성인 1인)</span>
+                      <strong className="fare-total-amount">{formatMoney(offer.price_total)}</strong>
+                      <span className="fare-tax-label">유류세·공항세 포함</span>
+                    </div>
+
+                    <div className="fare-cta-group">
+                      {freshness.level === "cta_disabled" ? (
+                        <span className="flight-cta-btn is-disabled" aria-disabled="true" title="28시간 이상 경과된 운임입니다.">
+                          가격 갱신 대기 중
+                        </span>
+                      ) : (
+                        <a className="flight-cta-btn" href={offer.deep_link} target="_blank" rel="noreferrer">
+                          예약처에서 가격 확인 →
+                        </a>
+                      )}
+                      <span className="freshness-status-text">
+                        {freshness.level === "fresh" ? "최근 확인 운임" : `업데이트 지연 (${Math.floor(freshness.ageHours)}h 전)`}
                       </span>
-                    ) : (
-                      <a className="cta-link" href={offer.deep_link} target="_blank" rel="noreferrer">
-                        예약처에서 가격 확인 →
-                      </a>
-                    )}
-                  </div>
-                  <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                    {freshness.level === "fresh" ? (
-                      <span className="price-status-badge">최근 확인 운임</span>
-                    ) : (
-                      <span className="price-status-badge is-delayed">업데이트 지연 · {Math.floor(freshness.ageHours)}시간 전 확인</span>
-                    )}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="offer-route-line">
-                <div className="route-leg">
-                  <span className="route-tag">가는 편</span>
-                  <strong>{formatTime(offer.outbound_departure_at)} {offer.origin}</strong>
-                  <span className="route-arrow">──────</span>
-                  <strong>{formatTime(offer.outbound_arrival_at)} {offer.destination_code}</strong>
-                  <span className="panel-note">({formatCompactDate(offer.outbound_departure_at)})</span>
-                  {new Date(offer.outbound_arrival_at).getDate() !== new Date(offer.outbound_departure_at).getDate() && (
-                    <span className="next-day-badge">+1일</span>
-                  )}
-                </div>
-                <div className="route-leg">
-                  <span className="route-tag">오는 편</span>
-                  <strong>{formatTime(offer.inbound_departure_at)} {offer.destination_code}</strong>
-                  <span className="route-arrow">──────</span>
-                  <strong>{formatTime(offer.inbound_arrival_at)} {offer.origin}</strong>
-                  <span className="panel-note">({formatCompactDate(offer.inbound_departure_at)})</span>
-                  {new Date(offer.inbound_arrival_at).getDate() !== new Date(offer.inbound_departure_at).getDate() && (
-                    <span className="next-day-badge">+1일</span>
-                  )}
-                </div>
-              </div>
-              <div className="offer-footnote">
-                <span>왕복 총액 · 성인 1인 · 유류세/공항세 포함 · 위탁수하물 규정은 항공사 규정 참조</span>
-                <span>가격 확인: {stamp(offer.last_seen_at || offer.last_batch_at)}</span>
-              </div>
-            </article>
+              </article>
             );
           })
         ) : (

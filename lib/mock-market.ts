@@ -557,6 +557,24 @@ function currentWeekStart() {
   return monday;
 }
 
+export function formatWeekNatural(code: string): string {
+  const match = code.match(/^(\d{4})-W(\d{2})$/);
+  if (!match) return code;
+  const year = parseInt(match[1], 10);
+  const weekNum = parseInt(match[2], 10);
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const startDay = new Date(jan4.getTime() + ((weekNum - 1) * 7 - (jan4.getUTCDay() || 7) + 1) * 86400000);
+  const endDay = new Date(startDay.getTime() + 6 * 86400000);
+  const m1 = startDay.getUTCMonth() + 1;
+  const d1 = startDay.getUTCDate();
+  const m2 = endDay.getUTCMonth() + 1;
+  const d2 = endDay.getUTCDate();
+  if (m1 === m2) {
+    return `${m1}월 ${d1}일 ~ ${d2}일`;
+  }
+  return `${m1}월 ${d1}일 ~ ${m2}월 ${d2}일`;
+}
+
 export function availableWeeks(count = 6) {
   const start = currentWeekStart();
   return Array.from({ length: count }, (_, index) => {
@@ -567,9 +585,12 @@ export function availableWeeks(count = 6) {
     const dayOfYear = Math.floor((day.getTime() - jan1.getTime()) / 86400000) + 1;
     const week = Math.ceil((dayOfYear + ((jan1.getUTCDay() || 7) - 1)) / 7);
     const code = `${year}-W${String(week).padStart(2, "0")}`;
+    const m = day.getUTCMonth() + 1;
+    const d = day.getUTCDate();
     return {
       code,
-      label: `${code} (${day.toISOString().slice(0, 10)} 출발 주간)`,
+      label: `${m}월 ${d}일 주간`,
+      natural_range: formatWeekNatural(code),
       start_date: day.toISOString().slice(0, 10),
     };
   });

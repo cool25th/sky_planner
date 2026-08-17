@@ -37,6 +37,15 @@ function formatMoney(value: number | null) {
   }).format(value);
 }
 
+function formatFareShort(value: number | null) {
+  if (value === null) return "-";
+  if (value >= 10000) {
+    const man = value / 10000;
+    return man % 1 === 0 ? `${man}만` : `${man.toFixed(1)}만`;
+  }
+  return `${Math.round(value / 1000)}천`;
+}
+
 function interpolateGreatCircle(start: [number, number], end: [number, number], points = 40): [number, number][] {
   const [lon1, lat1] = start.map((deg) => (deg * Math.PI) / 180);
   const [lon2, lat2] = end.map((deg) => (deg * Math.PI) / 180);
@@ -303,9 +312,8 @@ export function DealsMap({ deals, query }: DealsMapProps) {
           `클러스터 ${cluster.deals.length}개 목적지, 최저가 ${formatMoney(cluster.min_fare)}, 대표 ${cluster.representative.city}`,
         );
         markerEl.innerHTML = `
-          <span class="deal-marker__cluster-count">${cluster.deals.length}개 목적지</span>
           <span class="deal-marker__city">${cluster.representative.city}</span>
-          <span class="deal-marker__fare">${formatMoney(cluster.min_fare)}</span>
+          <span class="deal-marker__fare">${formatFareShort(cluster.min_fare)}</span>
         `;
         markerEl.addEventListener("mouseenter", () => setSelectedCode(cluster.representative.destination_code));
         markerEl.addEventListener("click", () => {
@@ -318,11 +326,12 @@ export function DealsMap({ deals, query }: DealsMapProps) {
         });
       } else {
         const deal = cluster.representative;
-        markerEl.className = `deal-marker ${selectedCode === deal.destination_code ? "is-selected" : ""}`;
+        const isSelected = selectedCode === deal.destination_code;
+        markerEl.className = `deal-marker ${isSelected ? "is-selected" : ""}`;
         markerEl.setAttribute("aria-label", `${deal.city} 최저가 ${formatMoney(deal.economy_min_total ?? deal.business_min_total)}`);
         markerEl.innerHTML = `
-          <span class="deal-marker__fare">${formatMoney(deal.economy_min_total ?? deal.business_min_total)}</span>
-          <span class="deal-marker__city">${deal.city}</span>
+          ${isSelected ? `<span class="deal-marker__city">${deal.city}</span>` : ""}
+          <span class="deal-marker__fare">${formatFareShort(deal.economy_min_total ?? deal.business_min_total)}</span>
         `;
         markerEl.addEventListener("mouseenter", () => setSelectedCode(deal.destination_code));
         markerEl.addEventListener("click", () => {
