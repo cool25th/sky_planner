@@ -12,7 +12,7 @@
 | UX-20260818-003 | UX | 원시 ISO week 노출 2곳 | Progressive | RESOLVED | — | 배포 /map에서 "8월 17일 ~ 23일" 자연어 주간 표기 확인(2026-08-18) |
 | UX-20260818-004 | UX | 과거 주간 조회 안내 | Progressive | RESOLVED | — | 배포 /map?week=2026-W30에서 "지난 주간이라 표시할 특가가 없습니다" + 이번 주간 재검색 링크 확인(2026-08-18) |
 | MOD-20260818-001 | 모듈화 | KRW 포맷터 중복 통합 | Progressive | RESOLVED | — | 2026-08-18 구현+배포: 3컴포넌트를 `lib/format.ts` `formatMoney`로 교체 + `format-contract.mjs` 가드(app/components 직접 `Intl.NumberFormat` 금지). npm test 242/242. 2026-08-18 배포에서 라이브 확인, 가격 표정 정상 |
-| INT-20260818-001 | 내부 | DB 계정 분리(REQ-DB-002) 운영 적용 | Progressive | NEW | P1 | launch-gate review 2026-08-17에서 open. 운영 3-role URL 적용 + db_roles 프로브 통과 필요 |
+| INT-20260818-001 | 내부 | DB 계정 분리(REQ-DB-002) 운영 적용 | Progressive | RESOLVED(1단계) | — | 2026-08-19 운영 Neon에 적용·검증(ADR-006): 3역할 생성 + 프로브 통과(read 쓰기 차단✓, ingest DDL 차단✓), Vercel `DATABASE_READ_URL`/GitHub `DATABASE_URL`·`DATABASE_INGEST_URL`(ingest) 전환, 재배포·stopgap 재실행 성공. 자격증명은 `.env.local`만. 2단계(소유권 이전·PUBLIC 회수·owner URL 축소)는 실제 migration 필요 시까지 보류 |
 | MOD-20260818-002 | 모듈화 | README stale 갱신 | Progressive | RESOLVED | — | 2026-08-18 수정: `/fare-board` 라우트 목록 제거, "MapLibre 대신 SVG" → MapLibre GL 실사용 문장으로 교체. partner credential 한계 문단은 미주입 상태와 일치하므로 유지 |
 | INT-20260818-002 | 내부 | sky_collector 테스트 실행 경로 문서 오류 | Reactive | RESOLVED | — | 루트가 아닌 `sky_collector/`에서 `PYTHONPATH=src` 실행 필요. 루프 문서 §15.1 수정으로 조치(2026-08-18). 5 tests OK 확인 |
 | UX-20260818-005 | UX | 커맨드 팔레트 + 목적지 비교 모달 | Progressive | RESOLVED | — | 병행 세션이 `d78454a`로 커밋·배포. 2026-08-19 루프에서 ⌘K 라이브 확인으로 종결 |

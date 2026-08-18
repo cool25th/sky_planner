@@ -15,7 +15,7 @@
   - 라우트별 error boundary + 과거 주간 안내 (`f1acbb7`)
 - **다음 검증 예정**
   - `collect-fares.yml` 내일 03:5x KST 실행 (오늘: 잡 시작 확인·audit 단계 실패 — secrets 없음)
-  - `INT-20260819-001` 신선도 판정 소스(Firestore publish vs Postgres batch_state) 조사
   - `DATA-20260818-002`(빈 배치 가드) — 실배치에서 재검증
+  - 내일 02:00 KST stopgap이 ingest 역할(`sky_planner_ingest`)로 정상 재게시하는지 스케줄 실행 확인
 - **제품 성숙도**: usability 2 / modularity 2 / data_freshness 1 / internal_modules 2 / convenience 3
 - **Go/No-Go**: **NO-GO** (service-readiness 13/45 통과)
