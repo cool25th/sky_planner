@@ -13,7 +13,7 @@
 | UX-20260818-004 | UX | 과거 주간 조회 안내 | Progressive | RESOLVED | — | 배포 /map?week=2026-W30에서 "지난 주간이라 표시할 특가가 없습니다" + 이번 주간 재검색 링크 확인(2026-08-18) |
 | MOD-20260818-001 | 모듈화 | KRW 포맷터 중복 통합 | Progressive | VERIFYING | P2 | 2026-08-18 승인 구현: 3컴포넌트를 `lib/format.ts` `formatMoney`로 교체 + `format-contract.mjs`에 app/components 직접 `Intl.NumberFormat` 금지 가드 추가. npm test 242/242·build 통과. 배포 확인 후 RESOLVED |
 | INT-20260818-001 | 내부 | DB 계정 분리(REQ-DB-002) 운영 적용 | Progressive | NEW | P1 | launch-gate review 2026-08-17에서 open. 운영 3-role URL 적용 + db_roles 프로브 통과 필요 |
-| MOD-20260818-002 | 모듈화 | README stale 갱신 | Progressive | NEW | P3 | `/fare-board` 라우트 목록, "MapLibre 대신 SVG" 주석(maplibre-gl 실사용), partner credential 한계 문단(현 beta 상태와 불일치) |
+| MOD-20260818-002 | 모듈화 | README stale 갱신 | Progressive | RESOLVED | — | 2026-08-18 수정: `/fare-board` 라우트 목록 제거, "MapLibre 대신 SVG" → MapLibre GL 실사용 문장으로 교체. partner credential 한계 문단은 미주입 상태와 일치하므로 유지 |
 | INT-20260818-002 | 내부 | sky_collector 테스트 실행 경로 문서 오류 | Reactive | RESOLVED | — | 루트가 아닌 `sky_collector/`에서 `PYTHONPATH=src` 실행 필요. 루프 문서 §15.1 수정으로 조치(2026-08-18). 5 tests OK 확인 |
 | UX-20260818-005 | UX | 커맨드 팔레트 + 목적지 비교 모달 | Progressive | IN_PROGRESS | — | 병행 세션이 커밋 전 상태로 개발 중. 이 루프에서는 관찰만 |
-| UX-20260818-006 | UX | 없는 목적지 코드가 404 대신 200 셸 페이지 렌더 | Reactive | NEW | P3 | `/destination/UNKNOWN1`이 "UNKNOWN1(UNKNOWN1) 항공 특가…" 타이틀의 200 페이지로 렌더(2026-08-18 배포 확인). 404 카피는 "잘못된 목적지 코드"를 안내해 의도와 불일치 — unknown placeId에서 `notFound()` 호출 필요 |
+| UX-20260818-006 | UX | 없는 목적지 코드가 404 대신 200 셸 페이지 렌더 | Reactive | IMPLEMENTED | P3 | 2026-08-18 구현: destination 페이지가 destination 목록에 없는 placeId면 `notFound()` 호출(기존 404 카피·UI 재사용). npm test 242/242·build 통과. 배포 후 `/destination/UNKNOWN1`이 404로 바뀌는 것 확인 시 RESOLVED |
