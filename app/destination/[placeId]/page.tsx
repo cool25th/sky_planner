@@ -22,8 +22,16 @@ export const dynamic = "force-dynamic";
 type Params = Promise<{ placeId: string }>;
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
+// ponytail: notFound()가 본문·메타데이터는 404로 바꾸지만 force-dynamic 스트리밍이라 HTTP 상태는 200으로 남는다(soft-404).
+// 하드 404가 필요해지면 codes 목록을 edge-safe 모듈로 분리해 middleware에서 응답한다.
+function isKnownDestination(placeId: string): boolean {
+  return getDestinationList().some((d) => d.code === placeId);
+}
+
 export async function generateMetadata(props: { params: Params; searchParams: SearchParams }): Promise<Metadata> {
   const { placeId } = await props.params;
+  // generateMetadata가 먼저 플러시되며 200이 커밋되는 것을 막으려면 여기서도 notFound()를 호출해야 한다.
+  if (!isKnownDestination(placeId)) notFound();
   const searchParams = await props.searchParams;
   const query = parseCalendarQuery({ ...searchParams, destination: placeId });
   const destinations = getDestinationList();
@@ -61,7 +69,7 @@ export async function generateMetadata(props: { params: Params; searchParams: Se
 
 export default async function DestinationPage(props: { params: Params; searchParams: SearchParams }) {
   const { placeId } = await props.params;
-  if (!getDestinationList().some((d) => d.code === placeId)) notFound();
+  if (!isKnownDestination(placeId)) notFound();
   const searchParams = await props.searchParams;
   const query = parseCalendarQuery({ ...searchParams, destination: placeId });
   const [calendarResponse, mapResponse] = await Promise.all([
