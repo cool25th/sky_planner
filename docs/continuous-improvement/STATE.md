@@ -11,13 +11,13 @@
   - `components/command-palette.tsx` (신규)
   - `components/destination-compare-modal.tsx` (신규)
   - `app/layout.tsx`, `app/destination/[placeId]/page.tsx`, `app/globals.css` 수정
-- **최근 완료 (코드상 IMPLEMENTED, 배포 검증 대기)**
-  - KRW 포맷터 재중복 해소 + 계약 가드 (`MOD-20260818-001`, 2026-08-18 승인 구현, npm test 242/242·build 통과, 배포 대기)
+- **최근 완료 (배포 검증 완료)**
+  - KRW 포맷터 재중복 해소 + 계약 가드 (`MOD-20260818-001`, 2026-08-18 배포)
+  - unknown destination not-found 처리 (`UX-20260818-006`, 커밋 `302d203`, 2026-08-18 배포 — soft-404 한계는 백로그에 기록)
   - 라우트별 error boundary + 과거 주간 안내 (`f1acbb7`)
   - SEL 검색 ICN/GMP 라우팅 (`a0a0c41`), 가격 하락 알림 구독 + 보딩패스 공유 (`b9ad637`), 로딩 스켈레톤/에러·404 페이지/가격 추세 차트/통화 스위처 (`2d488d9`), observed/published 스탬프·최근 본 목적지 (`ea3a95e`), readiness 페이지 소스별 수집 상태 (`101bfbf`)
 - **다음 검증 예정**
   - `collect-fares.yml` 내일 03:17 KST 스케줄 실행 확인 (public 전환 후 첫 정기 실행)
-  - `MOD-20260818-001`(포맷터 통합), `UX-20260818-006`(unknown destination 404) — 배포 후 확인
   - `DATA-20260818-002`(빈 배치 가드) — 다음 실배치에서 재검증
 - **제품 성숙도**: usability 2 / modularity 2 / data_freshness 1 / internal_modules 2 / convenience 3
 - **Go/No-Go**: **NO-GO** (service-readiness 16/45 통과, 29 실패)

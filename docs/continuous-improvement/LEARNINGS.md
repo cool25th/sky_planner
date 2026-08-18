@@ -39,3 +39,10 @@
 - GH Actions 결제 문제는 API(404)·workflow_dispatch 재시도 모두로 확인: 코드 밖 병목은 조기에 BLOCKED로 분류하고 운영자 조치로 넘기는 것이 맞다.
 - `/destination/<unknown>`이 200 셸 페이지를 반환 — 404 카피에는 "잘못된 목적지 코드" 안내가 있어 의도와 불일치. UX-20260818-006으로 등록.
 - GitHub Actions 결제 블로커는 private 저장소 요금제에서만 발생한다. public 전환으로 즉시 해제됨(런 32098098864 성공). 공개 전에는 히스토리 비밀 스캔이 선행 조건 — 이 저장소는 통과(.env류 커밋 이력 없음, credential 패턴은 전부 가짜 fixture).
+
+### 커밋·배포 (2026-08-18 저녁)
+
+- **병행 세션이 같은 working tree에서 빌드하면 `.next`가 교차 오염된다.** 에디터 버퍼 저장 시점에 따라 내가 추가한 가드가 빌드에서 빠진 적 있음. 검증은 격리 포트(:3100) + `rm -rf .next` 클린 빌드 + 본문 grep으로.
+- `npm run start`가 EADDRINUSE로 죽어도 `-w "%{http_code}"`는 다른 서버(:3000 점유자)의 응답을 출력한다 — 로그 파일로 서버 기동 성공을 먼저 확인해야 한다.
+- Next 15 force-dynamic 스트리밍에서 `notFound()`는 본문·메타데이터를 404로 바꾸지만 HTTP 상태 코드는 이미 커밋된 200으로 남는다(soft-404). 메타데이터 오염은 generateMetadata에서 같은 가드를 호출해 제거했다. 하드 404가 필요하면 middleware(+edge-safe codes 모듈)이 업그레이드 경로.
+- Vercel CLI 배포는 `--scope cools-projects-d471a9e6` 명시 필요(팀 스코프 없으면 Not authorized).
