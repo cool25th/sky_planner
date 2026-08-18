@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { formatMoney } from "@/lib/format";
+
 export interface BoardingPassModalProps {
   origin: string;
   originLabel?: string;
@@ -13,11 +15,6 @@ export interface BoardingPassModalProps {
   fare: number | null;
   cabin: string;
   airlineName?: string;
-}
-
-function formatMoney(value: number | null) {
-  if (value === null || value === 0) return "-";
-  return new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(value);
 }
 
 function formatDateDisplay(value: string) {

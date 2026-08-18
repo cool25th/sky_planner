@@ -609,7 +609,7 @@ Priority Score =
 ```bash
 npm test                                                    # node --test tests/*.mjs 전체 계약 테스트
 python3 -m unittest discover -s tests                       # backend.py Python 테스트
-PYTHONPATH=src python3 -m unittest discover -s sky_collector/tests   # sky_collector 테스트
+cd sky_collector && PYTHONPATH=src python3 -m unittest discover -s tests   # sky_collector 테스트 (루트 실행 시 네임스페이스 충돌로 전량 실패 — 반드시 이 디렉터리에서)
 npm run build
 ```
 

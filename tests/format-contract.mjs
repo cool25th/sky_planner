@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
 import test from "node:test";
 
 import {
@@ -45,4 +47,14 @@ test("date helpers render compact and full dates", () => {
   assert.equal(formatCompactDate("2026-08-24"), "8/24 (월)");
   assert.equal(formatDate("2026-08-24"), "8. 24. (월)");
   assert.ok(formatTime("2026-08-24T09:05").length > 0);
+});
+
+test("app and component code format money only via lib/format", () => {
+  const offenders = ["app", "components"].flatMap(function scan(dir) {
+    return readdirSync(dir).flatMap((name) => {
+      const full = path.join(dir, name);
+      return statSync(full).isDirectory() ? scan(full) : /\.tsx?$/.test(name) ? [full] : [];
+    });
+  }).filter((file) => readFileSync(file, "utf8").includes("Intl.NumberFormat"));
+  assert.deepEqual(offenders, [], `direct Intl.NumberFormat construction: ${offenders.join(", ")}`);
 });

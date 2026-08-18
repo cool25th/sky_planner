@@ -204,7 +204,7 @@ DB-backed API 응답에는 운영 판별용 `diagnostics`도 포함됩니다. `d
 
 운영 배포에서는 `SERVICE_REQUIRE_POSTGRES=true`를 설정해야 합니다. 이 값이 켜져 있으면 검색/지도/캘린더/오퍼 API는 PostgreSQL read model을 사용할 수 없거나 source readiness가 ready가 아닐 때 deterministic mock fare를 반환하지 않고 빈 결과와 `diagnostics.service_unavailable=true`를 포함한 503 응답을 반환합니다.
 서비스 readiness의 launch operations 축은 `/api/search`, `/api/deals/map`, `/api/deals/calendar`, `/api/offers`가 공통 `apiStatusForResponse`/`apiHeadersForResponse`를 사용하고 `lib/data-source.ts`가 `serviceApiReadinessBlockReason`/`suppressMockFallback`을 유지하는지도 정적 artifact로 확인합니다.
-`/`, `/fare-board`, `/map`, `/offers`, `/destination/[placeId]`는 `force-dynamic`으로 운영 read model/source readiness를 매 요청 평가하고, service unavailable notice를 렌더링할 때 `noStore()`로 장애 화면의 캐시 고착을 막습니다.
+`/`, `/map`, `/offers`, `/destination/[placeId]`는 `force-dynamic`으로 운영 read model/source readiness를 매 요청 평가하고, service unavailable notice를 렌더링할 때 `noStore()`로 장애 화면의 캐시 고착을 막습니다.
 
 `source_flags`는 단순 표시값이 아니라 검색 후보 필터에도 적용됩니다. 기본 활성 소스는 `skyscanner_affiliate`, `korean_air_official`, `asiana_official`이며, `SOURCE_SKYSCANNER_ENABLED=false`처럼 source-policy 환경 변수를 끄면 해당 예약처는 최저가 랭킹과 상세 목록에서 제외됩니다. 검토 전 source인 `SOURCE_GOOGLE_FLIGHTS_ENABLED`, `SOURCE_KAYAK_ENABLED`, `SOURCE_PROMO_PAGES_ENABLED`는 기본 템플릿에서 꺼져 있으며, 운영 manifest와 live evidence가 준비된 뒤에만 켭니다.
 
@@ -242,6 +242,6 @@ npm run build
 - `/service-readiness`는 mock seed만으로는 서비스 출시 준비 상태를 `ready`로 인정하지 않습니다. `source_jobs.parser_version`이 `local-mock`이 아닌 승인 collector 성공 이력과 `collector-artifacts` 증거를 요구합니다.
 - `sky_collector`의 사이트별 XHR/GraphQL 캡처 어댑터는 아직 구현 전이며, 현재는 normalized batch ingest 계약과 DB writer를 먼저 검증했습니다.
 - 가격, 할인율, 공식 특가 배지는 deterministic mock 데이터입니다.
-- 지도는 MapLibre 대신 SVG atlas 기반 mock UI로 먼저 구현했습니다.
+- 지도는 MapLibre GL(`components/deals-map.tsx`) 기반이며 클러스터링과 지도↔목록 양방향 연동을 지원합니다.
 - 운영 read model은 PostgreSQL 기준이며, collector evidence는 GitHub Actions artifact로 보존합니다.
 - `TanStack Query`, `Zustand`, `Tailwind`, `shadcn/ui`는 아직 붙이지 않았고, 현재 단계는 App Router/BFF 골격과 탐색 흐름 구현이 우선입니다.

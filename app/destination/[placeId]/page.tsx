@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { unstable_noStore as noStore } from "next/cache";
 
 import { BookmarkButton } from "@/components/bookmark-button";
@@ -9,6 +10,7 @@ import { MatrixKeyboardNavigator } from "@/components/matrix-keyboard-navigator"
 import { ShareButton } from "@/components/share-button";
 import { PriceAlertModal } from "@/components/price-alert-modal";
 import { BoardingPassModal } from "@/components/boarding-pass-modal";
+import { DestinationCompareModal } from "@/components/destination-compare-modal";
 import { dataModeLabel, resolveCalendarResponse, resolveMapResponse } from "@/lib/data-source";
 import { formatDate, formatMoney, isPastWeek, stamp } from "@/lib/format";
 import { TRIP_BUCKETS, parseCalendarQuery, parseMapQuery, formatWeekNatural, availableWeeks, getDestinationList } from "@/lib/mock-market";
@@ -59,6 +61,7 @@ export async function generateMetadata(props: { params: Params; searchParams: Se
 
 export default async function DestinationPage(props: { params: Params; searchParams: SearchParams }) {
   const { placeId } = await props.params;
+  if (!getDestinationList().some((d) => d.code === placeId)) notFound();
   const searchParams = await props.searchParams;
   const query = parseCalendarQuery({ ...searchParams, destination: placeId });
   const [calendarResponse, mapResponse] = await Promise.all([
@@ -153,6 +156,7 @@ export default async function DestinationPage(props: { params: Params; searchPar
               </p>
             </div>
             <div className="dest-header-actions">
+              <DestinationCompareModal currentPlaceId={placeId} />
               <PriceAlertModal
                 destinationCode={placeId}
                 cityName={calendar.destination.city}

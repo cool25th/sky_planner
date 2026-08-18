@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { formatMoney } from "@/lib/format";
+
 export interface PriceAlertModalProps {
   destinationCode: string;
   cityName: string;
@@ -88,7 +90,7 @@ export function PriceAlertModal({
                     가격 알림 신청이 완료되었습니다!
                   </h4>
                   <p style={{ fontSize: "0.9rem", color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
-                    <strong>{cityName}</strong> 항공권이 <strong>{new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(targetPrice)}</strong> 이하로 떨어지면 <strong>{email}</strong>(으)로 가장 먼저 알려드릴게요.
+                    <strong>{cityName}</strong> 항공권이 <strong>{formatMoney(targetPrice)}</strong> 이하로 떨어지면 <strong>{email}</strong>(으)로 가장 먼저 알려드릴게요.
                   </p>
                   <button
                     type="button"
@@ -116,7 +118,7 @@ export function PriceAlertModal({
                       required
                     />
                     <div className="price-alert-tip">
-                      현재 확인된 최저가: {currentLowestPrice ? `${new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(currentLowestPrice)}` : "-"}
+                      현재 확인된 최저가: {currentLowestPrice ? formatMoney(currentLowestPrice) : "-"}
                     </div>
                   </div>
 
