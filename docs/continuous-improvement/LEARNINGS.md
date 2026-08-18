@@ -14,6 +14,9 @@
 - `vercel env pull`은 Sensitive 환경변수의 실제 값을 내려주지 않는다(무의미한 짧은 값이 기록됨). Sensitive 값 이전은 대시보드 확인 후 수동 주입이 유일.
 - CI의 publish/audit 스텝 중 일부는 필요 env가 없어도 exit 0으로 "성공"한다 — 스텝 성공 ≠ 실제 게시. 판정은 결과 데이터로.
 - 운영 DB는 Vercel `DATABASE_URL`(Sensitive, 08-18 설정)로만 존재하며 source-health는 이 DB의 `batch_state`를 직접 쿼리한다(`app/api/ops/source-health/route.ts:64`).
+- **운영 DB 제공자는 Neon(ap-southeast-1)이다** — `.env.local` URL로 확인. 당초 마스터 프롬프트의 Neon 가정은 제공자 레벨에서 맞았다.
+- `.env.local`의 값은 큰따옴표로 감싸져 있다 — 시크릿 주입 시 반드시 따옴표를 벗긴다(포함 시 pg 파서가 호스트를 `base`로 오인해 `EAI_AGAIN base` 실패).
+- GitHub Actions `if:` 조건식에는 `secrets` 컨텍스트를 쓸 수 없다 — job `env`로 옮겨 `env.X`로 판정한다(기존 READY 패턴 재사용).
 
 ### 기존 가설의 검증 결과
 
