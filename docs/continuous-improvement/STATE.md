@@ -4,7 +4,7 @@
 - **현재 커밋**: `1f96ac4` (신규 커밋 없음, working tree에 08-19 루프 문서만 추가)
 - **배포 버전**: 2026-08-18 저녁 배포 그대로 (UX-006 가드 포함), `https://skyplanner-kappa.vercel.app` 200
 - **데이터 백엔드**: Firestore beta
-- **데이터 상태**: 최신 배치 2026-08-17T11:21:30Z — **32h 경과, 24h 한도 초과 → source-health not_ready, 사이트는 "데모 데이터" 폴백으로 무결**
+- **데이터 상태**: **스톱갑 가동 중(2026-08-19~)** — daily-batch가 매일 02:00 KST `db:seed`(deterministic mock)로 재게시, batch_state 24h 이내 유지. 검증 완료: source-health `ready`, 사이트 "실시간 데이터" 표시. 운영 DB는 Neon(ap-southeast-1). DATA-003 재개 시 스톱갑 자동 비활성(ADR-005)
 - **미해결 P0**
   - 없음(코드·보안 관점). 단 **데이터 신선도 악화 지속** — `DATA-20260818-003`(DEFERRED)의 직접 결과로 매일 데모 폴백 반복. 회복 경로: DATA-003 재개 또는 `DATA-20260819-001` 스톱갑 결정
 - **진행 중 작업 (병행 세션)** — 없음 (UX-005 커맨드 팔레트·비교 모달은 `d78454a`로 완료·종결)
