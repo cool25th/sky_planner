@@ -1,23 +1,21 @@
 # STATE — Sky Planner Atlas 연속 개선 상태
 
-- **마지막 검토일**: 2026-08-18 (첫 실행, ANALYZE_ONLY 수동)
-- **현재 커밋**: `101bfbf` (Show per-source collection status on readiness page)
-- **루프 기준 커밋**: `165eb8f` (2026-08-17, 루프 문서 작성 시점)
-- **배포 버전**: UNKNOWN (Vercel 배포 시각 확인 불가; `https://skyplanner-kappa.vercel.app` 200 응답)
-- **데이터 백엔드**: Firestore beta (운영) / 로컬: mock + docker Postgres
+- **마지막 검토일**: 2026-08-19 04:00 KST (자동 ANALYZE_ONLY)
+- **현재 커밋**: `1f96ac4` (신규 커밋 없음, working tree에 08-19 루프 문서만 추가)
+- **배포 버전**: 2026-08-18 저녁 배포 그대로 (UX-006 가드 포함), `https://skyplanner-kappa.vercel.app` 200
+- **데이터 백엔드**: Firestore beta
+- **데이터 상태**: 최신 배치 2026-08-17T11:21:30Z — **32h 경과, 24h 한도 초과 → source-health not_ready, 사이트는 "데모 데이터" 폴백으로 무결**
 - **미해결 P0**
-  - 없음 — `DATA-20260818-003`(secrets 주입)은 2026-08-18 사용자 결정으로 **DEFERRED**(실제 주입 없이 진행). service-readiness는 주입 전까지 not_ready로 관측됨(회귀 아님). live 수집 개시 시 재개 필요
-- **진행 중 작업 (병행 세션, 커밋 전)**
-  - `components/command-palette.tsx` (신규)
-  - `components/destination-compare-modal.tsx` (신규)
-  - `app/layout.tsx`, `app/destination/[placeId]/page.tsx`, `app/globals.css` 수정
+  - 없음(코드·보안 관점). 단 **데이터 신선도 악화 지속** — `DATA-20260818-003`(DEFERRED)의 직접 결과로 매일 데모 폴백 반복. 회복 경로: DATA-003 재개 또는 `DATA-20260819-001` 스톱갑 결정
+- **진행 중 작업 (병행 세션)** — 없음 (UX-005 커맨드 팔레트·비교 모달은 `d78454a`로 완료·종결)
 - **최근 완료 (배포 검증 완료)**
-  - KRW 포맷터 재중복 해소 + 계약 가드 (`MOD-20260818-001`, 2026-08-18 배포)
-  - unknown destination not-found 처리 (`UX-20260818-006`, 커밋 `302d203`, 2026-08-18 배포 — soft-404 한계는 백로그에 기록)
+  - 커맨드 팔레트 + 목적지 비교 모달 (`UX-20260818-005`, `d78454a`, 2026-08-19 종결)
+  - KRW 포맷터 재중복 해소 + 계약 가드 (`MOD-20260818-001`)
+  - unknown destination not-found 처리 (`UX-20260818-006`, `302d203` — soft-404 한계 기록)
   - 라우트별 error boundary + 과거 주간 안내 (`f1acbb7`)
-  - SEL 검색 ICN/GMP 라우팅 (`a0a0c41`), 가격 하락 알림 구독 + 보딩패스 공유 (`b9ad637`), 로딩 스켈레톤/에러·404 페이지/가격 추세 차트/통화 스위처 (`2d488d9`), observed/published 스탬프·최근 본 목적지 (`ea3a95e`), readiness 페이지 소스별 수집 상태 (`101bfbf`)
 - **다음 검증 예정**
-  - `collect-fares.yml` 내일 03:17 KST 스케줄 실행 확인 (public 전환 후 첫 정기 실행)
-  - `DATA-20260818-002`(빈 배치 가드) — 다음 실배치에서 재검증
+  - `collect-fares.yml` 내일 03:5x KST 실행 (오늘: 잡 시작 확인·audit 단계 실패 — secrets 없음)
+  - `INT-20260819-001` 신선도 판정 소스(Firestore publish vs Postgres batch_state) 조사
+  - `DATA-20260818-002`(빈 배치 가드) — 실배치에서 재검증
 - **제품 성숙도**: usability 2 / modularity 2 / data_freshness 1 / internal_modules 2 / convenience 3
-- **Go/No-Go**: **NO-GO** (service-readiness 16/45 통과, 29 실패)
+- **Go/No-Go**: **NO-GO** (service-readiness 13/45 통과)

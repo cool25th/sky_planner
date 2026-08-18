@@ -24,20 +24,28 @@ jobs:
       READY: ${{ secrets.COLLECTOR_SOURCE_MANIFEST_JSON != '' && secrets.DATABASE_INGEST_URL != '' }}
     steps:
       - name: Skip until secrets are configured
-        if: ${{ env.READY != 'true' }}
+        if: ${{ env.READY != 'true' && secrets.DATABASE_URL == '' }}
         run: echo "collector secrets not configured yet — skipping daily batch"
 
       - uses: actions/checkout@v4
-        if: ${{ env.READY == 'true' }}
+        if: ${{ env.READY == 'true' || secrets.DATABASE_URL != '' }}
 
       - uses: actions/setup-node@v4
-        if: ${{ env.READY == 'true' }}
+        if: ${{ env.READY == 'true' || secrets.DATABASE_URL != '' }}
         with:
           node-version: 24.14.0
           cache: npm
 
       - run: npm ci
-        if: ${{ env.READY == 'true' }}
+        if: ${{ env.READY == 'true' || secrets.DATABASE_URL != '' }}
+
+      # Stopgap (DATA-20260819-001): 실 collector가 구성되지 않은 동안(beta) deterministic mock read model을
+      # 재게시해 batch_state 최신성(24h)을 유지한다. DATA-20260818-003이 재개되면 READY가 true가 되어 이 스텝은 자동 비활성화.
+      - name: Stopgap refresh beta read model (mock republish)
+        if: ${{ env.READY != 'true' && secrets.DATABASE_URL != '' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npm run db:seed
 
       - name: Run collector sources (ingest + audit failures)
         if: ${{ env.READY == 'true' }}

@@ -1,5 +1,30 @@
 # LEARNINGS — 검증 결과와 학습
 
+## 2026-08-19 (자동 ANALYZE_ONLY)
+
+### 오늘 확인된 사실
+
+- 배포 데이터가 24시간 한도를 넘으면서 source-health가 ready→not_ready로 전환한다(활성 3소스 전부 `stale`, eligible 0/2). 회귀가 아니라 DATA-003 DEFERRED의 예측된 결과.
+- **사이트는 끊기지 않는다**: 홈/맵/오퍼 모두 200, "데모 데이터" 라벨 폴백. UX-20260818-001(data_mode 표시)이 실전에서 정확히 작동 — 오인 없는 데모 전환 확인.
+- collect-fares가 secrets 없이도 잡 시작~`Publish Daily Firestore Batch`(quota guard)까지 실행된다. 결제 해제(public 전환)가 스케줄 실행에서도 유효. 실패는 audit/artifact 단계(env·수집 결과 없음)에서만 발생.
+- **Firestore publish 성공과 source-health last_batch 갱신이 따로 논다**(→ 08-19 후속으로 판명: publish는 no-op 성공, 판정 소스는 Postgres `batch_state` — 코드로 확인. 불일치 아님).
+
+### 후속 실행 (2026-08-19 스톱갑 작업)
+
+- `vercel env pull`은 Sensitive 환경변수의 실제 값을 내려주지 않는다(무의미한 짧은 값이 기록됨). Sensitive 값 이전은 대시보드 확인 후 수동 주입이 유일.
+- CI의 publish/audit 스텝 중 일부는 필요 env가 없어도 exit 0으로 "성공"한다 — 스텝 성공 ≠ 실제 게시. 판정은 결과 데이터로.
+- 운영 DB는 Vercel `DATABASE_URL`(Sensitive, 08-18 설정)로만 존재하며 source-health는 이 DB의 `batch_state`를 직접 쿼리한다(`app/api/ops/source-health/route.ts:64`).
+
+### 기존 가설의 검증 결과
+
+- "source-health ready ≠ live 데이터"(08-18 학습)에 반대 사례 확인: not_ready는 실제 스테일과 정확히 일치. 방향성은 맞고, 이제 판정 소스 단일화가 과제.
+
+### 다음 루프에서 확인할 사항
+
+- collect-fares 내일 실행(오늘과 동일 패턴인지 — publish 성공/audit 실패)
+- DATA-003 재개 또는 스톱갑 결정 여부(사용자)
+- INT-20260819-001 조사 진행 여부
+
 ## 2026-08-18 (첫 실행)
 
 ### 오늘 확인된 사실
