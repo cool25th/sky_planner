@@ -42,26 +42,38 @@ jobs:
       OPS_READINESS_TOKEN: ${{ secrets.OPS_READINESS_TOKEN }}
       SUPPORT_EMAIL: ${{ secrets.SUPPORT_EMAIL }}
       MOCK_DATA_ENABLED: "false"
+      READY: ${{ secrets.COLLECTOR_SOURCE_MANIFEST_JSON != '' }}
     steps:
+      # DATA-20260818-003 DEFERRED 기간: manifest 없으면 깔끔히 skip(daily-batch 패턴) — 매일 실패 알림 노이즈 방지.
+      - name: Skip until collector secrets are configured
+        if: ${{ env.READY != 'true' }}
+        run: echo "collector manifest not configured yet — skipping collect-fares (stopgap freshness handled by daily-batch)"
+
       - uses: actions/checkout@v4
+        if: ${{ env.READY == 'true' }}
 
       - uses: actions/setup-node@v4
+        if: ${{ env.READY == 'true' }}
         with:
           node-version: "24"
           cache: npm
 
       - run: npm ci
+        if: ${{ env.READY == 'true' }}
 
       - name: Preflight Firebase & Quota Check
+        if: ${{ env.READY == 'true' }}
         run: |
           npm run preflight:firebase-env || true
           npm run audit:firestore-quota || true
 
       - name: Publish Daily Firestore Batch with Quota Guard
+        if: ${{ env.READY == 'true' }}
         run: |
           npm run collector:firestore -- --input tests/fixtures/collector-batch.sample.json --dry-run || true
 
       - name: Run service launch audit
+        if: ${{ env.READY == 'true' }}
         run: >
           npm run audit:service-launch --
           --manifest-env COLLECTOR_SOURCE_MANIFEST_JSON
@@ -71,11 +83,12 @@ jobs:
           --output-dir runtime/service-launch-audits
 
       - name: Free Tier Beta Release Gate Audit
+        if: ${{ env.READY == 'true' }}
         run: |
           npm run audit:free-tier-beta || true
 
       - name: Upload collector artifacts
-        if: always()
+        if: ${{ always() && env.READY == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: collector-artifacts
@@ -84,7 +97,7 @@ jobs:
           retention-days: 30
 
       - name: Upload service launch audit evidence
-        if: always()
+        if: ${{ always() && env.READY == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: service-launch-audit
