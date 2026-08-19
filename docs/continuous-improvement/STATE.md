@@ -1,6 +1,6 @@
 # STATE — Sky Planner Atlas 연속 개선 상태
 
-- **마지막 검토일**: 2026-08-19 04:00 KST (자동 ANALYZE_ONLY)
+- **마지막 검토일**: 2026-08-20 04:00 KST (자동 ANALYZE_ONLY)
 - **현재 커밋**: `1f96ac4` (신규 커밋 없음, working tree에 08-19 루프 문서만 추가)
 - **배포 버전**: 2026-08-18 저녁 배포 그대로 (UX-006 가드 포함), `https://skyplanner-kappa.vercel.app` 200
 - **데이터 백엔드**: Firestore beta
@@ -14,8 +14,8 @@
   - unknown destination not-found 처리 (`UX-20260818-006`, `302d203` — soft-404 한계 기록)
   - 라우트별 error boundary + 과거 주간 안내 (`f1acbb7`)
 - **다음 검증 예정**
-  - `collect-fares.yml` 내일 03:5x KST 실행 (오늘: 잡 시작 확인·audit 단계 실패 — secrets 없음)
-  - `DATA-20260818-002`(빈 배치 가드) — 실배치에서 재검증
-  - 내일 02:00 KST stopgap이 ingest 역할(`sky_planner_ingest`)로 정상 재게시하는지 스케줄 실행 확인
+  - stopgap 내일 02:22 KST 스케줄 실행 (08-20: ingest 역할 자동 성공 확인 완료)
+  - `DATA-20260818-002`(빈 배치 가드) — 실 collector 배치에서 재검증
+  - 운영 env 패키지(DATA-20260820-001) 주입 여부
 - **제품 성숙도**: usability 2 / modularity 2 / data_freshness 1 / internal_modules 2 / convenience 3
-- **Go/No-Go**: **NO-GO** (service-readiness 13/45 통과)
+- **Go/No-Go**: **NO-GO** (service-readiness 18/45 통과 — env 패키지 1차 적용 후)

@@ -74,3 +74,18 @@
 - `npm run start`가 EADDRINUSE로 죽어도 `-w "%{http_code}"`는 다른 서버(:3000 점유자)의 응답을 출력한다 — 로그 파일로 서버 기동 성공을 먼저 확인해야 한다.
 - Next 15 force-dynamic 스트리밍에서 `notFound()`는 본문·메타데이터를 404로 바꾸지만 HTTP 상태 코드는 이미 커밋된 200으로 남는다(soft-404). 메타데이터 오염은 generateMetadata에서 같은 가드를 호출해 제거했다. 하드 404가 필요하면 middleware(+edge-safe codes 모듈)이 업그레이드 경로.
 - Vercel CLI 배포는 `--scope cools-projects-d471a9e6` 명시 필요(팀 스코프 없으면 Not authorized).
+
+## 2026-08-20 (자동 ANALYZE_ONLY)
+
+### 오늘 확인된 사실
+
+- stopgap(ingest 역할)+계정 분리 조합이 첫 야간 자동 사이클에서 무중단 동작: 02:22 KST seed 성공(1m18s) → source-health ready → 사이트 "실시간 데이터". 배치 파이프라인의 최소 가동 상태 확립.
+- service-readiness 13/45 → 16/45: 스테일 연쇄(fresh_successful_batch, eligible_sources_minimum, source_health_ready) 해소. 회복은 데이터 신선도에서 온 것.
+- **잔여 실패 29개 분류**: partner 키 직접 의존 4개, 운영 env 부재(SUPPORT_EMAIL·OPS_READINESS_TOKEN·OPS_ALERT_WEBHOOK_URL·SOURCE_*_ENABLED)가 원인인 것이 대부분. "not_ready"를 뭉뚱그리면 우선순위를 잘못 잡는다.
+- collect-fares는 매일 1분 실패를 반복 — DEFERRED 기간의 알림 노이즈. skip 게이트(daily-batch 패턴) 부재.
+
+### 다음 루프에서 확인할 사항
+
+- stopgap 내일 스케줄 실행(2일 연속 안정성)
+- 운영 env 패키지 주입 여부(사용자) 및 주입 시 readiness 상승 폭
+- DATA-20260818-003 재개 검토 여부
