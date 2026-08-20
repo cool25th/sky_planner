@@ -24,6 +24,8 @@ const READINESS_STATIC_FILES = [
   "configs/collector-source-manifest.production.example.json",
   "scripts/service-env-preflight.mjs",
   "scripts/service-launch-audit.mjs",
+  "scripts/prod-readiness-smoke.mjs",
+  "scripts/service-readiness-smoke.mjs",
   ".github/workflows/collect-fares.yml",
 ].map((file) => `./${file}`);
 
