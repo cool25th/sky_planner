@@ -52,9 +52,9 @@
 - Next.js 15 App Router, React 19
 - MapLibre GL (`components/deals-map.tsx`에서 실사용 — README의 "SVG mock" 주석은 낡은 정보)
 - 데이터 백엔드 3계층:
-  - **Firestore** (`firebase-admin`, `lib/data/firestore-repository.ts`) — `DATA_BACKEND=firestore` 또는 `SERVICE_REQUIRE_FIRESTORE=true`일 때 운영 beta 백엔드
-  - **PostgreSQL** (`pg`, `lib/db.ts`) — collector ingest 대상 read model (`places`, `offers`, `fare_snapshots`, `deals_current`, `source_jobs`, `source_health`, `batch_state`)
-  - **deterministic mock** (`lib/mock-market.ts`) — 로컬 개발/폴백 (`SERVICE_REQUIRE_POSTGRES=true`면 운영에서 폴백 차단)
+  - **PostgreSQL — 운영 제공자는 Neon** (ap-southeast-1, DB `neondb`; 2026-08-19 확인). `pg` + `lib/db.ts`가 read model(`places`, `offers`, `fare_snapshots`, `deals_current`, `source_jobs`, `source_health`, `batch_state`)을 조회하고 collector/seed가 적재한다. 계정 분리 1단계 적용(ADR-006): BFF는 `DATABASE_READ_URL`(read 롤), CI seed는 ingest 롤.
+  - **Firestore** (`firebase-admin`, `lib/data/firestore-repository.ts`) — `DATA_BACKEND=firestore` 또는 `SERVICE_REQUIRE_FIRESTORE=true`일 때 (beta 배치 워크플로용)
+  - **deterministic mock** (`lib/mock-market.ts`) — 로컬 개발/폴백 (`SERVICE_REQUIRE_POSTGRES=true`면 운영에서 폴백 차단 — 출시 시점 결정사항)
 - Node.js 기반 authorized-feed collector (`scripts/run-authorized-feed-collector.mjs`, `run-collector-sources.mjs`, `ingest-collector-batch.mjs`) — 현재 운영 경로
 - Python `sky_collector/` (src 레이아웃) — XHR/GraphQL 캡처 어댑터는 아직 구현 전, models/parsers/fx_sync만 존재
 - GitHub Actions 배치 2개 (§1.5), Vercel 배포
@@ -111,9 +111,9 @@ NEXT_PUBLIC_SITE_URL
 
 | 작업 | 시각 (KST) | 내용 |
 |---|---|---|
-| `daily-batch.yml` | 02:00 | secrets(`DATABASE_INGEST_URL`, manifest) 없으면 skip |
-| `collect-fares.yml` | 03:17 | Firestore beta 백엔드, launch audit 포함, artifact 30/90일 보존 |
-| **본 분석 루프** | 배치 완료 후 (04:00 권장) | 03시 정각 실행 시 배치 진행 중 상태를 관찰하게 됨 |
+| `daily-batch.yml` stopgap | 02:00 | collector secrets(READY) 없는 동안 `db:seed`(ingest 롤)가 `batch_state` 재게시 — 24h 신선도 유지(ADR-005). READY가 true가 되면 실 collector가 대체 |
+| `collect-fares.yml` | 03:5x | manifest 없으면 skip 게이트로 7초 종료(2026-08-20~). manifest 주입 시 launch audit + artifact 30/90일 보존 |
+| **본 분석 루프** | 04:00 | 위 결과를 관측해 이어서 분석 (03시 정각 실행 시 배치 진행 중 상태를 관찰하게 됨) |
 
 분석 시점에 당일 배치가 아직 실행 전/진행 중이면 그 상태 그대로 기록하고, 전일 배치 결과로 판단한다.
 
@@ -454,6 +454,17 @@ Repository 계층(`lib/data/*`), `lib/db.ts` 연결 관리, zod 스키마 검증
 - DB-backed 응답의 `diagnostics.read_model`, `fallback_used`, `source_readiness.status`
 - 운영에서 mock 폴백이 503로 차단되는지 (`SERVICE_REQUIRE_POSTGRES=true`)
 
+## 9.5 관측 명령 (읽기 전용 — 매일 사용)
+
+```bash
+gh run list --limit 4                                    # 밤새 stopgap/collect-fares 실행 결과
+curl -s https://skyplanner-kappa.vercel.app/api/ops/source-health
+curl -s https://skyplanner-kappa.vercel.app/api/ops/service-readiness
+```
+
+- service-readiness의 `failed_checks`는 **매일 분류**한다: (1) partner 키 의존(DATA-20260818-003), (2) 운영 env 부재(SUPPORT_EMAIL·OPS_ALERT_WEBHOOK_URL 등), (3) 기타 정적/판정 로직(INT-20260820-002 계열). "not_ready"를 뭉뚱그려 해석하지 않는다.
+- CI 스텝 성공 ≠ 실제 게시 — 판정은 결과 데이터(source-health batch_state)로 한다.
+
 ---
 
 # 10. 개선 성숙도 모델
@@ -543,6 +554,8 @@ Priority Score =
 ---
 
 # 14. 일일 출력 형식
+
+문서 보고서는 아래 형식을 따른다. 최종 채팅 응답은 별도의 "아침 브리핑" 형식(날짜+Go/No-Go, 밤새 자동 실행 결과, 변화·회귀, 백로그 변동, Top 3 승인 대기, 사용자 액션 대기, 로컬 검증 1줄)으로 출력한다 — 사용자가 채팅창에서 바로 읽고 번호로 승인할 수 있어야 한다.
 
 ```md
 # Sky Planner Atlas Daily Continuous Improvement Report
