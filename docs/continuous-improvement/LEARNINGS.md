@@ -89,3 +89,15 @@
 - stopgap 내일 스케줄 실행(2일 연속 안정성)
 - 운영 env 패키지 주입 여부(사용자) 및 주입 시 readiness 상승 폭
 - DATA-20260818-003 재개 검토 여부
+
+## 2026-08-21 (자동 ANALYZE_ONLY)
+
+### 오늘 확인된 사실
+
+- `*_available` 시리즈 17개의 실패 원인: `lib/readiness-artifacts.ts`의 `artifactContains()`가 런타임 `readFile(process.cwd()/path)`로 소스 파일을 읽지만 Vercel 번들은 nft 트레이싱 대상(import 모듈)만 포함 — 정적 파일 체크는 배포에서 구조적으로 통과 불가. "체크 실패"가 아니라 "평가 환경 불일치"였다.
+- stopgap 3일 연속 자동 성공, collect-fares skip 가드 스케줄 검증 완료(7s) — 배치 하루 주기가 완전히 안정화됨.
+
+### 다음 루프에서 확인할 사항
+
+- INT-20260821-001(번들 포함) 승인·적용 여부와 적용 시 readiness 상승 폭
+- 사용자 env 값(SUPPORT_EMAIL·OPS_ALERT_WEBHOOK_URL) 주입 여부
