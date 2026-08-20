@@ -101,3 +101,9 @@
 
 - INT-20260821-001(번들 포함) 승인·적용 여부와 적용 시 readiness 상승 폭
 - 사용자 env 값(SUPPORT_EMAIL·OPS_ALERT_WEBHOOK_URL) 주입 여부
+
+### 승인 실행 (2026-08-21 INT-20260821-001)
+
+- 런타임 fs 체크를 배포에서 살리는 최소 수단은 `outputFileTracingIncludes` — 파일 목록은 체크 코드(`readiness-artifacts.ts`, `service-readiness-runtime.ts`)의 `artifactContains` 호출과 1:1 유지(새 체크 추가 시 next.config도 갱신 필요, 주석으로 상호 참조).
+- glob에서 `[placeId]`처럼 대괄호 디렉터리는 문자클래스로 해석된다 — `**`로 회피.
+- 결과: readiness 18→37/45. "정적 체크 실패"의 상당수는 평가 환경 문제였음을 재확인.

@@ -18,4 +18,4 @@
   - `DATA-20260818-002`(빈 배치 가드) — 실 collector 배치에서 재검증
   - 운영 env 패키지(DATA-20260820-001) 주입 여부
 - **제품 성숙도**: usability 2 / modularity 2 / data_freshness 1 / internal_modules 2 / convenience 3
-- **Go/No-Go**: **NO-GO** (service-readiness 18/45 통과 — `INT-20260821-001` 적용 시 +14 경로 확보)
+- **Go/No-Go**: **NO-GO** (service-readiness **37/45** 통과 — INT-20260821-001 적용 완료. 잔여 8 실패는 전부 외부 값: partner 키 4·웹훅 2·이메일 1·SERVICE_REQUIRE_POSTGRES 1)
