@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --experimental-strip-types --test tests/*.mjs",
+    "test": "node --experimental-strip-types --import ./tests/helpers/server-module-loader.mjs --test tests/*.mjs",
     "batch": "node scripts/batch.mjs",
     "collector:ingest": "node --experimental-strip-types scripts/ingest-collector-batch.mjs",
     "collector:source": "node --experimental-strip-types scripts/run-authorized-feed-collector.mjs",

@@ -26,6 +26,7 @@ const READINESS_STATIC_FILES = [
   "scripts/service-launch-audit.mjs",
   "scripts/prod-readiness-smoke.mjs",
   "scripts/service-readiness-smoke.mjs",
+  "scripts/ops-alert-smoke.mjs",
   ".github/workflows/collect-fares.yml",
 ].map((file) => `./${file}`);
 
