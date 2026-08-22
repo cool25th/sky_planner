@@ -4,7 +4,7 @@
 
 | 지표 | 2026-08-18 | 2026-08-19 | 2026-08-20 | 비고 |
 |---|---:|---:|---|
-| npm test (계약 테스트) | 242 pass / 0 fail | 242 pass / 0 fail | 242 pass / 0 fail | |
+| npm test (계약 테스트) | 242 pass / 0 fail | 242 pass / 0 fail | 242 pass / 0 fail | **250 pass / 0 fail**(08-22 승인 실행 후) |
 | backend unittest | 4 pass / 0 fail | 4 pass / 0 fail | 4 pass / 0 fail | |
 | sky_collector unittest | 5 pass / 0 fail | 5 pass / 0 fail | 5 pass / 0 fail | `cd sky_collector && PYTHONPATH=src …` |
 | npm run build | 성공 | 성공 | 성공 | |

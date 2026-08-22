@@ -107,3 +107,15 @@
 - 런타임 fs 체크를 배포에서 살리는 최소 수단은 `outputFileTracingIncludes` — 파일 목록은 체크 코드(`readiness-artifacts.ts`, `service-readiness-runtime.ts`)의 `artifactContains` 호출과 1:1 유지(새 체크 추가 시 next.config도 갱신 필요, 주석으로 상호 참조).
 - glob에서 `[placeId]`처럼 대괄호 디렉터리는 문자클래스로 해석된다 — `**`로 회피.
 - 결과: readiness 18→37/45. "정적 체크 실패"의 상당수는 평가 환경 문제였음을 재확인.
+
+## 2026-08-22 (자동 ANALYZE_ONLY — 커밋 리뷰·보조 관점 첫 적용)
+
+- §8.6 첫 실행: 검토 대상 4커밋 중 코드 2커밋(next.config만)에서 '동기화 강제 장치 부재' 발견 — 커밋 리뷰가 기능이 아니라 "방어 없는 회귀 지점"을 찾는 데 유효했음.
+- §8.7(테스트 품질) 첫 실행: grep 기반 모듈↔테스트 매핑으로 무전용 테스트 모듈 정량 확인 — data-source(BFF 핵심)·secret-validation(신뢰 경계) 0건. 242개 계약 테스트에도 사각이 존재.
+- 정정: 어제 안내한 "내일=일요일 운영 관측성"은 오기(08-22=토). 요일 순환은 날짜 계산이 유일한 오류원 — 루프 문서에 "보고서 날짜의 요일" 명시로 방어됨.
+- stopgap 4일 연속, collect-fares skip 2일 연속 — 배치 주기의 무인 안정성 확립.
+
+### 승인 실행 (2026-08-22 — 테스트 3종)
+
+- 동기화 가드(readiness-bundle-contract)가 작성 첫 실행에서 누락(`scripts/ops-alert-smoke.mjs`)을 포착 — "문서·주석 유지"보다 "기계적 강제"가 이긴 사례. 이후 artifactContains 추가 시 이 테스트가 번들 목록 갱신을 강제한다.
+- 서버 모듈(`server-only` + `@/` alias + 확장자 없는 TS import)을 계약 테스트에서 직접 import하는 resolve 훅을 `npm test`에 부착 — 15줄 인프라로 data-source 등 모든 서버 모듈의 직접 테스트가 열림. 훅은 정상 경로(확장자 있는 상대 import)를 그대로 통과시킨다.
