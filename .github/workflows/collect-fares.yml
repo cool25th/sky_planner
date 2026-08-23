@@ -61,16 +61,17 @@ jobs:
       - run: npm ci
         if: ${{ env.READY == 'true' }}
 
+      # 자문 체크: 실패해도 수집은 계속되지만 ::warning:: 으로 반드시 표면화(하드 gate 는 audit:service-launch).
       - name: Preflight Firebase & Quota Check
         if: ${{ env.READY == 'true' }}
         run: |
-          npm run preflight:firebase-env || true
-          npm run audit:firestore-quota || true
+          npm run preflight:firebase-env || echo "::warning::preflight:firebase-env failed — Firebase env/quota 설정을 확인하세요"
+          npm run audit:firestore-quota || echo "::warning::audit:firestore-quota failed — Firestore quota 사용량을 확인하세요"
 
       - name: Publish Daily Firestore Batch with Quota Guard
         if: ${{ env.READY == 'true' }}
         run: |
-          npm run collector:firestore -- --input tests/fixtures/collector-batch.sample.json --dry-run || true
+          npm run collector:firestore -- --input tests/fixtures/collector-batch.sample.json --dry-run || echo "::warning::collector:firestore dry-run failed — Firestore publish 계약을 확인하세요"
 
       - name: Run service launch audit
         if: ${{ env.READY == 'true' }}
@@ -85,7 +86,7 @@ jobs:
       - name: Free Tier Beta Release Gate Audit
         if: ${{ env.READY == 'true' }}
         run: |
-          npm run audit:free-tier-beta || true
+          npm run audit:free-tier-beta || echo "::warning::audit:free-tier-beta failed — free tier 한도 초과 여부를 확인하세요"
 
       - name: Upload collector artifacts
         if: ${{ always() && env.READY == 'true' }}
