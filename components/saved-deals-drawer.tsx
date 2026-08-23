@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { href } from "@/lib/url";
 import { formatMoney, formatWeekNatural } from "@/lib/format";
@@ -18,7 +18,7 @@ export function SavedDealsDrawer() {
   const [isOpen, setIsOpen] = useState(false);
   const [deals, setDeals] = useState<BookmarkedDeal[]>([]);
 
-  const loadDeals = () => {
+  const loadDeals = useCallback(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -29,7 +29,7 @@ export function SavedDealsDrawer() {
     } catch {
       setDeals([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadDeals();
@@ -42,7 +42,7 @@ export function SavedDealsDrawer() {
       window.removeEventListener("saved_deals_updated", handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };
-  }, []);
+  }, [loadDeals]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -89,10 +89,16 @@ export function SavedDealsDrawer() {
       </button>
 
       {isOpen && (
-        <div className="drawer-overlay" onClick={() => setIsOpen(false)} role="presentation">
+        // biome-ignore lint/a11y/noStaticElementInteractions: 오버레이 클릭 닫기는 보조 수단이며 닫기 버튼이 주 수단이다
+        <div
+          className="drawer-overlay"
+          role="presentation"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsOpen(false);
+          }}
+        >
           <div
             className="drawer-panel"
-            onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label="찜한 특가 목록"

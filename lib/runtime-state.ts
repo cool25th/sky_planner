@@ -17,12 +17,13 @@ function normalizeSourceFlags(value: unknown) {
   return Array.isArray(value) ? value.map((item) => String(item)).filter(Boolean) : [...ACTIVE_SOURCE_FLAGS];
 }
 
-function normalizeBatchState(data: any): BatchState | null {
+function normalizeBatchState(data: unknown): BatchState | null {
   if (!data || typeof data !== "object") return null;
+  const record = data as Record<string, unknown>;
   return {
-    generatedAt: String(data.generated_at ?? data.generatedAt ?? GENERATED_AT),
-    lastBatchAt: String(data.last_batch_at ?? data.lastBatchAt ?? DEFAULT_LAST_BATCH_AT),
-    sourceFlags: normalizeSourceFlags(data.source_flags ?? data.sourceFlags),
+    generatedAt: String(record.generated_at ?? record.generatedAt ?? GENERATED_AT),
+    lastBatchAt: String(record.last_batch_at ?? record.lastBatchAt ?? DEFAULT_LAST_BATCH_AT),
+    sourceFlags: normalizeSourceFlags(record.source_flags ?? record.sourceFlags),
   };
 }
 

@@ -126,10 +126,13 @@ export function DestinationCompareModal({ currentPlaceId }: { currentPlaceId: st
       </button>
 
       {isOpen && (
-        <div className="app-modal-overlay" onClick={() => setIsOpen(false)} role="presentation">
+        // biome-ignore lint/a11y/noStaticElementInteractions: 오버레이 클릭 닫기는 보조 수단이며 주 수단(닫기 버튼, select 포커스)이 별도로 존재한다
+        <div className="app-modal-overlay" role="presentation"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setIsOpen(false);
+            }}>
           <div
             className="app-modal-panel"
-            onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             style={{ maxWidth: "620px" }}
@@ -151,8 +154,9 @@ export function DestinationCompareModal({ currentPlaceId }: { currentPlaceId: st
               {/* Destination Selectors */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
                 <div>
-                  <label className="price-alert-label">비교 도시 1</label>
+                  <label className="price-alert-label" htmlFor="compare-dest-1">비교 도시 1</label>
                   <select
+                    id="compare-dest-1"
                     className="price-alert-input"
                     value={dest1Code}
                     onChange={(e) => setDest1Code(e.target.value)}
@@ -165,8 +169,9 @@ export function DestinationCompareModal({ currentPlaceId }: { currentPlaceId: st
                   </select>
                 </div>
                 <div>
-                  <label className="price-alert-label">비교 도시 2</label>
+                  <label className="price-alert-label" htmlFor="compare-dest-2">비교 도시 2</label>
                   <select
+                    id="compare-dest-2"
                     className="price-alert-input"
                     value={dest2Code}
                     onChange={(e) => setDest2Code(e.target.value)}
@@ -190,32 +195,32 @@ export function DestinationCompareModal({ currentPlaceId }: { currentPlaceId: st
                   </div>
 
                   <div className="dest-compare-metric">
-                    <label>💰 왕복 최저가</label>
+                    <span className="compare-metric-label">💰 왕복 최저가</span>
                     <strong style={{ color: "var(--color-primary)", fontSize: "1.1rem" }}>{formatMoney(dest1.fare)}</strong>
                   </div>
 
                   <div className="dest-compare-metric">
-                    <label>⏱️ 직항 비행시간</label>
+                    <span className="compare-metric-label">⏱️ 직항 비행시간</span>
                     <strong>{dest1.flightTime}</strong>
                   </div>
 
                   <div className="dest-compare-metric">
-                    <label>🌐 시차</label>
+                    <span className="compare-metric-label">🌐 시차</span>
                     <strong>{dest1.timeDiff}</strong>
                   </div>
 
                   <div className="dest-compare-metric">
-                    <label>🛂 비자</label>
+                    <span className="compare-metric-label">🛂 비자</span>
                     <strong>{dest1.visa}</strong>
                   </div>
 
                   <div className="dest-compare-metric">
-                    <label>💵 현지 화폐</label>
+                    <span className="compare-metric-label">💵 현지 화폐</span>
                     <strong>{dest1.currency}</strong>
                   </div>
 
                   <div className="dest-compare-metric">
-                    <label>🏖️ 추천 테마</label>
+                    <span className="compare-metric-label">🏖️ 추천 테마</span>
                     <span style={{ fontSize: "0.82rem", color: "var(--color-text-secondary)" }}>{dest1.theme}</span>
                   </div>
 
@@ -237,32 +242,32 @@ export function DestinationCompareModal({ currentPlaceId }: { currentPlaceId: st
                   </div>
 
                   <div className="dest-compare-metric">
-                    <label>💰 왕복 최저가</label>
+                    <span className="compare-metric-label">💰 왕복 최저가</span>
                     <strong style={{ color: "var(--color-primary)", fontSize: "1.1rem" }}>{formatMoney(dest2.fare)}</strong>
                   </div>
 
                   <div className="dest-compare-metric">
-                    <label>⏱️ 직항 비행시간</label>
+                    <span className="compare-metric-label">⏱️ 직항 비행시간</span>
                     <strong>{dest2.flightTime}</strong>
                   </div>
 
                   <div className="dest-compare-metric">
-                    <label>🌐 시차</label>
+                    <span className="compare-metric-label">🌐 시차</span>
                     <strong>{dest2.timeDiff}</strong>
                   </div>
 
                   <div className="dest-compare-metric">
-                    <label>🛂 비자</label>
+                    <span className="compare-metric-label">🛂 비자</span>
                     <strong>{dest2.visa}</strong>
                   </div>
 
                   <div className="dest-compare-metric">
-                    <label>💵 현지 화폐</label>
+                    <span className="compare-metric-label">💵 현지 화폐</span>
                     <strong>{dest2.currency}</strong>
                   </div>
 
                   <div className="dest-compare-metric">
-                    <label>🏖️ 추천 테마</label>
+                    <span className="compare-metric-label">🏖️ 추천 테마</span>
                     <span style={{ fontSize: "0.82rem", color: "var(--color-text-secondary)" }}>{dest2.theme}</span>
                   </div>
 

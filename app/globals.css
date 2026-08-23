@@ -2577,7 +2577,7 @@ select {
   margin-bottom: 18px;
 }
 
-.boarding-pass-item label {
+.boarding-pass-item .boarding-pass-label {
   display: block;
   font-size: 0.68rem;
   color: #94a3b8;
@@ -2759,7 +2759,7 @@ select {
   gap: 3px;
 }
 
-.dest-compare-metric label {
+.dest-compare-metric .compare-metric-label {
   font-size: 0.72rem;
   font-weight: 700;
   color: var(--color-text-tertiary);

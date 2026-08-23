@@ -8,7 +8,6 @@ import { ShareButton } from "@/components/share-button";
 import { dataModeLabel, resolveMapResponse, resolveMetaResponse } from "@/lib/data-source";
 import { isPastWeek } from "@/lib/format";
 import {
-  TRIP_BUCKETS,
   parseMapQuery,
   formatWeekNatural,
   availableWeeks,

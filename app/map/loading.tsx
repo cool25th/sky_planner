@@ -1,11 +1,15 @@
+const FILTER_CHIP_IDS = Array.from({ length: 5 }, (_, i) => `chip-${i + 1}`);
+const LIST_ITEM_IDS = Array.from({ length: 6 }, (_, i) => `list-item-${i + 1}`);
+
+
 export default function MapLoading() {
   return (
     <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "16px 20px" }}>
       {/* Filter Bar Skeleton */}
       <div style={{ display: "flex", gap: "12px", marginBottom: "20px", flexWrap: "wrap" }}>
-        {Array.from({ length: 5 }).map((_, i) => (
+        {FILTER_CHIP_IDS.map((id) => (
           <div
-            key={i}
+            key={id}
             className="skeleton-shimmer"
             style={{ width: "130px", height: "42px", borderRadius: "10px" }}
           />
@@ -16,9 +20,9 @@ export default function MapLoading() {
       <div style={{ display: "grid", gridTemplateColumns: "380px 1fr", gap: "20px", minHeight: "calc(100vh - 200px)" }}>
         {/* Left List Skeleton */}
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {Array.from({ length: 6 }).map((_, i) => (
+          {LIST_ITEM_IDS.map((id) => (
             <div
-              key={i}
+              key={id}
               className="skeleton-shimmer"
               style={{ height: "110px", borderRadius: "14px" }}
             />

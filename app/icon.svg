@@ -1,4 +1,5 @@
-<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="icon-title">
+  <title id="icon-title">Sky Planner</title>
   <rect width="128" height="128" rx="32" fill="#08131F"/>
   <path d="M27 79.5L101 49" stroke="#35D0BA" stroke-width="10" stroke-linecap="round"/>
   <path d="M35 94L56 66L68 71L58 101L35 94Z" fill="#FF6B35"/>

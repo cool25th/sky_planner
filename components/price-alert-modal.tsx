@@ -28,7 +28,7 @@ export function PriceAlertModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !email.includes("@")) {
+    if (!email?.includes("@")) {
       alert("올바른 이메일 주소를 입력해 주세요.");
       return;
     }
@@ -71,8 +71,16 @@ export function PriceAlertModal({
       </button>
 
       {isOpen && (
-        <div className="app-modal-overlay" onClick={handleClose} role="presentation">
-          <div className="app-modal-panel" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        // biome-ignore lint/a11y/noStaticElementInteractions: 오버레이 클릭 닫기는 보조 수단이며 닫기 버튼이 주 수단이다
+        <div className="app-modal-overlay" role="presentation"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) handleClose();
+            }}>
+          <div
+            className="app-modal-panel"
+            role="dialog"
+            aria-modal="true"
+          >
             <div className="app-modal-header">
               <h3>
                 <span>🔔</span> {cityName} 특가 가격 알림
@@ -108,8 +116,9 @@ export function PriceAlertModal({
                   </p>
 
                   <div className="price-alert-field">
-                    <label className="price-alert-label">목표 가격 설정 (원)</label>
+                    <label className="price-alert-label" htmlFor="price-alert-target">목표 가격 설정 (원)</label>
                     <input
+                      id="price-alert-target"
                       type="number"
                       step={5000}
                       className="price-alert-input"
@@ -123,8 +132,9 @@ export function PriceAlertModal({
                   </div>
 
                   <div className="price-alert-field">
-                    <label className="price-alert-label">알림 받을 이메일 주소</label>
+                    <label className="price-alert-label" htmlFor="price-alert-email">알림 받을 이메일 주소</label>
                     <input
+                      id="price-alert-email"
                       type="email"
                       className="price-alert-input"
                       placeholder="example@email.com"

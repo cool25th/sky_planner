@@ -342,7 +342,7 @@ function sourceCredentialCheck(
   const invalid: Array<{ source_id: string; env_name: string | null; reason: string }> = [];
   for (const sourceId of sourceIds) {
     const hasExplicitManifestRequirement = requirements
-      ? Object.prototype.hasOwnProperty.call(requirements, sourceId)
+      ? Object.hasOwn(requirements, sourceId)
       : false;
     const envNames = envNamesBySource[sourceId] ?? [];
     if (!envNames.length) {

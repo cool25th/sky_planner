@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
 
-import { BookmarkButton } from "@/components/bookmark-button";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { ShareButton } from "@/components/share-button";
 import { dataModeLabel, resolveOffersResponse } from "@/lib/data-source";

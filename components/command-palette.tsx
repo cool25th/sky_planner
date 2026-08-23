@@ -119,9 +119,11 @@ export function CommandPalette() {
       })
     : items;
 
-  useEffect(() => {
+  const [prevQuery, setPrevQuery] = useState(query);
+  if (prevQuery !== query) {
+    setPrevQuery(query);
     setSelectedIndex(0);
-  }, [query]);
+  }
 
   const handleItemSelect = (item: CommandItem) => {
     handleClose();
@@ -156,10 +158,16 @@ export function CommandPalette() {
       </button>
 
       {isOpen && (
-        <div className="cmd-palette-overlay" onClick={handleClose} role="presentation">
+        // biome-ignore lint/a11y/noStaticElementInteractions: 오버레이 클릭 닫기는 보조 수단이며 ESC/닫기 입력이 주 수단이다
+        <div
+          className="cmd-palette-overlay"
+          role="presentation"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) handleClose();
+          }}
+        >
           <div
             className="cmd-palette-panel"
-            onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             onKeyDown={handleListKeyDown}
@@ -184,7 +192,8 @@ export function CommandPalette() {
                 </div>
               ) : (
                 filtered.map((item, idx) => (
-                  <div
+                  <button
+                    type="button"
                     key={item.id}
                     className={`cmd-palette-item ${idx === selectedIndex ? "is-selected" : ""}`}
                     onClick={() => handleItemSelect(item)}
@@ -211,7 +220,7 @@ export function CommandPalette() {
                     >
                       {item.category}
                     </span>
-                  </div>
+                  </button>
                 ))
               )}
             </div>

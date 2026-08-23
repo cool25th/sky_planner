@@ -11,7 +11,7 @@ export function MatrixKeyboardNavigator({ children }: { children: React.ReactNod
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement as HTMLElement | null;
-      if (!activeEl || !activeEl.classList.contains("matrix-cell-link")) return;
+      if (!activeEl?.classList.contains("matrix-cell-link")) return;
 
       const currentCell = activeEl.closest("td");
       const currentRow = currentCell?.closest("tr");

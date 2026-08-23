@@ -7,7 +7,7 @@ import { RecentDestinations } from "@/components/recent-destinations";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { dataModeLabel, resolveMapResponse } from "@/lib/data-source";
 import { formatMoney, stamp } from "@/lib/format";
-import { getMetaData, parseMapQuery, formatWeekNatural, TRIP_BUCKETS } from "@/lib/mock-market";
+import { getMetaData, parseMapQuery, formatWeekNatural } from "@/lib/mock-market";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
 import { href } from "@/lib/url";
 

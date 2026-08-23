@@ -1,3 +1,6 @@
+const SKELETON_CARD_IDS = Array.from({ length: 8 }, (_, i) => `card-${i + 1}`);
+
+
 export default function RootLoading() {
   return (
     <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "20px" }}>
@@ -10,9 +13,9 @@ export default function RootLoading() {
 
       {/* Grid Skeleton */}
       <div style={{ marginTop: "40px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
-        {Array.from({ length: 8 }).map((_, i) => (
+        {SKELETON_CARD_IDS.map((id) => (
           <div
-            key={i}
+            key={id}
             className="skeleton-shimmer"
             style={{ height: "220px", borderRadius: "16px" }}
           />

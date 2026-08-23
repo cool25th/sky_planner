@@ -74,7 +74,7 @@ export function RecentDestinations() {
   if (items.length === 0) return null;
 
   return (
-    <div className="recent-searches-container" aria-label="최근 본 목적지 목록">
+    <section className="recent-searches-container" aria-label="최근 본 목적지 목록">
       <span className="recent-searches-title">📍 최근 본 곳:</span>
       <div className="recent-chips-list">
         {items.map((item) => (
@@ -94,6 +94,6 @@ export function RecentDestinations() {
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }

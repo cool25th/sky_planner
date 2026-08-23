@@ -14,3 +14,5 @@ runtime/collector-artifacts/
 dist/
 build/
 .vercel
+.omo/
+tsconfig.tsbuildinfo

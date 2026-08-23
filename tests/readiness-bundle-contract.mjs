@@ -23,8 +23,9 @@ function artifactPaths() {
 }
 
 function globToRegExp(glob) {
-  const escaped = glob.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*\*/g, "\u0000").replace(/\*/g, "[^/]*").replace(/\u0000/g, ".*");
-  return new RegExp(`^${escaped}$`);
+  const escaped = glob.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = escaped.split("**").map((part) => part.replace(/\*/g, "[^/]*")).join(".*");
+  return new RegExp(`^${pattern}$`);
 }
 
 test("readiness bundle includes cover every artifactContains path", () => {

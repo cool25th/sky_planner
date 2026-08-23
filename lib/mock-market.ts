@@ -692,8 +692,9 @@ const marketCache = new Map<string, Offer[]>();
 
 export function buildMarket(week: string, lastBatchAt = DEFAULT_LAST_BATCH_AT) {
   const cacheKey = `${week}:${lastBatchAt}`;
-  if (marketCache.has(cacheKey)) {
-    return marketCache.get(cacheKey)!;
+  const cachedMarket = marketCache.get(cacheKey);
+  if (cachedMarket !== undefined) {
+    return cachedMarket;
   }
 
   const offers: Offer[] = [];
@@ -995,7 +996,7 @@ function normalizeSearchText(value: string) {
     .normalize("NFKC")
     .trim()
     .toLowerCase()
-    .replace(/[()[\]{}.,\/\\_\-\s]+/g, "");
+    .replace(/[()[\]{}.,/\\_\-\s]+/g, "");
 }
 
 function destinationToSearchDestination(destination: Destination): SearchDestination {

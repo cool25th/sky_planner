@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { unstable_noStore as noStore } from "next/cache";
 
-import { BookmarkButton } from "@/components/bookmark-button";
 import { RecentDestinationTracker } from "@/components/recent-destinations";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { MatrixKeyboardNavigator } from "@/components/matrix-keyboard-navigator";
@@ -132,6 +131,7 @@ export default async function DestinationPage(props: { params: Params; searchPar
     <main className="dest-page-container">
       <script
         type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD 표준 출력이며 데이터가 자체 정의 객체라 사용자 입력이 포함되지 않는다
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       {isPastWeek(query.week) && (

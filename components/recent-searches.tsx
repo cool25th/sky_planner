@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { href } from "@/lib/url";
 import { formatWeekNatural } from "@/lib/format";
@@ -45,7 +45,7 @@ const STAY_LABELS: Record<string, string> = {
 export function RecentSearches() {
   const [items, setItems] = useState<RecentSearchItem[]>([]);
 
-  const loadItems = () => {
+  const loadItems = useCallback(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -56,7 +56,7 @@ export function RecentSearches() {
     } catch {
       setItems([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadItems();
@@ -67,7 +67,7 @@ export function RecentSearches() {
       window.removeEventListener("recent_searches_updated", handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };
-  }, []);
+  }, [loadItems]);
 
   const removeItem = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -85,7 +85,7 @@ export function RecentSearches() {
   if (items.length === 0) return null;
 
   return (
-    <div className="recent-searches-container" aria-label="최근 검색 조건 목록">
+    <section className="recent-searches-container" aria-label="최근 검색 조건 목록">
       <span className="recent-searches-title">🕒 최근 검색:</span>
       <div className="recent-chips-list">
         {items.map((item) => {
@@ -121,6 +121,6 @@ export function RecentSearches() {
           );
         })}
       </div>
-    </div>
+    </section>
   );
 }

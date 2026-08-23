@@ -76,8 +76,17 @@ export function BoardingPassModal({
       </button>
 
       {isOpen && (
-        <div className="app-modal-overlay" onClick={() => setIsOpen(false)} role="presentation">
-          <div className="app-modal-panel" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" style={{ maxWidth: "460px" }}>
+        // biome-ignore lint/a11y/noStaticElementInteractions: 오버레이 클릭 닫기는 보조 수단이며 닫기 버튼이 주 수단이다
+        <div className="app-modal-overlay" role="presentation"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setIsOpen(false);
+            }}>
+          <div
+            className="app-modal-panel"
+            role="dialog"
+            aria-modal="true"
+            style={{ maxWidth: "460px" }}
+          >
             <div className="app-modal-header">
               <h3>
                 <span>🎫</span> 특가 보딩패스 티켓
@@ -109,15 +118,15 @@ export function BoardingPassModal({
 
                 <div className="boarding-pass-details">
                   <div className="boarding-pass-item">
-                    <label>출발일</label>
+                    <span className="boarding-pass-label">출발일</span>
                     <strong>{formatDateDisplay(departDate)}</strong>
                   </div>
                   <div className="boarding-pass-item">
-                    <label>귀국일</label>
+                    <span className="boarding-pass-label">귀국일</span>
                     <strong>{formatDateDisplay(returnDate)}</strong>
                   </div>
                   <div className="boarding-pass-item">
-                    <label>대표 항공사</label>
+                    <span className="boarding-pass-label">대표 항공사</span>
                     <strong>{airlineName}</strong>
                   </div>
                 </div>
