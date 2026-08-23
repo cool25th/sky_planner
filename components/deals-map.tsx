@@ -1,64 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import maplibregl, { type LngLatBoundsLike, type Map, type StyleSpecification } from "maplibre-gl";
+import maplibregl,
+  { type LngLatBoundsLike, type Map as MaplibreMap, type StyleSpecification }
+from "maplibre-gl";
 
 import type { MapDeal, MapQuery } from "@/lib/mock-market";
 import { clusterDeals, dealMinFare, type DealCluster } from "@/lib/map-clustering";
 import { formatMoney, formatWeekNatural, stamp } from "@/lib/format";
 import { href } from "@/lib/url";
-
-const ORIGIN_COORDS: Record<string, [number, number]> = {
-  SEL: [126.9780, 37.5665],
-  ICN: [126.4407, 37.4602],
-  GMP: [126.7906, 37.5583],
-  PUS: [128.9383, 35.1795],
-  CJU: [126.4930, 33.5113],
-};
-
-const STAY_BUCKET_LABELS: Record<string, string> = {
-  "3_4": "3-4박",
-  "5_7": "5-7박",
-  "8_14": "8-14박",
-};
-
-function formatFareShort(value: number | null) {
-  if (value === null) return "-";
-  if (value >= 10000) {
-    const man = value / 10000;
-    return man % 1 === 0 ? `${man}만` : `${man.toFixed(1)}만`;
-  }
-  return `${Math.round(value / 1000)}천`;
-}
-
-function interpolateGreatCircle(start: [number, number], end: [number, number], points = 40): [number, number][] {
-  const [lon1, lat1] = start.map((deg) => (deg * Math.PI) / 180);
-  const [lon2, lat2] = end.map((deg) => (deg * Math.PI) / 180);
-  const d =
-    2 *
-    Math.asin(
-      Math.sqrt(
-        Math.sin((lat1 - lat2) / 2) ** 2 +
-          Math.cos(lat1) * Math.cos(lat2) * Math.sin((lon1 - lon2) / 2) ** 2
-      )
-    );
-  if (d === 0) return [start, end];
-
-  const arc: [number, number][] = [];
-  for (let i = 0; i <= points; i++) {
-    const f = i / points;
-    const a = Math.sin((1 - f) * d) / Math.sin(d);
-    const b = Math.sin(f * d) / Math.sin(d);
-    const x = a * Math.cos(lat1) * Math.cos(lon1) + b * Math.cos(lat2) * Math.cos(lon2);
-    const y = a * Math.cos(lat1) * Math.sin(lon1) + b * Math.cos(lat2) * Math.sin(lon2);
-    const z = a * Math.sin(lat1) + b * Math.sin(lat2);
-    const lat = Math.atan2(z, Math.sqrt(x ** 2 + y ** 2));
-    const lon = Math.atan2(y, x);
-    arc.push([(lon * 180) / Math.PI, (lat * 180) / Math.PI]);
-  }
-  return arc;
-}
+import { STAY_BUCKET_LABELS, formatFareShort, interpolateGreatCircle, originCoordFor } from "@/lib/map-geo";
 
 function mapStyle() {
   const styleUrl = process.env.NEXT_PUBLIC_MAPTILER_STYLE_URL;
@@ -135,17 +87,17 @@ interface DealsMapProps {
 
 export function DealsMap({ deals, query, selectedCode: controlledCode, onSelectCode }: DealsMapProps) {
   const router = useRouter();
-  const mapRef = useRef<Map | null>(null);
+  const mapRef = useRef<MaplibreMap | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const markerRefs = useRef<maplibregl.Marker[]>([]);
   const [visibleCount, setVisibleCount] = useState(deals.length);
   const [internalCode, setInternalCode] = useState<string | null>(deals[0]?.destination_code ?? null);
   const selectedCode = controlledCode !== undefined ? controlledCode : internalCode;
 
-  const setSelectedCode = (code: string | null) => {
+  const setSelectedCode = useCallback((code: string | null) => {
     if (code) onSelectCode?.(code);
     setInternalCode(code);
-  };
+  }, [onSelectCode]);
 
   const [webglSupported, setWebglSupported] = useState(true);
   const [clusters, setClusters] = useState<DealCluster<MapDeal>[]>(() =>
@@ -188,7 +140,7 @@ export function DealsMap({ deals, query, selectedCode: controlledCode, onSelectC
     const container = containerRef.current;
     if (!container || mapRef.current) return;
 
-    let map: Map;
+    let map: MaplibreMap;
     try {
       map = new maplibregl.Map({
         container,
@@ -248,7 +200,7 @@ export function DealsMap({ deals, query, selectedCode: controlledCode, onSelectC
       map.remove();
       mapRef.current = null;
     };
-  }, [camera, deals]);
+  }, [camera, cameraBounds, deals]);
 
   // 줌/이동 시 화면 좌표 기반 클러스터 재계산. 구성이 바뀔 때만 다시 그린다.
   useEffect(() => {
@@ -275,9 +227,9 @@ export function DealsMap({ deals, query, selectedCode: controlledCode, onSelectC
   // Update Route Arc line when selectedCode or query.origin changes
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
+    if (!map?.isStyleLoaded()) return;
 
-    const originCoord = ORIGIN_COORDS[query.origin] || ORIGIN_COORDS.ICN;
+    const originCoord = originCoordFor(query.origin);
     const selectedDeal = deals.find((d) => d.destination_code === selectedCode);
 
     const source = map.getSource("route-arc") as maplibregl.GeoJSONSource | undefined;
@@ -308,7 +260,9 @@ export function DealsMap({ deals, query, selectedCode: controlledCode, onSelectC
     const map = mapRef.current;
     if (!map) return;
 
-    markerRefs.current.forEach((marker) => marker.remove());
+    markerRefs.current.forEach((marker) => {
+      marker.remove();
+    });
     markerRefs.current = [];
 
     const nextMarkers = clusters.map((cluster) => {
@@ -370,9 +324,11 @@ export function DealsMap({ deals, query, selectedCode: controlledCode, onSelectC
     setVisibleCount(nextVisible);
 
     return () => {
-      nextMarkers.forEach((marker) => marker.remove());
+      nextMarkers.forEach((marker) => {
+        marker.remove();
+      });
     };
-  }, [clusters, deals, query.cabin, query.origin, query.stay_bucket, query.traveler, query.week, router, selectedCode]);
+  }, [clusters, deals, query.budget, query.cabin, query.origin, query.region, query.stay_bucket, query.traveler, query.week, router, selectedCode, setSelectedCode]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -389,7 +345,7 @@ export function DealsMap({ deals, query, selectedCode: controlledCode, onSelectC
 
   if (!webglSupported) {
     return (
-      <div className="map-surface fallback-list-surface" tabIndex={0} aria-label="항공 특가 목록 대체 뷰">
+      <section className="map-surface fallback-list-surface" aria-label="항공 특가 목록 대체 뷰">
         <div className="fallback-header">
           <h3>지도 대체 목록 뷰 (WebGL Fallback)</h3>
           <p className="panel-note">브라우저 그래픽 가속을 사용할 수 없어 목록 형식으로 특가를 표시합니다.</p>
@@ -424,7 +380,7 @@ export function DealsMap({ deals, query, selectedCode: controlledCode, onSelectC
             </button>
           ))}
         </div>
-      </div>
+      </section>
     );
   }
 
