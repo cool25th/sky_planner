@@ -27,9 +27,9 @@ export function getDbPool(): Pool {
   return pool;
 }
 
-export async function query<T extends QueryResultRow = any>(
+export async function query<T extends QueryResultRow = QueryResultRow>(
   text: string,
-  params?: any[]
+  params?: unknown[]
 ): Promise<QueryResult<T>> {
   const dbPool = getDbPool();
   return dbPool.query<T>(text, params);
