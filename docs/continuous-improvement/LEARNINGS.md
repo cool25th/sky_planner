@@ -119,3 +119,8 @@
 
 - 동기화 가드(readiness-bundle-contract)가 작성 첫 실행에서 누락(`scripts/ops-alert-smoke.mjs`)을 포착 — "문서·주석 유지"보다 "기계적 강제"가 이긴 사례. 이후 artifactContains 추가 시 이 테스트가 번들 목록 갱신을 강제한다.
 - 서버 모듈(`server-only` + `@/` alias + 확장자 없는 TS import)을 계약 테스트에서 직접 import하는 resolve 훅을 `npm test`에 부착 — 15줄 인프라로 data-source 등 모든 서버 모듈의 직접 테스트가 열림. 훅은 정상 경로(확장자 있는 상대 import)를 그대로 통과시킨다.
+
+## 2026-08-23 (자동 ANALYZE_ONLY — 운영 관측성)
+
+- 관측성 렌즈 결론: 기반(ready 페이지·operator_actions·METRICS 루프)은 양호, 부족한 것은 (1) 외부 알림 웹훅 1개(기존 항목), (2) 무인 시간대 사이트 프로브 — 4시 루프 단一处가 유일해 인지 창 최대 24h. 배치 직후 curl 스텝으로 창을 하루 1회 이상으로.
+- stopgap 5일·skip 3일 연속 성공 — 배치 주기의 무인 신뢰성은 정착 단계. 남은 관측 리스크는 "배치는 살아있는데 사이트가 죽은" 경우뿐.

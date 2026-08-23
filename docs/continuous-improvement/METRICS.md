@@ -1,23 +1,19 @@
 # METRICS — 측정 기준선과 최근 결과
 
-## 기준선 (2026-08-18)
+날짜별 행(append-only). 매일 마지막에 한 행 추가, 이전 행은 수정하지 않는다.
 
-| 지표 | 2026-08-18 | 2026-08-19 | 2026-08-20 | 비고 |
-|---|---:|---:|---|
-| npm test (계약 테스트) | 242 pass / 0 fail | 242 pass / 0 fail | 242 pass / 0 fail | **250 pass / 0 fail**(08-22 승인 실행 후) |
-| backend unittest | 4 pass / 0 fail | 4 pass / 0 fail | 4 pass / 0 fail | |
-| sky_collector unittest | 5 pass / 0 fail | 5 pass / 0 fail | 5 pass / 0 fail | `cd sky_collector && PYTHONPATH=src …` |
-| npm run build | 성공 | 성공 | 성공 | |
-| service-readiness | 16/45 통과 | 13/45 통과 | **16/45** | 스테일 해소로 회복 |
-| source-health | ready (eligible 3) | not_ready (전소스 stale) | **ready** | stopgap 자동 재게시 |
-| 배치 경과 시간 | ~13h | ~32h | ~2h | 한도 24h |
-| 배포 페이지 | 200 | 200 ("데모 데이터" 폴백) | |
-| GH Actions 배치 | 0/2 (결제) | 1/2 | **stopgap 스케줄 성공** | ingest 역할 첫 자동 실행 |
-| 백로그 미해결 | — | DATA-003(DEFERRED), INT-001, INT-019-001, DATA-019-001, DATA-002(대기) | |
+| 날짜 | npm test | python | build | readiness | source-health | stopgap(02:xx KST) | collect-fares(03:5x) | 비고 |
+|---|---|---|---|---|---|---|---|---|
+| 2026-08-18 | 241→242 pass | 4/5 pass | OK | 16/45 | ready(13h 경과) | 수동 검증 | 결제로 잡 미시작 | 첫 실행. 포맷터 가드 추가 |
+| 2026-08-19 | 242 pass | 4/5 pass | OK | 13→16/45 | not_ready(32h)→ready | 가동(run 32191632315) | 실행됨·audit 실패 | 스톱갑 가동, 계정 분리 1단계 |
+| 2026-08-20 | 242 pass | 4/5 pass | OK | 16→18/45 | ready | 자동 성공(첫) | skip 가드 첫 스케줄 7s | env 1차(스위치·토큰) |
+| 2026-08-21 | 242 pass | 4/5 pass | OK | 18→**37/45** | ready | 자동 성공(3일째) | skip-성공 2일째 | INT-20260821-001(번들 포함 +19) |
+| 2026-08-22 | 242→**250 pass** | 4/5 pass | OK | 37/45 | ready | 자동 성공(4일째) | skip-성공 3일째 | TEST 3종(+8), SUPPORT_EMAIL 주입·배포 한도 대기 |
+| 2026-08-23 | 250 pass | 4/5 pass | OK | 37/45 | ready(1.7h 전) | 자동 성공(5일째) | skip-성공 5s | 이메일 반영 배포 대기, 관측성 렌즈 |
 
-## 추적 지표 (매일 갱신)
+## 추적 지표
 
-- service-readiness 통과 수 (목표: 45/45)
-- 배치 경과 시간 (SOURCE_MAX_STALE_HOURS=24 이내)
-- GH Actions 배치 성공 여부
+- service-readiness 통과 수 (목표: 45/45; 잔여 8 = partner 키 4·웹훅 2·이메일 반영 1·SERVICE_REQUIRE_POSTGRES 1)
+- stopgap 연속 자동 성공 일수 (현재 5일)
+- 배치 경과 시간 (SOURCE_MAX_STALE_HOURS=24 이내 유지)
 - 계약 테스트 수 변화와 실패

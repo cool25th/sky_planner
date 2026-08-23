@@ -26,3 +26,4 @@
 | TEST-20260822-001 | 내부 | 번들 목록↔정적 체크 경로 동기화 계약 테스트 | Progressive | RESOLVED | — | 2026-08-22 승인 구현(커밋 `331681f`): `tests/readiness-bundle-contract.mjs`. **첫 실행에서 실제 결함 포착** — `scripts/ops-alert-smoke.mjs` 누락(웹훅 주입 후에도 ops_alert_gate_available이 배포에서 실패했을 경로)을 발견·next.config에 추가 |
 | TEST-20260822-002 | 내부 | lib/data-source 전용 계약 테스트 | Progressive | RESOLVED | — | 2026-08-22 구현: `tests/data-source-contract.mjs`(mock 폴백 진단·dataModeLabel·suppressMockFallback 분기 4건). 서버 모듈 직접 import를 위한 resolve 훅(tests/helpers, package.json test 스크립트 부착) 구축 — 이후 모든 server-only 모듈 계약 테스트 가능 |
 | TEST-20260822-003 | 내부 | lib/secret-validation 테스트 | Progressive | RESOLVED | — | 2026-08-22 구현: `tests/secret-validation-contract.mjs`(누락·placeholder 대소문자·길이 규칙 케이스 표) |
+| INT-20260823-001 | 내부 | stopgap 게시 직후 배포 사이트 프로브 스텝 | Progressive | NEW | P3 | 2026-08-23 관측성 렌즈: 사이트 무인 프로브가 4시 루프뿐 — 런타임 장애 인지까지 최대 ~24h. daily-batch 마지막에 source-health curl(실패 시 run 실패) 제안, 새 의존성 없음 |

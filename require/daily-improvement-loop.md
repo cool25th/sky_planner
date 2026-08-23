@@ -189,7 +189,7 @@ docs/continuous-improvement/
 - **`BACKLOG.md`** — 모든 개선항목 누적 원장. ID 체계: `UX-YYYYMMDD-NNN` / `MOD-…` / `DATA-…` / `INT-…` / `CONV-…`
 - **`DECISIONS.md`** — 제품·아키텍처 결정(ADR). 예: "ADR-001: 검색 상태의 단일 기준은 URL Query", "ADR-002: 운영 beta 데이터 백엔드는 Firestore", "ADR-003: partial batch는 revalidation skip으로 게시 차단"
 - **`LEARNINGS.md`** — 완료 작업의 검증 결과와 학습
-- **`METRICS.md`** — 측정 가능한 기준선과 최근 결과
+- **`METRICS.md`** — 날짜별 행(append-only) 형식: `| 날짜 | npm test | python | build | readiness | source-health | stopgap | collect-fares | 비고 |`. 매일 마지막에 한 행을 **추가**만 하고 이전 날짜 행은 수정하지 않는다(넓은 컬럼 확장은 갱신을 취약하게 한다).
 
 ---
 
@@ -496,12 +496,20 @@ Repository 계층(`lib/data/*`), `lib/db.ts` 연결 관리, zod 스키마 검증
 
 ```bash
 gh run list --limit 4                                    # 밤새 stopgap/collect-fares 실행 결과
+npx -y vercel ls --scope cools-projects-d471a9e6 2>&1 | head -8   # 최신 프로덕션 배포 시각 — env 주입 후 반영 대기 여부 판별
 curl -s https://skyplanner-kappa.vercel.app/api/ops/source-health
 curl -s https://skyplanner-kappa.vercel.app/api/ops/service-readiness
 ```
 
 - service-readiness의 `failed_checks`는 **매일 분류**한다: (1) partner 키 의존(DATA-20260818-003), (2) 운영 env 부재(SUPPORT_EMAIL·OPS_ALERT_WEBHOOK_URL 등), (3) 기타 정적/판정 로직(INT-20260820-002 계열). "not_ready"를 뭉뚱그려 해석하지 않는다.
 - CI 스텝 성공 ≠ 실제 게시 — 판정은 결과 데이터(source-health batch_state)로 한다.
+
+## 9.6 배포·환경변수 운영 메모 (승인 실행 시 적용)
+
+- **Vercel env 변경은 재배포까지 반영되지 않는다** — env 주입 직후 readiness 불변은 회귀가 아니다. 최신 배포 시각(vercel ls)과 대조해 "반영 대기"로 판정한다.
+- **무료 플랜 배포 한도 100회/일** — 승인 작업의 변경은 묶어서 한 번에 배포한다. `api-deployments-free-per-day` 실패는 24시간 후 재시도 대상이지 장애가 아니다.
+- 배포 CLI에는 `--scope cools-projects-d471a9e6` 필요(누락 시 Not authorized).
+- 시크릿 주입 함정: `.env.local` 값은 큰따옴표로 감싸져 있다(제거 후 주입 — 포함 시 pg 파서가 호스트를 오인). GitHub Actions `if:` 조건식엔 `secrets` 컨텍스트 불가 — job `env`로 전달한다.
 
 ---
 
