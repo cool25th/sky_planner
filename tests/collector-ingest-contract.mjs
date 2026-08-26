@@ -22,6 +22,13 @@ test("collector normalized batch fixture validates and summarizes write scope", 
   assert.equal(summary.materializable_groups, 1);
 });
 
+test("collector validation rejects empty batches before DB writes", async () => {
+  const payload = JSON.parse(await readFile(fixturePath, "utf-8"));
+  payload.offers = [];
+
+  assert.throws(() => parseCollectorBatch(payload), /offers/);
+});
+
 test("collector validation rejects non-positive fare totals before DB writes", async () => {
   const payload = JSON.parse(await readFile(fixturePath, "utf-8"));
   payload.offers[0].total_price = 0;
