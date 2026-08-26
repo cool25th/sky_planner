@@ -1,0 +1,27 @@
+name: Warmup
+
+# PERF-20260824-001: Neon 무료 autosuspend(유휴 5분) + 서버리스 함수 콜드스타트로
+# 낮 첫 방문이 5~6s 걸린다. 주간(KST 07:00~23:59) 30분 주기로 홈과 read-model API를
+# 예열 방문해 콜드히트를 대신 흡수한다. public 저장소라 Actions 무료.
+# ponytail: 항시 웜업(≤4분 주기)은 Neon 무료 compute-hours를 초과한다 —
+# 트래픽이 의미 있게 커지면 Neon 유료 전환 또는 엣지 캐시가 정석.
+on:
+  schedule:
+    - cron: "3,33 22-23,0-14 * * *" # UTC 22:00~14:59 = KST 07:00~23:59
+  workflow_dispatch:
+
+concurrency:
+  group: warmup
+  cancel-in-progress: false
+
+jobs:
+  warmup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping site and read-model API
+        run: |
+          for url in "https://skyplanner-kappa.vercel.app/" "https://skyplanner-kappa.vercel.app/api/deals/map"; do
+            seconds=$(curl -s -o /dev/null -w "%{time_total}" --max-time 30 "$url")
+            echo "$url -> ${seconds}s"
+          done
