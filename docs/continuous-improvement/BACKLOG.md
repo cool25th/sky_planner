@@ -27,9 +27,9 @@
 | TEST-20260822-002 | 내부 | lib/data-source 전용 계약 테스트 | Progressive | RESOLVED | — | 2026-08-22 구현: `tests/data-source-contract.mjs`(mock 폴백 진단·dataModeLabel·suppressMockFallback 분기 4건). 서버 모듈 직접 import를 위한 resolve 훅(tests/helpers, package.json test 스크립트 부착) 구축 — 이후 모든 server-only 모듈 계약 테스트 가능 |
 | TEST-20260822-003 | 내부 | lib/secret-validation 테스트 | Progressive | RESOLVED | — | 2026-08-22 구현: `tests/secret-validation-contract.mjs`(누락·placeholder 대소문자·길이 규칙 케이스 표) |
 | INT-20260823-001 | 내부 | stopgap 게시 직후 배포 사이트 프로브 스텝 | Progressive | NEW | P3 | 2026-08-23 관측성 렌즈: 사이트 무인 프로브가 4시 루프뿐 — 런타임 장애 인지까지 최대 ~24h. daily-batch 마지막에 source-health curl(실패 시 run 실패) 제안, 새 의존성 없음 |
-| TEST-20260824-001 | 내부 | lib/map-geo 계약 테스트 | Progressive | NEW(안전) | P2 | 08-23 밤 추출된 순수 지오메트리 함수 무방어 — 좌표·경계 케이스 고정 |
+| TEST-20260824-001 | 내부 | lib/map-geo 계약 테스트 | Progressive | RESOLVED | — | 2026-08-26 구현: `tests/map-geo-contract.mjs` 6건(대원호 엔드포인트 보존·중간점 범위·동일점 짝 반환·포맷 단위·ICN 폴백·버킷 라벨 계약) — npm test 255/255 |
 | TEST-20260824-002 | 내부 | read-model zod row-mapper 계약 테스트 | Progressive | NEW(안전) | P2 | "row shape은 zod 경유" 규약을 테스트로 고정 |
 | PERF-20260824-001 | UX/성능 | 첫 방문 콜드스타트 완화 (홈 6.1s·search 콜드 5.5s) | Reactive | NEW | P1 | Neon 무료 autosuspend 의심 — 웜업(워크플로)/ISR(화면)/외부핑 중 방향 결정 필요 |
 | AX-20260825-001 | UX | skip-link 추가 (WCAG 2.4.1) | Progressive | NEW | P2 | 08-25 접근성 렌즈: 키보드 사용자가 매 페이지 헤더를 탭 통과해야 함 — app/layout에 숨김 skip-link + #main. 그 외 접근성 기반은 양호(aria·포커스·alt·마커 라벨 확인) |
-| SEO-20260826-001 | UX/SEO | NEXT_PUBLIC_SITE_URL 주입+재배포 (사이트맵 17URL 무효 호스트) | Reactive | NEW | P0-후보 | 08-26 렌즈: sitemap 전체·robots Sitemap이 `sky-planner-atlas.vercel.app`(존재하지 않는 호스트) — 실제 skyplanner-kappa. env 주입+재배포로 즉시 정상화 |
-| SEO-20260826-002 | UX/SEO | destination canonical 추가 | Progressive | NEW | P2 | 쿼리 변형 중복 색인 방지 — generateMetadata에 alternates.canonical |
+| SEO-20260826-001 | UX/SEO | 사이트맵·robots 무효 호스트 수정 | Reactive | RESOLVED(배포 대기) | — | 2026-08-26 루트코스 수정: `lib/url.ts` `siteUrl` 단일 소스 통합 — 잘못된 기본 호스트(sky-planner-atlas)를 실제 서비스 호스트(skyplanner-kappa)로 교정, env 오버라이드 유지. sitemap·robots·destination canonical이 공유. NEXT_PUBLIC_SITE_URL 주입은 선택(커스텀 도메인 확정 시). 재배포 시 17URL 즉시 정상화 |
+| SEO-20260826-002 | UX/SEO | destination canonical 추가 | Progressive | RESOLVED(배포 대기) | — | 2026-08-26 구현: destination generateMetadata에 `alternates.canonical` = `{siteUrl}/destination/{placeId}`(쿼리 제외 정규 URL). 빌드 통과, 배포 후 라이브 확인 |
