@@ -1,8 +1,8 @@
 import type { MetadataRoute } from "next";
 import { getDestinationList } from "@/lib/mock-market";
+import { siteUrl } from "@/lib/url";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sky-planner-atlas.vercel.app";
   const now = new Date();
   const destinations = getDestinationList();
 

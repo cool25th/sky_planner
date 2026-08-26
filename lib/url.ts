@@ -1,3 +1,5 @@
+export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://skyplanner-kappa.vercel.app";
+
 export function href(pathname: string, params: Record<string, string | number | string[] | null | undefined>) {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
