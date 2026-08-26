@@ -33,3 +33,4 @@
 | AX-20260825-001 | UX | skip-link 추가 (WCAG 2.4.1) | Progressive | NEW | P2 | 08-25 접근성 렌즈: 키보드 사용자가 매 페이지 헤더를 탭 통과해야 함 — app/layout에 숨김 skip-link + #main. 그 외 접근성 기반은 양호(aria·포커스·alt·마커 라벨 확인) |
 | SEO-20260826-001 | UX/SEO | 사이트맵·robots 무효 호스트 수정 | Reactive | RESOLVED(배포 대기) | — | 2026-08-26 루트코스 수정: `lib/url.ts` `siteUrl` 단일 소스 통합 — 잘못된 기본 호스트(sky-planner-atlas)를 실제 서비스 호스트(skyplanner-kappa)로 교정, env 오버라이드 유지. sitemap·robots·destination canonical이 공유. NEXT_PUBLIC_SITE_URL 주입은 선택(커스텀 도메인 확정 시). 재배포 시 17URL 즉시 정상화 |
 | SEO-20260826-002 | UX/SEO | destination canonical 추가 | Progressive | RESOLVED(배포 대기) | — | 2026-08-26 구현: destination generateMetadata에 `alternates.canonical` = `{siteUrl}/destination/{placeId}`(쿼리 제외 정규 URL). 빌드 통과, 배포 후 라이브 확인 |
+| SEC-20260827-001 | 보안 | 의존성 취약점 정리 (npm audit 22개: 2 critical·8 high) | Reactive | NEW | P1 | 08-27 보안 렌즈: sharp/libvips CVE 포함. 1단계 비파괴 audit fix + §15.1 재검증, 2단계 critical 개별 업데이트 — 승인 필요 |
