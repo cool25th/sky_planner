@@ -17,6 +17,7 @@ const READINESS_STATIC_FILES = [
   "app/api/offers/route.ts",
   "lib/service-unavailable.ts",
   "lib/data-source.ts",
+  "lib/read-model/diagnostics.ts",
   "components/service-unavailable-notice.tsx",
   "require/ops.md",
   ".env.example",

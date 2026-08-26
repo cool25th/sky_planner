@@ -72,7 +72,9 @@ async function launchArtifactSnapshot() {
       artifactContains("app/api/deals/map/route.ts", ["dynamic = \"force-dynamic\"", "apiStatusForResponse", "apiHeadersForResponse", "resolveMapResponse"]),
       artifactContains("app/api/deals/calendar/route.ts", ["dynamic = \"force-dynamic\"", "apiStatusForResponse", "apiHeadersForResponse", "resolveCalendarResponse"]),
       artifactContains("app/api/offers/route.ts", ["dynamic = \"force-dynamic\"", "apiStatusForResponse", "apiHeadersForResponse", "resolveOffersResponse"]),
-      artifactContains("lib/data-source.ts", ["serviceRequiresPostgres", "serviceApiReadinessBlockReason", "suppressMockFallback", "service_read_model_unavailable", "fallback_suppressed"]),
+      // 7799a6b 리팩터링 이후 503 가드 로직은 read-model/diagnostics.ts로 이동 — 체크도 그 파일을 함께 검사한다.
+      artifactContains("lib/data-source.ts", ["serviceRequiresPostgres", "suppressMockFallback"]),
+      artifactContains("lib/read-model/diagnostics.ts", ["serviceApiReadinessBlockReason", "service_read_model_unavailable", "fallback_suppressed"]),
     ]).then((checks) => checks.every(Boolean)),
     artifactContains("scripts/prod-readiness-smoke.mjs", ["auditCollectorManifest", "validateBookingDeepLink", "booking_deeplink_sample_depth", "canonicalDeepLink", "sampleBookingDeepLinks"]),
     artifactContains("scripts/service-readiness-smoke.mjs", ["auditServiceReadiness", "buildServiceReadinessCliOutput", "enrichInternalServiceReadinessSnapshot", "--manifest-env", "service_readiness_not_ready", "operator_actions", "booking_deeplink_sample_depth", "canonicalDeepLink", "valid_count_by_source", "buildServiceReadinessAlertPayload", "broken_deeplink_rate"]),
