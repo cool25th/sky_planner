@@ -14,7 +14,7 @@ import { dataModeLabel, resolveCalendarResponse, resolveMapResponse } from "@/li
 import { formatDate, formatMoney, isPastWeek, stamp } from "@/lib/format";
 import { TRIP_BUCKETS, parseCalendarQuery, parseMapQuery, formatWeekNatural, availableWeeks, getDestinationList } from "@/lib/mock-market";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
-import { href } from "@/lib/url";
+import { href, siteUrl } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +44,9 @@ export async function generateMetadata(props: { params: Params; searchParams: Se
   return {
     title,
     description,
+    alternates: {
+      canonical: `${siteUrl}/destination/${placeId}`,
+    },
     openGraph: {
       title,
       description,
