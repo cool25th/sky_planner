@@ -66,6 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           `}
         </Script>
         <div className="site-shell">
+          <a href="#main" className="skip-link">본문으로 건너뛰기</a>
           <div className="beta-banner">
             <span><strong>데모 데이터 안내:</strong> 본 서비스는 항공권 탐색을 위한 데모 데이터 및 예시 운임을 제공합니다. 실제 예약 및 최종 결제 금액은 해당 항공사 및 예약처에서 확인하시기 바랍니다.</span>
           </div>
@@ -85,7 +86,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <ThemeToggle />
             </div>
           </header>
-          {children}
+          <div id="main" tabIndex={-1} className="site-main">
+            {children}
+          </div>
           <footer className="site-footer">
             <div className="site-footer__links">
               <Link href="/terms">이용약관</Link>

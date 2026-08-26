@@ -148,6 +148,41 @@ select {
   font-family: inherit;
 }
 
+/* Skip Link (WCAG 2.4.1) — 첫 Tab에서만 노출 */
+.skip-link {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link:focus {
+  position: fixed;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 1000;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+}
+
+.site-main:focus {
+  outline: none;
+}
+
 /* Site Shell & GNB */
 .site-shell {
   max-width: var(--content-max);
