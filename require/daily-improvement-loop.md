@@ -146,7 +146,32 @@ approved_item_ids:
   - INT-20260818-002
 ```
 
-승인되지 않은 항목은 구현하지 않는다. 새벽 자동 실행은 항상 ANALYZE_ONLY다.
+승인되지 않은 항목은 구현하지 않는다. 새벽 자동 실행은 §2.1 분석 후 §2.3 IMPLEMENT_SAFE까지 수행한다.
+
+## 2.3 IMPLEMENT_SAFE (새벽 자동 자율 구현)
+
+사용자 승인 없이 자율 구현할 수 있는 안전 클래스를 정의한다. 새벽 자동 실행(04:00)이 ANALYZE 후 이 모드로 진행한다.
+
+허용(안전 클래스):
+
+- 계약/유닛 테스트 추가·수리
+- §15.1(npm test, python 테스트 2종, npm run build)만으로 완전 검증되는 `lib/`·`scripts/`·`sky_collector/` 코드 수정 — §13.1 Reactive(오류·회귀·배치 실패 대응) 우선
+- docs/README 정합성 수정, 타입·린트 진단 해소
+
+자율 구현 금지(승인 대상으로 남김):
+
+- 운영 DB/Firestore 변경, 마이그레이션, DDL/DML
+- GitHub workflow·secrets·env 변경, Vercel 배포, 새 의존성 추가
+- §15.2/15.3 검증이 필요한 변경
+- `components/`·`app/` 화면/UI 카피 변경
+- 외부 값 또는 사용자 결정이 필요한 항목
+
+가드:
+
+- 1일 최대 2개 항목, Today's Top 3 중 §17 우선순위 순으로 선정
+- 시작 시 `git status --porcelain`에서 `docs/continuous-improvement/` 외 변경 파일이 있으면(병행 세션 감지) 자율 구현은 skip하고 분석만 한다
+- 구현 후 §15.1을 전량 재실행한다. 1회 수정 재시도 후에도 실패하면 그 항목이 수정한 파일만 `git checkout -- <paths>`로 되돌리고 LEARNINGS.md에 경위를 기록한다
+- 커밋·push·배포 금지 — 워킹트리에만 남기고 사용자가 git diff 검토 후 커밋한다. `git add`도 하지 않는다
 
 ---
 

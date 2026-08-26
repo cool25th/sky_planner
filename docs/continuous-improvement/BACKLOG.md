@@ -7,7 +7,7 @@
 | DATA-20260818-001 | 데이터 | GH Actions 결제 실패로 배치 워크플로 미실행 | Reactive | RESOLVED | — | 2026-08-18 사용자 승인 하에 저장소를 public으로 전환해 Actions 무료화(결제 우회). 전환 전 히스토리 비밀 점검 통과(.env·서비스계정·pem 커밋 이력 없음, 걸린 패턴은 전부 테스트 fixture). workflow_dispatch(run 32098098864) 성공 — 잡 시작·skip-by-design 확인. 남은 배치 blocker는 DATA-20260818-003(secrets)뿐 |
 | DATA-20260818-003 | 데이터 | partner credential / COLLECTOR_SOURCE_MANIFEST_JSON 미주입 | Reactive | DEFERRED | — | 2026-08-18 사용자 결정: "일단 했다고 하고 넘어감" — 실제 주입 없이 진행. 확인 시점 GitHub secrets에는 VERCEL_REVALIDATE_SECRET만 존재. **2026-08-19 결과 관찰(EXPANDED)**: live 배치 부재로 데이터 24h 초과 → source-health not_ready → 사이트 데모 폴백 반복. service-readiness 13/45. not_ready는 회귀 아님. live 수집 개시 시 재개 필요 |
 | UX-20260818-001 | UX | data_mode(mock/실제) 구분 표시 | Progressive | RESOLVED | — | 2026-08-18 배포 화면 확인: 홈/지도 스탬프에 "데모 데이터"/"실시간 데이터" 라벨 렌더 |
-| DATA-20260818-002 | 데이터 | 빈/부분실패 배치가 정상 데이터 덮어쓰는 가드 | Reactive | VERIFYING | P2 | 2026-08-17 구현(`succeeded===0` 시 batch_state 기록 skip + 스키마 `offers.min(1)` + 테스트). 실배치 재검증 후 RESOLVED |
+| DATA-20260818-002 | 데이터 | 빈/부분실패 배치가 정상 데이터 덮어쓰는 가드 | Reactive | RESOLVED | — | 2026-08-17 구현 + 2026-08-26 검증 완료: (1) 빈 offers 배치가 zod `min(1)`로 DB 접속 전 차단 — CLI 실측 + 계약 테스트 추가(npm test 249/249) (2) 운영 Neon 대상 `--rollback` 실DB 파이프라인 실행: places 1·offers 2·snapshots 2·deals 1 재계산 후 완전 롤백, source-health ready 무결 (3) `succeeded===0` batch_state skip은 runner 계약 테스트로 기존 커버. 실 collector 배치는 DATA-003 재개 시 최종 확인 |
 | UX-20260818-002 | UX | 라우트별 error boundary | Progressive | RESOLVED | — | error.tsx 5종 존재·빌드 포함·404 화면 검증 완료(2026-08-18). 런타임 예외 경로는 운영에서 안전 유발 불가 — 미검증으로 기록 |
 | UX-20260818-003 | UX | 원시 ISO week 노출 2곳 | Progressive | RESOLVED | — | 배포 /map에서 "8월 17일 ~ 23일" 자연어 주간 표기 확인(2026-08-18) |
 | UX-20260818-004 | UX | 과거 주간 조회 안내 | Progressive | RESOLVED | — | 배포 /map?week=2026-W30에서 "지난 주간이라 표시할 특가가 없습니다" + 이번 주간 재검색 링크 확인(2026-08-18) |
@@ -27,3 +27,9 @@
 | TEST-20260822-002 | 내부 | lib/data-source 전용 계약 테스트 | Progressive | RESOLVED | — | 2026-08-22 구현: `tests/data-source-contract.mjs`(mock 폴백 진단·dataModeLabel·suppressMockFallback 분기 4건). 서버 모듈 직접 import를 위한 resolve 훅(tests/helpers, package.json test 스크립트 부착) 구축 — 이후 모든 server-only 모듈 계약 테스트 가능 |
 | TEST-20260822-003 | 내부 | lib/secret-validation 테스트 | Progressive | RESOLVED | — | 2026-08-22 구현: `tests/secret-validation-contract.mjs`(누락·placeholder 대소문자·길이 규칙 케이스 표) |
 | INT-20260823-001 | 내부 | stopgap 게시 직후 배포 사이트 프로브 스텝 | Progressive | NEW | P3 | 2026-08-23 관측성 렌즈: 사이트 무인 프로브가 4시 루프뿐 — 런타임 장애 인지까지 최대 ~24h. daily-batch 마지막에 source-health curl(실패 시 run 실패) 제안, 새 의존성 없음 |
+| TEST-20260824-001 | 내부 | lib/map-geo 계약 테스트 | Progressive | NEW(안전) | P2 | 08-23 밤 추출된 순수 지오메트리 함수 무방어 — 좌표·경계 케이스 고정 |
+| TEST-20260824-002 | 내부 | read-model zod row-mapper 계약 테스트 | Progressive | NEW(안전) | P2 | "row shape은 zod 경유" 규약을 테스트로 고정 |
+| PERF-20260824-001 | UX/성능 | 첫 방문 콜드스타트 완화 (홈 6.1s·search 콜드 5.5s) | Reactive | NEW | P1 | Neon 무료 autosuspend 의심 — 웜업(워크플로)/ISR(화면)/외부핑 중 방향 결정 필요 |
+| AX-20260825-001 | UX | skip-link 추가 (WCAG 2.4.1) | Progressive | NEW | P2 | 08-25 접근성 렌즈: 키보드 사용자가 매 페이지 헤더를 탭 통과해야 함 — app/layout에 숨김 skip-link + #main. 그 외 접근성 기반은 양호(aria·포커스·alt·마커 라벨 확인) |
+| SEO-20260826-001 | UX/SEO | NEXT_PUBLIC_SITE_URL 주입+재배포 (사이트맵 17URL 무효 호스트) | Reactive | NEW | P0-후보 | 08-26 렌즈: sitemap 전체·robots Sitemap이 `sky-planner-atlas.vercel.app`(존재하지 않는 호스트) — 실제 skyplanner-kappa. env 주입+재배포로 즉시 정상화 |
+| SEO-20260826-002 | UX/SEO | destination canonical 추가 | Progressive | NEW | P2 | 쿼리 변형 중복 색인 방지 — generateMetadata에 alternates.canonical |

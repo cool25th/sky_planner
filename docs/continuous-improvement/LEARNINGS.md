@@ -131,3 +131,15 @@
 - **예방: 커밋은 항상 pathspec(`git commit -m msg -- <paths>`)으로.** 인덱스 상태와 무관하게 내 경로만 커밋된다. 커밋 직전 status 확인은 경합 창을 줄일 뿐 없애지 못한다.
 - 검증: 유입된 HEAD를 격리 워크트리(node_modules 심볼릭 링크)에서 npm test 248/248·build 통과 — 삭제 모듈은 임포트 없는 고아 상태였고 main은 무결.
 - 병행 세션의 Firestore 제거 리팩터링 진행 중(트리에 다수 unstaged 변경) — 테스트 기준선은 그 커밋까지 248.
+
+## 2026-08-24 (자동 — IMPLEMENT_SAFE 첫 적용, 성능 렌즈)
+
+- IMPLEMENT_SAFE 첫 실행은 가드로 skip — `require/daily-improvement-loop.md`(§2.3 추가분)이 미커밋. 규칙은 예외 없이 적용했다(어제 경합 사고의 교훈이 즉시 효과).
+- 성능 렌즈: 첫 방문 5~6초(홈 6.1s, search 콜드 5.5s→웜 1.7s) — Neon autosuspend 콜드스타트 추정. 배치가 새벽 집중이라 낮 첫 방문이 항상 콜드. 측정 재사용: `curl -w %{time_total}`.
+- 병행 세션 리팩터링(read-model+zod·Biome·PR CI)을 계약 테스트 248/248·readiness 39/45가 뒷받침 — 구조 개선이 회귀 없이 착지한 사례. 신규 모듈 테스트 부재만 후속(TEST-001/002).
+
+## 2026-08-26 (사용자 세션 — 데이터 안정화 마무리)
+
+- DATA-20260818-002 종결: "실배치 재검증"에 운영 DB 커밋이 필요한 것은 아니다 — `ingest-collector-batch.mjs --rollback`을 `--env-file=.env.local`로 실행하면 운영 Neon 대상으로 파이프라인 전체(places→offers→snapshots→deals→batch_state)를 돌린 뒤 ROLLBACK. 실행 후 source-health ready 무결로 부작용 0 확인.
+- 빈 배치 이중 가드 확인: 스키마 `offers.min(1)`(zod 파싱 단계, DB 접근 전 차단) + 러너 `succeeded===0` 시 batch_state 기록 skip(계약 테스트 기존 커버). 스키마 쪽 테스트가 없어 `collector-ingest-contract.mjs`에 케이스 추가 — npm test 249/249.
+- 세션 타이밍 교훈: 사용자 세션과 새벽 4시 루프가 같은 파일(STATE/BACKLOG)을 하루 차이로 건드리면 stale read로 Edit이 거부된다 — 세션 중 문서 편집 전 최신 재독 필수.
