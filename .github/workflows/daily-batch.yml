@@ -10,6 +10,13 @@ on:
   schedule:
     - cron: "0 17 * * *"
   workflow_dispatch:
+  # DATA-20260828-001: GitHub 스케줄 cron은 best-effort라 지연·드랍된다(2026-08-28 야간 전멸).
+  # 외부 크론(cron-job.org 등)이 이 이벤트로 대신 발화할 수 있다(repo 스코프 PAT 필요):
+  #   curl -X POST -H "Authorization: Bearer <PAT>" \
+  #     https://api.github.com/repos/cool25th/sky_planner/dispatches \
+  #     -d '{"event_type":"daily-batch"}'
+  repository_dispatch:
+    types: [daily-batch]
 
 concurrency:
   group: daily-batch
@@ -71,3 +78,12 @@ jobs:
         env:
           DATABASE_INGEST_URL: ${{ secrets.DATABASE_INGEST_URL }}
         run: npm run cleanup:old-batches -- --keep 2 || true
+
+      # INT-20260823-001: 배치 직후 배포 사이트 프로브 — batch_state 갱신 후에도 사이트가
+      # not_ready면 run을 실패로 만들어 무인 시간대 장애 인지 창을 ~24h에서 즉시로 줄인다.
+      - name: Probe deployed source health after batch
+        if: ${{ env.READY == 'true' || env.SEED_DB != '' }}
+        run: |
+          body=$(curl -s --max-time 30 https://skyplanner-kappa.vercel.app/api/ops/source-health)
+          echo "$body" | head -c 200
+          echo "$body" | grep -q '"status":"ready"'
