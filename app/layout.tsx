@@ -65,6 +65,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             })();
           `}
         </Script>
+        {/* Travelpayouts Drive — 가입 온보딩의 사이트 소유 확인·계정 언락용(사용자 승인 2026-08-28, DATA-20260818-003 경로).
+            Data API 토큰 확보 후 유지 여부 재검토. 제거는 이 블록 삭제로 완결. */}
+        <Script
+          id="travelpayouts-drive"
+          strategy="afterInteractive"
+          src="https://tp-em.com/NTY3NzU0.js?t=567754"
+          data-cmp-ab="2"
+        />
         <div className="site-shell">
           <a href="#main" className="skip-link">본문으로 건너뛰기</a>
           <div className="beta-banner">
