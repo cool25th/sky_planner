@@ -26,6 +26,7 @@
     "audit:firestore-quota": "node --experimental-strip-types scripts/audit-firestore-quota.mjs",
     "smoke:firestore-read": "node --experimental-strip-types scripts/smoke-firestore-read.mjs",
     "cleanup:old-batches": "node --experimental-strip-types scripts/cleanup-old-batches.mjs",
+    "baseline:update": "node --experimental-strip-types scripts/update-price-baselines.mjs",
     "collector:firestore": "node --experimental-strip-types scripts/publish-firestore-batch.mjs",
     "audit:service-launch": "node --experimental-strip-types scripts/service-launch-audit.mjs",
     "test:collector-source": "node --experimental-strip-types --test tests/authorized-feed-collector-contract.mjs",

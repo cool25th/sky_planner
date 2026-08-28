@@ -75,6 +75,14 @@ jobs:
           --manifest-env COLLECTOR_SOURCE_MANIFEST_JSON
           --ingest --audit-failure --allow-partial
 
+      # RECO-20260828-001: 노선별 일별 최저가 히스토리 축적 + 30일 평균 대비 절감률 갱신.
+      # 표본 3일부터 discount_pct가 채워지며 destination UI 라벨(≥5%/≥15%)이 자동 활성화된다.
+      - name: Update price baselines and deal discounts
+        if: ${{ env.READY == 'true' }}
+        env:
+          DATABASE_INGEST_URL: ${{ secrets.DATABASE_INGEST_URL }}
+        run: npm run baseline:update
+
       - name: Purge old batches (keep 2)
         if: ${{ env.READY == 'true' && (success() || failure()) }}
         env:
