@@ -51,6 +51,12 @@ export const SOURCE_POLICY_CATALOG: SourcePolicy[] = [
     default_enabled: false,
     booking_source_keys: ["official_promo_pages", "official_promo", "promo_page", "공식 특가"],
   },
+  {
+    source_id: "travelpayouts_aviasales",
+    env_flag: "SOURCE_TRAVELPAYOUTS_AVIASALES_ENABLED",
+    default_enabled: false,
+    booking_source_keys: ["travelpayouts", "aviasales"],
+  },
 ];
 
 export const DEFAULT_ENABLED_SOURCE_FLAGS = SOURCE_POLICY_CATALOG

@@ -62,6 +62,79 @@
           "currency": "KRW"
         }
       }
+    },
+    {
+      "config": {
+        "schema_version": "collector.authorized_feed_source.v1",
+        "source_id": "travelpayouts_aviasales",
+        "source_type": "meta_search",
+        "parser_version": "authorized-json-feed-v1",
+        "endpoint": "https://api.travelpayouts.com/v1/prices/cheap",
+        "method": "GET",
+        "auth": {
+          "header_name": "X-Access-Token",
+          "token_env": "TRAVELPAYOUTS_API_KEY"
+        },
+        "query": {
+          "origin": "ICN",
+          "currency": "krw",
+          "limit": 100
+        },
+        "response_mapping": {
+          "adapter": "json_path_mapping",
+          "offers_path": "data",
+          "flatten_nested": {
+            "key_fields": [
+              "destination_city_id",
+              "offer_index"
+            ]
+          },
+          "places_lookup": {
+            "key_field": "destination_city_id",
+            "drop_unmatched": true,
+            "entries": {
+              "TYO": {
+                "display_name_ko": "도쿄",
+                "display_name_en": "Tokyo",
+                "country_code": "JP",
+                "region": "JAPAN",
+                "latitude": 35.6762,
+                "longitude": 139.6503
+              }
+            }
+          },
+          "templates": {
+            "id": "tp_{destination_city_id}_{offer_index}_{departure_at|date}",
+            "depart_date": "{departure_at|date}",
+            "return_date": "{return_at|date}",
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination_city_id}{departure_at|dmy}{return_at|dmy}1?marker=YOUR_MARKER"
+          },
+          "stay_nights_filter": {
+            "depart_field": "departure_at",
+            "return_field": "return_at",
+            "min": 3,
+            "max": 14
+          },
+          "defaults": {
+            "booking_source": "travelpayouts_aviasales",
+            "currency": "KRW"
+          },
+          "fields": {
+            "origin_airport": "origin",
+            "destination_airport": "destination_city_id",
+            "destination_city_id": "destination_city_id",
+            "destination_display_name": "display_name_ko",
+            "country_code": "country_code",
+            "region": "region",
+            "latitude": "latitude",
+            "longitude": "longitude",
+            "airline_code": "airline",
+            "airline_name": "airline",
+            "total_price": "price",
+            "duration_minutes": "duration"
+          }
+        }
+      }
     }
   ]
 }

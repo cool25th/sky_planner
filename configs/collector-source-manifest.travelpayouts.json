@@ -1,0 +1,165 @@
+{
+  "schema_version": "collector.source_manifest.v1",
+  "artifact_root": "runtime/collector-artifacts",
+  "revalidate": {
+    "url": "https://skyplanner-kappa.vercel.app/api/revalidate",
+    "secret_env": "VERCEL_REVALIDATE_SECRET",
+    "timeout_ms": 10000
+  },
+  "sources": [
+    {
+      "config": {
+        "schema_version": "collector.authorized_feed_source.v1",
+        "source_id": "travelpayouts_aviasales",
+        "source_type": "meta_search",
+        "parser_version": "authorized-json-feed-v1",
+        "endpoint": "https://api.travelpayouts.com/v1/prices/cheap",
+        "method": "GET",
+        "auth": {
+          "header_name": "X-Access-Token",
+          "token_env": "TRAVELPAYOUTS_API_KEY"
+        },
+        "query": {
+          "origin": "ICN",
+          "currency": "krw",
+          "limit": 100
+        },
+        "response_mapping": {
+          "adapter": "json_path_mapping",
+          "offers_path": "data",
+          "flatten_nested": {
+            "key_fields": [
+              "destination_city_id",
+              "offer_index"
+            ]
+          },
+          "places_lookup": {
+            "key_field": "destination_city_id",
+            "drop_unmatched": true,
+            "entries": {
+              "CJU": {
+                "display_name_ko": "제주",
+                "display_name_en": "Jeju",
+                "country_code": "KR",
+                "region": "DOMESTIC",
+                "latitude": 33.4996,
+                "longitude": 126.5312
+              },
+              "FUK": {
+                "display_name_ko": "후쿠오카",
+                "display_name_en": "Fukuoka",
+                "country_code": "JP",
+                "region": "JAPAN",
+                "latitude": 33.5902,
+                "longitude": 130.4017
+              },
+              "TYO": {
+                "display_name_ko": "도쿄",
+                "display_name_en": "Tokyo",
+                "country_code": "JP",
+                "region": "JAPAN",
+                "latitude": 35.6762,
+                "longitude": 139.6503
+              },
+              "TPE": {
+                "display_name_ko": "타이베이",
+                "display_name_en": "Taipei",
+                "country_code": "TW",
+                "region": "GREATER_CHINA",
+                "latitude": 25.033,
+                "longitude": 121.5654
+              },
+              "HKG": {
+                "display_name_ko": "홍콩",
+                "display_name_en": "Hong Kong",
+                "country_code": "HK",
+                "region": "GREATER_CHINA",
+                "latitude": 22.3193,
+                "longitude": 114.1694
+              },
+              "BKK": {
+                "display_name_ko": "방콕",
+                "display_name_en": "Bangkok",
+                "country_code": "TH",
+                "region": "SEA",
+                "latitude": 13.7563,
+                "longitude": 100.5018
+              },
+              "SIN": {
+                "display_name_ko": "싱가포르",
+                "display_name_en": "Singapore",
+                "country_code": "SG",
+                "region": "SEA",
+                "latitude": 1.3521,
+                "longitude": 103.8198
+              },
+              "SYD": {
+                "display_name_ko": "시드니",
+                "display_name_en": "Sydney",
+                "country_code": "AU",
+                "region": "OCEANIA",
+                "latitude": -33.8688,
+                "longitude": 151.2093
+              },
+              "DXB": {
+                "display_name_ko": "두바이",
+                "display_name_en": "Dubai",
+                "country_code": "AE",
+                "region": "MIDDLE_EAST",
+                "latitude": 25.2048,
+                "longitude": 55.2708
+              },
+              "LHR": {
+                "display_name_ko": "런던",
+                "display_name_en": "London",
+                "country_code": "GB",
+                "region": "EUROPE",
+                "latitude": 51.5072,
+                "longitude": -0.1276
+              },
+              "LAX": {
+                "display_name_ko": "로스앤젤레스",
+                "display_name_en": "Los Angeles",
+                "country_code": "US",
+                "region": "NORTH_AMERICA",
+                "latitude": 34.0522,
+                "longitude": -118.2437
+              }
+            }
+          },
+          "templates": {
+            "id": "tp_{destination_city_id}_{offer_index}_{departure_at|date}",
+            "depart_date": "{departure_at|date}",
+            "return_date": "{return_at|date}",
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination_city_id}{departure_at|dmy}{return_at|dmy}1?marker=771170"
+          },
+          "stay_nights_filter": {
+            "depart_field": "departure_at",
+            "return_field": "return_at",
+            "min": 3,
+            "max": 14
+          },
+          "defaults": {
+            "booking_source": "travelpayouts_aviasales",
+            "currency": "KRW"
+          },
+          "fields": {
+            "origin_airport": "origin",
+            "destination_airport": "destination_city_id",
+            "destination_city_id": "destination_city_id",
+            "destination_display_name": "display_name_ko",
+            "destination_display_name_en": "display_name_en",
+            "country_code": "country_code",
+            "region": "region",
+            "latitude": "latitude",
+            "longitude": "longitude",
+            "airline_code": "airline",
+            "airline_name": "airline",
+            "total_price": "price",
+            "duration_minutes": "duration"
+          }
+        }
+      }
+    }
+  ]
+}
