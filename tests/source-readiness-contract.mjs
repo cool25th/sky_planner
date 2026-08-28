@@ -86,7 +86,7 @@ test("source readiness reports stale, paused, and circuit-open enabled sources",
     ],
     batchState: { status: "success" },
     now: NOW,
-    env: { SOURCE_MAX_STALE_HOURS: "24" },
+    env: { SOURCE_MAX_STALE_HOURS: "24", SOURCE_TRAVELPAYOUTS_AVIASALES_ENABLED: "false" },
   });
 
   assert.equal(snapshot.status, "not_ready");

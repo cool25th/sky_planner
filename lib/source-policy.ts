@@ -54,7 +54,7 @@ export const SOURCE_POLICY_CATALOG: SourcePolicy[] = [
   {
     source_id: "travelpayouts_aviasales",
     env_flag: "SOURCE_TRAVELPAYOUTS_AVIASALES_ENABLED",
-    default_enabled: false,
+    default_enabled: true,
     booking_source_keys: ["travelpayouts", "aviasales"],
   },
 ];
