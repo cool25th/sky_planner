@@ -11,6 +11,22 @@ import { AIRLINE_NAME_BY_CODE, queryOrigins } from "./labels";
 import { postgresConfigured } from "./source-context";
 import { mapDealFromSql, mergeMapDeals, parseDealCurrentRow, passesAirlineFilter, sortDeals } from "./row-mappers";
 
+// UX-20260828-001: 쿼리는 실행했지만 예약 가능한 출발일이 없는 경우(주 후반·과거 주간·조건 무일치).
+// null을 반환하면 "DB 미구성"과 같은 mock 폴백(데모 가격 표시)으로 내려가므로 빈 live 결과로 응답한다.
+export function emptyMapDataForQuery(mapQuery: MapQuery): MapData {
+  return {
+    origin: mapQuery.origin,
+    week: mapQuery.week,
+    region: mapQuery.region,
+    cabin: mapQuery.cabin,
+    stay_bucket: mapQuery.stay_bucket,
+    traveler: mapQuery.traveler,
+    deals: [],
+    available_airlines: [],
+    summary: { destinations: 0, offers_considered: 0, last_seen_at: null },
+  };
+}
+
 export async function resolveMapDataFromPostgres(mapQuery: MapQuery, lastBatchAt: string, sourceFlags: string[]): Promise<MapData | null> {
   if (!postgresConfigured()) return null;
   if (mapQuery.stay_bucket === "ALL") return null;
@@ -68,7 +84,7 @@ export async function resolveMapDataFromPostgres(mapQuery: MapQuery, lastBatchAt
   }
 
   const { rows } = await pgQuery(sql, params);
-  if (!rows.length) return null;
+  if (!rows.length) return emptyMapDataForQuery(mapQuery);
 
   const rowsByDestination = new Map<string, unknown[]>();
   for (const row of rows) {

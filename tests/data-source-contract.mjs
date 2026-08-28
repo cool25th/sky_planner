@@ -56,3 +56,16 @@ test("SERVICE_REQUIRE_POSTGRES suppresses mock fallback into unavailable diagnos
     delete process.env.SERVICE_REQUIRE_POSTGRES;
   }
 });
+
+// UX-20260828-001(a): 0행 쿼리는 mock 폴백이 아니라 빈 live MapData로 응답한다.
+test("emptyMapDataForQuery returns truthy live-shaped empty data, not null", async () => {
+  const { emptyMapDataForQuery } = await import("../lib/read-model/map-query.ts");
+  const query = mapQuery();
+  const empty = emptyMapDataForQuery(query);
+  assert.ok(empty, "empty result must be truthy so the resolver reports live instead of falling back to mock");
+  assert.deepEqual(empty.deals, []);
+  assert.deepEqual(empty.available_airlines, []);
+  assert.deepEqual(empty.summary, { destinations: 0, offers_considered: 0, last_seen_at: null });
+  assert.equal(empty.week, query.week);
+  assert.equal(empty.stay_bucket, query.stay_bucket);
+});

@@ -196,6 +196,19 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
 
         {serviceUnavailable ? (
           <ServiceUnavailableNotice diagnostics={mapResponse.diagnostics} />
+        ) : featuredDeals.length === 0 ? (
+          <div className="map-empty-state">
+            <p>선택한 시기에 예약 가능한 특가가 없습니다.</p>
+            <span className="panel-note">주 후반에는 이번 주 출발 일정이 마감될 수 있어요.</span>
+            <div style={{ marginTop: "12px" }}>
+              <Link
+                href={href("/map", { ...searchState, week: meta.weeks[1]?.code ?? searchState.week })}
+                className="cta-btn--secondary"
+              >
+                다음 주간으로 검색
+              </Link>
+            </div>
+          </div>
         ) : (
           <div className="deals-grid">
             {featuredDeals.map((deal) => (
