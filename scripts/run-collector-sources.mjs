@@ -206,10 +206,20 @@ export async function runCollectorSources(manifest, options = {}) {
       const sourceId = safeSegment(config.source_id);
       const executionId = `${runId}_${sourceId}`;
       const artifactPrefix = path.join(parsed.artifact_root, runId, sourceId);
-      const { batch, raw_payload, fetch_summary } = await collectAuthorizedFeed(config, {
+      const outcome = await collectAuthorizedFeed(config, {
         executionId,
         artifactPrefix,
       });
+      if (outcome.no_offers) {
+        results.push({
+          status: "skipped",
+          skip_reason: "no_offers",
+          source_id: config.source_id,
+          fetch_summary: outcome.fetch_summary,
+        });
+        continue;
+      }
+      const { batch, raw_payload, fetch_summary } = outcome;
       const artifacts = await writeCollectorArtifacts(batch, raw_payload, { artifactDir: artifactPrefix });
       const writeSummary = options.ingest
         ? await ingestBatch(batch, {

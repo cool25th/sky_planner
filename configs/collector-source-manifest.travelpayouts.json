@@ -414,7 +414,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -472,7 +473,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -530,7 +532,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -588,7 +591,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -646,7 +650,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -704,7 +709,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -762,7 +768,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -820,7 +827,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -878,7 +886,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -936,7 +945,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -994,7 +1004,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -1052,7 +1063,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -1110,7 +1122,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -1168,7 +1181,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -1226,7 +1240,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -1284,7 +1299,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -1342,7 +1358,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -1400,7 +1417,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -1458,7 +1476,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -1516,7 +1535,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -1574,7 +1594,8 @@
             "total_price": "price",
             "depart_date": "depart_date",
             "stop_count": "transfers"
-          }
+          },
+          "allow_empty": true
         }
       }
     }

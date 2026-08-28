@@ -603,3 +603,43 @@ test("calendar-shaped date-keyed payload maps through single-level flatten", () 
   assert.equal(offer.itinerary.stops, 1);
   assert.equal(offer.price.total, 363285);
 });
+
+// RECO-20260828-004: allow_empty — 목적지별 calendar처럼 정상적으로 빈 수가 있는 소스는
+// 실패가 아니라 빈 결과(skip)로 내려온다. 설정 버그 방지 기본값(엄격)은 유지된다.
+test("allow_empty mapping returns empty offers instead of throwing", async () => {
+  const { normalizeAuthorizedFeedPayload } = await import("../scripts/run-authorized-feed-collector.mjs");
+  const config = {
+    schema_version: "collector.authorized_feed_source.v1",
+    source_id: "travelpayouts_aviasales_test",
+    source_type: "meta_search",
+    endpoint: "https://api.example.test/calendar",
+    auth: { header_name: "X-Access-Token", token_env: "TEST_TOKEN" },
+    query: { origin: "ICN", destination: "LHR", currency: "krw" },
+    response_mapping: {
+      adapter: "json_path_mapping",
+      offers_path: "data",
+      flatten_nested: { key_fields: ["depart_date"] },
+      allow_empty: true,
+      places_lookup: { key_field: "destination", drop_unmatched: true, entries: { LHR: { display_name_ko: "런던", country_code: "GB", region: "EUROPE" } } },
+      templates: { id: "tpcal_{destination}_{depart_date}", return_date: "{return_at|date}" },
+      stay_nights_filter: { depart_field: "departure_at", return_field: "return_at", min: 3, max: 14 },
+      defaults: { booking_source: "travelpayouts_aviasales" },
+      fields: {
+        origin_airport: "origin",
+        destination_airport: "destination",
+        destination_city_id: "destination",
+        destination_display_name: "display_name_ko",
+        country_code: "country_code",
+        region: "region",
+        depart_date: "depart_date",
+        airline_code: "airline",
+        airline_name: "airline",
+        total_price: "price",
+      },
+    },
+  };
+  const payload = { data: {} };
+  const mapped = mapJsonPathFeedPayload(payload, config, { now: new Date("2026-08-28T00:00:00Z") });
+  assert.deepEqual(mapped.offers, []);
+  assert.equal(normalizeAuthorizedFeedPayload(payload, config), null, "allow_empty + 빈 결과는 null(→ skipped)");
+});

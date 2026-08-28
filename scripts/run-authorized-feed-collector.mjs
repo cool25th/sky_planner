@@ -89,6 +89,9 @@ const JsonPathMappingSchema = z.object({
   // 여러 row 경로를 조합한 필드(id, deep_link 등)를 "{path}" 보간으로 구성한다.
   // 필터: {path|date} ISO→YYYY-MM-DD, {path|dmy} ISO/YYYY-MM-DD→DDMM.
   templates: z.record(z.string(), z.string().min(1)).optional(),
+  // 정상적으로 빈 응답이 올 수 있는 소스(예: 목적지별 calendar — 현재 데이터 없는 목적지)는
+  // 빈 결과를 실패가 아닌 skip으로 처리한다. 기본값 false(설정 버그는 여전히 실패).
+  allow_empty: z.boolean().default(false),
   // 체류일이 스키마 stay_bucket(3_4/5_7/8_14) 밖인 행(예: 2박·21박 최저가)은 ingest가 거부하므로
   // 수집 단계에서 미리 버린다. 없으면 통과.
   stay_nights_filter: z.object({
@@ -452,9 +455,10 @@ export function mapJsonPathFeedPayload(payload, inputConfig, options = {}) {
   if (!Array.isArray(offersRaw) && mapping.flatten_nested) {
     offersRaw = flattenNestedRows(offersRaw, mapping.flatten_nested.key_fields);
   }
-  if (!Array.isArray(offersRaw) || !offersRaw.length) {
+  if ((!Array.isArray(offersRaw) || !offersRaw.length) && !mapping.allow_empty) {
     throw new Error(`Mapped feed ${config.source_id} produced no offers at ${mapping.offers_path}`);
   }
+  if (!Array.isArray(offersRaw)) offersRaw = [];
 
   // query 파라미터를 행 기본값으로 병합(응답에 origin이 없는 API 대비) 후 places_lookup·stay_nights_filter 적용.
   const lookup = mapping.places_lookup;
@@ -477,7 +481,7 @@ export function mapJsonPathFeedPayload(payload, inputConfig, options = {}) {
     }
     offersRows.push(row);
   }
-  if (!offersRows.length) {
+  if (!offersRows.length && !mapping.allow_empty) {
     throw new Error(`Mapped feed ${config.source_id} produced no offers after places_lookup/stay_nights_filter`);
   }
 
@@ -847,6 +851,9 @@ export async function fetchAuthorizedFeed(inputConfig, options = {}) {
 export function normalizeAuthorizedFeedPayload(payload, inputConfig, options = {}) {
   const config = parseCollectorSourceConfig(inputConfig);
   const normalizedPayload = mapJsonPathFeedPayload(payload, config, options);
+  if (!normalizedPayload.offers.length && config.response_mapping?.allow_empty) {
+    return null;
+  }
   const feed = AuthorizedFeedPayloadSchema.parse(normalizedPayload);
   const now = options.now ?? new Date();
   const id = options.executionId ?? executionId(config.source_id, now);
@@ -942,6 +949,20 @@ export async function collectAuthorizedFeed(inputConfig, options = {}) {
     completedAt: completedAt.toISOString(),
     latencyMs: result.latency_ms,
   });
+  if (batch === null) {
+    return {
+      no_offers: true,
+      batch: null,
+      raw_payload: result.payload,
+      fetch_summary: {
+        status: result.status,
+        latency_ms: result.latency_ms,
+        attempts: result.attempts,
+        content_hash: result.content_hash,
+        url: result.url,
+      },
+    };
+  }
   const deeplinkRatio = deeplinkValidityRatio(batch);
   if (deeplinkRatio < DEEPLINK_VALIDITY_MIN_RATIO) {
     throw new Error(
