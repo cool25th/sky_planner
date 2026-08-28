@@ -591,6 +591,24 @@ select {
   margin-bottom: 16px;
 }
 
+/* RECO-20260828-002: 추천 근거 칩 — 왜 상위 노출됐는지 문장으로 보여준다 */
+.deal-card__reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -6px 0 14px;
+}
+
+.deal-reason-chip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--color-best-soft);
+  color: var(--color-best);
+  white-space: nowrap;
+}
+
 .deal-card__region {
   font-size: 0.72rem;
   font-weight: 700;

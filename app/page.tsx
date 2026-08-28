@@ -8,6 +8,7 @@ import { ServiceUnavailableNotice } from "@/components/service-unavailable-notic
 import { dataModeLabel, resolveMapResponse } from "@/lib/data-source";
 import { formatMoney, stamp } from "@/lib/format";
 import { getMetaData, parseMapQuery, formatWeekNatural } from "@/lib/mock-market";
+import { curateFeaturedDeals } from "@/lib/recommendation";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
 import { href } from "@/lib/url";
 
@@ -84,7 +85,12 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
   if (serviceUnavailable) noStore();
 
   const internationalDeals = mapResponse.data.deals.filter((deal) => deal.region_code !== "DOMESTIC");
-  const featuredDeals = (internationalDeals.length ? internationalDeals : mapResponse.data.deals).slice(0, 4);
+  // RECO-20260828-002: 노출 순서를 규칙 점수(가격 메리트·시기 근접성·주말 포함)로 큐레이션하고 근거를 칩으로 보여준다.
+  const curatedDeals = curateFeaturedDeals(
+    internationalDeals.length ? internationalDeals : mapResponse.data.deals,
+    new Date().toISOString().slice(0, 10),
+    4,
+  );
   const mapHref = href("/map", searchState);
 
   return (
@@ -196,7 +202,7 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
 
         {serviceUnavailable ? (
           <ServiceUnavailableNotice diagnostics={mapResponse.diagnostics} />
-        ) : featuredDeals.length === 0 ? (
+        ) : curatedDeals.length === 0 ? (
           <div className="map-empty-state">
             <p>선택한 시기에 예약 가능한 특가가 없습니다.</p>
             <span className="panel-note">주 후반에는 이번 주 출발 일정이 마감될 수 있어요.</span>
@@ -211,7 +217,7 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
           </div>
         ) : (
           <div className="deals-grid">
-            {featuredDeals.map((deal) => (
+            {curatedDeals.map(({ deal, reasons }) => (
               <article key={deal.destination_code} className="deal-card">
                 <div className="deal-card__body">
                   <div className="deal-card__top">
@@ -227,6 +233,14 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
                       stayBucket={searchState.stay_bucket}
                     />
                   </div>
+
+                  {reasons.length > 0 && (
+                    <div className="deal-card__reasons">
+                      {reasons.map((reason) => (
+                        <span key={reason} className="deal-reason-chip">{reason}</span>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="deal-card__fare-box">
                     <span className="fare-label">왕복 총액 (성인 1인)</span>

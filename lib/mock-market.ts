@@ -137,6 +137,9 @@ export interface MapDeal {
   business_min_total: number | null;
   economy_discount_pct: number | null;
   business_discount_pct: number | null;
+  // RECO-20260828-002: 큐레이션(시기 근접성·주말 포함) 계산용 — Postgres 경로에서 채우고 mock은 생략 가능.
+  economy_best_depart_date?: string | null;
+  economy_best_return_date?: string | null;
   economy_price_status: "active" | "stale" | "sold_out" | null;
   business_price_status: "active" | "stale" | "sold_out" | null;
   best_airline_by_cabin: { ECONOMY: string | null; BUSINESS: string | null };

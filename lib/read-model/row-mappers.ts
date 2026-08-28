@@ -36,6 +36,8 @@ export const dealCurrentRowSchema = z.object({
   longitude: z.number().nullable().optional(),
   economy_min_total_krw: numericLike,
   economy_discount_pct: numericLike,
+  economy_best_depart_date: z.union([z.string(), z.date()]).nullable().optional(),
+  economy_best_return_date: z.union([z.string(), z.date()]).nullable().optional(),
   economy_badge_type: textLike,
   economy_price_status: textLike,
   economy_representative_airline: textLike,
@@ -159,6 +161,8 @@ export function mapDealFromSql(row: DealCurrentRow, fallbackBatchAt: string): Ma
     business_min_total: row.business_min_total_krw !== null && row.business_min_total_krw !== undefined ? Number(row.business_min_total_krw) : null,
     economy_discount_pct: row.economy_discount_pct !== null && row.economy_discount_pct !== undefined ? Number(row.economy_discount_pct) : null,
     business_discount_pct: row.business_discount_pct !== null && row.business_discount_pct !== undefined ? Number(row.business_discount_pct) : null,
+    economy_best_depart_date: resolveDateOnly(row.economy_best_depart_date) || null,
+    economy_best_return_date: resolveDateOnly(row.economy_best_return_date) || null,
     economy_price_status: normalizePriceStatus(row.economy_price_status),
     business_price_status: normalizePriceStatus(row.business_price_status),
     best_airline_by_cabin: {
