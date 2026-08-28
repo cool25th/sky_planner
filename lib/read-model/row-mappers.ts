@@ -20,11 +20,11 @@ import {
   regionLabel,
 } from "./labels";
 
-// node-pg 타입 매핑: NUMERIC→string|null, TIMESTAMPTZ/DATE→Date|null, TEXT[]→string[], FLOAT8→number|null
+// node-pg 타입 매핑: NUMERIC→string|null, TIMESTAMPTZ/DATE→Date|null, TEXT[]→string[]|null(DDL이 DEFAULT만 있고 NOT NULL 아님), FLOAT8→number|null
 const numericLike = z.union([z.number(), z.string()]).nullable().optional();
 const timestampLike = z.union([z.date(), z.string()]).nullable().optional();
 const textLike = z.string().nullable().optional();
-const textArray = z.array(z.string()).optional();
+const textArray = z.array(z.string()).nullable().optional();
 
 export const dealCurrentRowSchema = z.object({
   origin: textLike,
