@@ -1,6 +1,6 @@
 # 데이터 수집 방안 리서치 — Sky Planner Atlas
 
-- 상태: 진행(2026-08-27 개시) · 소유: DATA-20260818-003 해결 경로 · 최종 갱신: 2026-08-28(1차 리서치)
+- 상태: 진행(2026-08-27 개시) · 소유: DATA-20260818-003 해결 경로 · 최종 갱신: 2026-08-28(스파이크 통과)
 - 이 문서는 **주간 자동화(매주 월요일 05:00 KST)**가 웹 리서치 결과를 날짜 섹션으로 누적하고 아래 "권장 설계"를 갱신하는 산출물이다.
 
 ## 배경
@@ -24,6 +24,14 @@
 3. 기존 `sky_collector`/`normalized_batch.v1` 스키마에 그대로 매핑되는가? 안 되면 무엇을 바꿔야 하는가?
 
 ## 리서치 로그
+
+### 2026-08-28 (2) — 스파이크 실측 통과 (사용자 토큰·마커 제공, 값은 기록하지 않음)
+
+- `v1/prices/cheap?origin=ICN&currency=krw` — **HTTP 200**. ICN 출발 글로벌 목적지 실가격이 KRW로 반환(예: ADL ₩1,465,987 GA편, AER ₩1,008,605 EY편). **트래픽 조건 없이 토큰 즉시 작동 — "기본 제휴 계정 Data API 접근 여부" 미확인 해소**
+- `v1/prices/calendar?origin=ICN&destination=TYO&currency=krw` — **200**. 날짜별 매트릭스 데이터(7C·OZ·ZE 등 실제 한국 항공사, ₩363,285~, transfers 필드 포함) — 캘린더 뷰 소스로 충분
+- 관찰: 캘린더 응답의 origin이 SEL(메트로 코드)로 정규화되어 옴 — 수집 시 쿼리한 origin을 기준으로 매핑
+- 딥링크: 두 API 모두 URL 미포함 → Aviasales 검색 URL을 마커로 구성(`aviasales.com/search/{origin}{dest}{YYYYMMDD}{YYYYMMDD}/1?marker=…`)해 스키마 `deep_link` 충족
+- **판정: 1순위 경로 확정 — sky_collector 소스 구현 착수**
 
 ### 2026-08-28 — 1차 조사(사용자 세션, 자동화 스케줄 전 선실행)
 
@@ -54,8 +62,8 @@
 **2단계(트래픽 확보 후): Amadeus 무료 쿼터를 가격 교차검증 세컨더리로 추가.**
 
 **DATA-20260818-003 재개 체크리스트 (업데이트)**
-1. Travelpayouts 제휴 가입(무료) — 사이트로 `skyplanner-kappa.vercel.app` 등록, 트래픽 조건 여부 확인
-2. 토큰 발급 → `v1/prices/cheap?origin=ICN` 스파이크: 한국 출발 데이터·딥링크 형식·KRW 지원 실측 (실패 시 Amadeus 경로로 전환)
+1. ✅ Travelpayouts 제휴 가입 완료 (Drive 스크립트 설치로 온보딩 사이트 확인 통과 — 2026-08-28)
+2. ✅ 토큰 발급·스파이크 통과 (2026-08-28, cheap·calendar 200·KRW 실측)
 3. sky_collector 신규 소스 구현 + 매니페스트 JSON 작성
 4. GitHub secrets 주입(PARTNER_FEED_API_KEY·COLLECTOR_SOURCE_MANIFEST_JSON)
 5. READY 자동 전환 → 스톱갑 자동 비활성 확인
