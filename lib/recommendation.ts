@@ -1,6 +1,9 @@
 // RECO-20260828-002: 설명 가능한 추천 규칙 엔진 — 점수는 규칙의 합이고, 각 규칙은 문장으로 근거를 남긴다.
 // 블랙박스 없음: 상위 노출의 이유는 항상 reasons 배열로 사용자에게 보여준다.
 // 가격 근거(평균 대비 절감률)는 RECO-20260828-001의 표본 3일 이상 baseline에서만 존재한다.
+// 연휴 근거(+15)는 RECO-20260828-003의 한국 공휴일 캘린더에서 온다. 시즌 노트는 점수 없는 정보 칩.
+
+import { holidayReason, holidaysInStay, seasonNoteFor } from "./season-calendar.ts";
 
 export interface CuratableDeal {
   destination_code: string;
@@ -57,10 +60,18 @@ export function scoreDealForCuration<T extends CuratableDeal>(deal: T, todayIso:
   const price = priceMerit(deal);
   const timing = timingMerit(deal, todayIso);
   const weekend = stayIncludesWeekend(deal.economy_best_depart_date, deal.economy_best_return_date);
-  const reasons = [price.reason, timing.reason, weekend ? "주말 포함" : null].filter((value): value is string => Boolean(value));
+  const holiday = holidayReason(holidaysInStay(deal.economy_best_depart_date, deal.economy_best_return_date));
+  const season = seasonNoteFor(deal.destination_code, deal.economy_best_depart_date);
+  const reasons = [
+    price.reason,
+    timing.reason,
+    holiday,
+    weekend ? "주말 포함" : null,
+    season,
+  ].filter((value): value is string => Boolean(value));
   return {
     deal,
-    score: price.score + timing.score + (weekend ? 10 : 0),
+    score: price.score + timing.score + (holiday ? 15 : 0) + (weekend ? 10 : 0),
     reasons,
   };
 }
