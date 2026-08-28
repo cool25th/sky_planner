@@ -67,9 +67,39 @@ const JsonPathMappingSchema = z.object({
   adapter: z.literal("json_path_mapping"),
   collected_at_path: z.string().optional(),
   offers_path: z.string().min(1),
+  // dict-of-dicts 응답(예: Travelpayouts cheap {DEST: {idx: offer}})을 rows로 펼친다.
+  // 각 depth의 key는 key_fields 순서대로 row 필드로 주입된다.
+  flatten_nested: z.object({
+    key_fields: z.array(z.string().min(1)).min(1).max(3),
+  }).optional(),
+  // 코드만 오는 응답(TYO 등)에 정적 메타데이터(한국어 이름·국가·리전·좌표)를 보강한다.
+  // drop_unmatched면 lookup에 없는 목적지 행은 버린다(서비스 목적지가 아님).
+  places_lookup: z.object({
+    key_field: z.string().min(1),
+    drop_unmatched: z.boolean().default(false),
+    entries: z.record(z.string(), z.object({
+      display_name_ko: z.string().min(1),
+      display_name_en: z.string().optional(),
+      country_code: z.string().min(2),
+      region: z.string().min(1),
+      latitude: z.number().optional(),
+      longitude: z.number().optional(),
+    })),
+  }).optional(),
+  // 여러 row 경로를 조합한 필드(id, deep_link 등)를 "{path}" 보간으로 구성한다.
+  // 필터: {path|date} ISO→YYYY-MM-DD, {path|dmy} ISO/YYYY-MM-DD→DDMM.
+  templates: z.record(z.string(), z.string().min(1)).optional(),
+  // 체류일이 스키마 stay_bucket(3_4/5_7/8_14) 밖인 행(예: 2박·21박 최저가)은 ingest가 거부하므로
+  // 수집 단계에서 미리 버린다. 없으면 통과.
+  stay_nights_filter: z.object({
+    depart_field: z.string().min(1),
+    return_field: z.string().min(1),
+    min: z.number().int().min(1),
+    max: z.number().int().min(1),
+  }).optional(),
   defaults: MappingDefaultsSchema,
   fields: z.object({
-    id: z.string().min(1),
+    id: z.string().optional(),
     capture_channel: z.string().optional(),
     origin_airport: z.string().min(1),
     origin_city_id: z.string().optional(),
@@ -81,8 +111,8 @@ const JsonPathMappingSchema = z.object({
     region: z.string().optional(),
     latitude: z.string().optional(),
     longitude: z.string().optional(),
-    depart_date: z.string().min(1),
-    return_date: z.string().min(1),
+    depart_date: z.string().optional(),
+    return_date: z.string().optional(),
     week: z.string().optional(),
     stay_nights: z.string().optional(),
     traveler: z.string().optional(),
@@ -92,7 +122,7 @@ const JsonPathMappingSchema = z.object({
     operating_airline_name: z.string().optional(),
     booking_source: z.string().optional(),
     source_type: z.string().optional(),
-    deep_link: z.string().min(1),
+    deep_link: z.string().optional(),
     cabin_group: z.string().optional(),
     cabin_label: z.string().optional(),
     fare_brand: z.string().optional(),
@@ -320,7 +350,46 @@ function getPath(value, rawPath) {
   return current;
 }
 
+const TEMPLATE_FILTERS = {
+  date: (value) => String(value).slice(0, 10),
+  dmy: (value) => {
+    const date = String(value).slice(0, 10);
+    return `${date.slice(8, 10)}${date.slice(5, 7)}`;
+  },
+};
+
+function templateValue(template, row, fieldName) {
+  return String(template).replace(/\{([^}|]+)(?:\|([a-z_]+))?\}/g, (_, rawPath, filterName) => {
+    const value = getPath(row, rawPath.trim());
+    if (value === undefined || value === null || value === "") {
+      throw new Error(`Missing template path ${rawPath} for ${fieldName}`);
+    }
+    const filter = filterName ? TEMPLATE_FILTERS[filterName] : undefined;
+    if (filterName && !filter) throw new Error(`Unknown template filter ${filterName} for ${fieldName}`);
+    return String(filter ? filter(value) : value);
+  });
+}
+
+function flattenNestedRows(value, keyFields) {
+  const [head, ...rest] = keyFields;
+  const rows = [];
+  for (const [key, inner] of Object.entries(value ?? {})) {
+    const children = rest.length
+      ? flattenNestedRows(inner, rest)
+      : (Array.isArray(inner) ? inner : [inner]);
+    for (const child of children) {
+      rows.push(child && typeof child === "object" && !Array.isArray(child)
+        ? { [head]: key, ...child }
+        : { [head]: key, value: child });
+    }
+  }
+  return rows;
+}
+
 function mappedValue(row, mapping, fieldName, fallback, required = false) {
+  if (mapping.templates && mapping.templates[fieldName] !== undefined) {
+    return templateValue(mapping.templates[fieldName], row, fieldName);
+  }
   const pathValue = mapping.fields[fieldName] ? getPath(row, mapping.fields[fieldName]) : undefined;
   const value = pathValue ?? fallback;
   if (required && (value === undefined || value === null || value === "")) {
@@ -378,9 +447,37 @@ export function mapJsonPathFeedPayload(payload, inputConfig, options = {}) {
   const mapping = config.response_mapping;
   if (!mapping) return payload;
 
-  const offersRaw = getPath(payload, mapping.offers_path);
+  const offersExtracted = getPath(payload, mapping.offers_path);
+  let offersRaw = offersExtracted;
+  if (!Array.isArray(offersRaw) && mapping.flatten_nested) {
+    offersRaw = flattenNestedRows(offersRaw, mapping.flatten_nested.key_fields);
+  }
   if (!Array.isArray(offersRaw) || !offersRaw.length) {
     throw new Error(`Mapped feed ${config.source_id} produced no offers at ${mapping.offers_path}`);
+  }
+
+  // query 파라미터를 행 기본값으로 병합(응답에 origin이 없는 API 대비) 후 places_lookup·stay_nights_filter 적용.
+  const lookup = mapping.places_lookup;
+  const stayFilter = mapping.stay_nights_filter;
+  const offersRows = [];
+  for (const raw of offersRaw) {
+    let row = { ...config.query, ...raw };
+    if (lookup) {
+      const entryKey = String(getPath(row, lookup.key_field) ?? "");
+      const entry = lookup.entries[entryKey];
+      if (entry) row = { ...row, ...entry };
+      else if (lookup.drop_unmatched) continue;
+    }
+    if (stayFilter) {
+      const depart = String(getPath(row, stayFilter.depart_field) ?? "").slice(0, 10);
+      const ret = String(getPath(row, stayFilter.return_field) ?? "").slice(0, 10);
+      const nights = Math.round((Date.parse(`${ret}T00:00:00Z`) - Date.parse(`${depart}T00:00:00Z`)) / 86400000);
+      if (!Number.isFinite(nights) || nights < stayFilter.min || nights > stayFilter.max) continue;
+    }
+    offersRows.push(row);
+  }
+  if (!offersRows.length) {
+    throw new Error(`Mapped feed ${config.source_id} produced no offers after places_lookup/stay_nights_filter`);
   }
 
   const now = options.now ?? new Date();
@@ -395,7 +492,7 @@ export function mapJsonPathFeedPayload(payload, inputConfig, options = {}) {
   return {
     collected_at: collectedAt,
     places: [],
-    offers: offersRaw.map((row, index) => ({
+    offers: offersRows.map((row, index) => ({
       id: stringValue(mappedValue(row, mapping, "id", undefined, true), "id", true),
       raw_payload_ref: rawRefForOffer(artifactPrefix, mapping.offers_path, index),
       capture_channel: stringValue(mappedValue(row, mapping, "capture_channel", defaults.capture_channel), "capture_channel"),

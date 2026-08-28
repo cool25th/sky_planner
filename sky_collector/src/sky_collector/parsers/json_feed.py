@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 from .base import BaseConnector
-from .mapping_adapter import JsonPathMappingAdapter, get_by_path
+from .mapping_adapter import JsonPathMappingAdapter, flatten_nested_rows, get_by_path
 from ..models.batch import BatchMetrics, NormalizedBatch
 from ..models.offer import NormalizedOffer, Place
 from ..core.failure_codes import CollectorException, CollectorFailureCode
@@ -81,9 +81,34 @@ class AuthorizedJsonFeedConnector(BaseConnector):
         if response_mapping and response_mapping.get("adapter") == "json_path_mapping":
             quotes_path = response_mapping.get("offers_path", "data")
             raw_quotes = get_by_path(raw_json, quotes_path, [])
+            flatten = response_mapping.get("flatten_nested")
+            if flatten and isinstance(raw_quotes, dict):
+                raw_quotes = flatten_nested_rows(raw_quotes, flatten.get("key_fields", []))
+            if not isinstance(raw_quotes, list):
+                raw_quotes = []
+            # Node 런타임과 동일: query를 행 기본값으로 병합 후 places_lookup·stay_nights_filter 적용.
+            lookup = response_mapping.get("places_lookup")
+            stay_filter = response_mapping.get("stay_nights_filter")
             for quote in raw_quotes:
+                row = {**(self.config.get("query") or {}), **quote}
+                if lookup:
+                    entry_key = str(get_by_path(row, lookup.get("key_field", "")) or "")
+                    entry = (lookup.get("entries") or {}).get(entry_key)
+                    if entry:
+                        row = {**row, **entry}
+                    elif lookup.get("drop_unmatched"):
+                        continue
+                if stay_filter:
+                    depart = str(get_by_path(row, stay_filter.get("depart_field", "")) or "")[:10]
+                    ret = str(get_by_path(row, stay_filter.get("return_field", "")) or "")[:10]
+                    try:
+                        nights = (datetime.fromisoformat(ret) - datetime.fromisoformat(depart)).days
+                    except ValueError:
+                        continue
+                    if nights < int(stay_filter.get("min", 1)) or nights > int(stay_filter.get("max", 10**9)):
+                        continue
                 offer = JsonPathMappingAdapter.map_offer(
-                    raw_quote=quote,
+                    raw_quote=row,
                     mapping_config=response_mapping,
                     raw_payload_ref=f"{artifact_prefix}/raw.json",
                     week=self.config.get("default_week", "2026-W13"),

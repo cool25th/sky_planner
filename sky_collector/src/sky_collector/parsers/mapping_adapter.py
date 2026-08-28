@@ -1,5 +1,55 @@
 from typing import Any, Dict, List, Optional
+import re
+
 from ..models.offer import CabinClass, NormalizedOffer, QualityBucket, SourceType
+
+TEMPLATE_PATTERN = re.compile(r"\{([^}|]+?)(?:\|([a-z_]+))?\}")
+
+
+def _template_filter_date(value: Any) -> str:
+    return str(value)[:10]
+
+
+def _template_filter_dmy(value: Any) -> str:
+    date = str(value)[:10]
+    return f"{date[8:10]}{date[5:7]}"
+
+
+TEMPLATE_FILTERS = {
+    "date": _template_filter_date,
+    "dmy": _template_filter_dmy,
+}
+
+
+def template_value(template: str, raw_quote: Dict[str, Any], field_key: str) -> str:
+    def replace(match: "re.Match[str]") -> str:
+        path, filter_name = match.group(1).strip(), match.group(2)
+        value = get_by_path(raw_quote, path)
+        if value is None or value == "":
+            raise ValueError(f"Missing template path {path} for {field_key}")
+        if filter_name:
+            template_filter = TEMPLATE_FILTERS.get(filter_name)
+            if template_filter is None:
+                raise ValueError(f"Unknown template filter {filter_name} for {field_key}")
+            value = template_filter(value)
+        return str(value)
+
+    return TEMPLATE_PATTERN.sub(replace, str(template))
+
+
+def flatten_nested_rows(value: Any, key_fields: List[str]) -> List[Dict[str, Any]]:
+    """Node 런타임 flattenNestedRows와 동일 규약 — dict-of-dicts를 rows로 펼치고 각 depth key를 key_fields 순서대로 주입한다."""
+    if not key_fields:
+        return value if isinstance(value, list) else [value]
+    head, rest = key_fields[0], key_fields[1:]
+    rows: List[Dict[str, Any]] = []
+    for key, inner in (value or {}).items():
+        for child in flatten_nested_rows(inner, rest):
+            if isinstance(child, dict):
+                rows.append({head: key, **child})
+            else:
+                rows.append({head: key, "value": child})
+    return rows
 
 
 def get_by_path(data: Dict[str, Any], path: str, default: Any = None) -> Any:
@@ -28,6 +78,9 @@ class JsonPathMappingAdapter:
         defaults = mapping_config.get("defaults", {})
 
         def val(field_key: str, default_val: Any = None):
+            template = (mapping_config.get("templates") or {}).get(field_key)
+            if template is not None:
+                return template_value(template, raw_quote, field_key)
             path = fields.get(field_key)
             if path:
                 extracted = get_by_path(raw_quote, path)
