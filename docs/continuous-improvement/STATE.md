@@ -9,11 +9,13 @@
   - 없음(코드·보안 관점). DATA-20260828-001은 즉시 회복·구조 완화 구현(배포 대기), 남은 관찰은 스케줄 정시성뿐
 - **진행 중 작업 (병행 세션)** — 없음
 - **최근 완료**
-  - **2026-08-28 승인 실행**: stopgap dispatch 회복 + daily-batch `repository_dispatch` 트리거·배치 직후 source-health 프로브(INT-20260823-001 IMPLEMENTED) + TEST-20260824-002 커밋(로컬 — push 대기)
+  - **2026-08-28 승인 실행**: stopgap dispatch 회복 + daily-batch `repository_dispatch` 트리거·배치 직후 source-health 프로브(INT-20260823-001 IMPLEMENTED) + TEST-20260824-002 커밋·push
+  - **UX-20260828-001 옵션 (a) 적용**: 0행 쿼리 honest empty 전환(빈 live MapData + 홈 빈 상태) — 커밋·push, 배포 실측 대기(npm test 262/262)
   - TEST-20260824-002 row-mapper 계약 테스트 6건 + `textArray` nullable 수정(자율 구현 → 승인 커밋, npm test 261/261)
   - skip-link (`AX-20260825-001`, `9b6fd71`, 배포 실측 종결) / warmup (`PERF-20260824-001` 1단계, `16c966b`) / audit fix (`SEC-20260827-001` 1단계, `104d973`) — 어제 승인 작업
   - public_api_503 회귀 수정 (`42b9267`, 배포 반영 확인 — readiness 39 복귀 실측)
 - **다음 검증 예정**
+  - UX-20260828-001 배포 실측: 금~일 홈/맵이 "실시간 데이터"+빈 상태(데모 폴백 아님)로 응답하는지
   - 내일 02:00 KST 스케줄 정시 실행 여부(DATA-20260828-001 종결 조건) + 신규 프로브 스텝 첫 실전 동작
   - UX-20260828-001 방향 결정(honest empty vs 현행 유지)
   - Neon 콘솔 CU-hours 실측(INT-20260828-001 — warmup 정상화 시 월 ~22.5~90 CU-h vs 한도 100)
