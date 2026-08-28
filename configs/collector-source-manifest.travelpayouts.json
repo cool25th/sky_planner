@@ -124,6 +124,86 @@
                 "region": "NORTH_AMERICA",
                 "latitude": 34.0522,
                 "longitude": -118.2437
+              },
+              "OSA": {
+                "display_name_ko": "오사카",
+                "display_name_en": "Osaka",
+                "country_code": "JP",
+                "region": "JAPAN",
+                "latitude": 34.6937,
+                "longitude": 135.5023
+              },
+              "TAO": {
+                "display_name_ko": "칭다오",
+                "display_name_en": "Qingdao",
+                "country_code": "CN",
+                "region": "GREATER_CHINA",
+                "latitude": 36.0671,
+                "longitude": 120.3826
+              },
+              "SHA": {
+                "display_name_ko": "상하이",
+                "display_name_en": "Shanghai",
+                "country_code": "CN",
+                "region": "GREATER_CHINA",
+                "latitude": 31.2304,
+                "longitude": 121.4737
+              },
+              "PEK": {
+                "display_name_ko": "베이징",
+                "display_name_en": "Beijing",
+                "country_code": "CN",
+                "region": "GREATER_CHINA",
+                "latitude": 39.9042,
+                "longitude": 116.4074
+              },
+              "HAN": {
+                "display_name_ko": "하노이",
+                "display_name_en": "Hanoi",
+                "country_code": "VN",
+                "region": "SEA",
+                "latitude": 21.0278,
+                "longitude": 105.8342
+              },
+              "DAD": {
+                "display_name_ko": "다낭",
+                "display_name_en": "Da Nang",
+                "country_code": "VN",
+                "region": "SEA",
+                "latitude": 16.0544,
+                "longitude": 108.2022
+              },
+              "CEB": {
+                "display_name_ko": "세부",
+                "display_name_en": "Cebu",
+                "country_code": "PH",
+                "region": "SEA",
+                "latitude": 10.3157,
+                "longitude": 123.8854
+              },
+              "BKI": {
+                "display_name_ko": "코타키나발루",
+                "display_name_en": "Kota Kinabalu",
+                "country_code": "MY",
+                "region": "SEA",
+                "latitude": 5.9804,
+                "longitude": 116.0735
+              },
+              "DPS": {
+                "display_name_ko": "발리",
+                "display_name_en": "Bali",
+                "country_code": "ID",
+                "region": "SEA",
+                "latitude": -8.6705,
+                "longitude": 115.2126
+              },
+              "GUM": {
+                "display_name_ko": "괌",
+                "display_name_en": "Guam",
+                "country_code": "GU",
+                "region": "OCEANIA",
+                "latitude": 13.4443,
+                "longitude": 144.7937
               }
             }
           },
