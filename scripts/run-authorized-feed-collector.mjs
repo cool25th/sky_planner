@@ -459,9 +459,10 @@ export function mapJsonPathFeedPayload(payload, inputConfig, options = {}) {
   // query 파라미터를 행 기본값으로 병합(응답에 origin이 없는 API 대비) 후 places_lookup·stay_nights_filter 적용.
   const lookup = mapping.places_lookup;
   const stayFilter = mapping.stay_nights_filter;
+  const resolvedQuery = resolveQueryMonthTokens(config.query, options.now);
   const offersRows = [];
   for (const raw of offersRaw) {
-    let row = { ...config.query, ...raw };
+    let row = { ...resolvedQuery, ...raw };
     if (lookup) {
       const entryKey = String(getPath(row, lookup.key_field) ?? "");
       const entry = lookup.entries[entryKey];
@@ -573,6 +574,24 @@ export function mapJsonPathFeedPayload(payload, inputConfig, options = {}) {
       price_anomaly_count: 0,
     },
   };
+}
+
+// RECO-20260828-004: 쿼리 값의 상대 월 토큰 해석 — "{month}", "{month+1}", "{month-2}" → YYYY-MM.
+// 정적 매니페스트로 "당월/익월 조회"를 표현하기 위한 것으로 fetch와 행 병합 양쪽에 동일 적용된다.
+const MONTH_TOKEN_PATTERN = /\{month([+-]\d+)?\}/g;
+
+export function monthOffsetIso(now = new Date(), delta = 0) {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + delta, 1)).toISOString().slice(0, 7);
+}
+
+export function resolveQueryMonthTokens(query, now = new Date()) {
+  const resolved = {};
+  for (const [key, value] of Object.entries(query)) {
+    resolved[key] = typeof value === "string"
+      ? value.replace(MONTH_TOKEN_PATTERN, (_, delta) => monthOffsetIso(now, Number(delta ?? 0)))
+      : value;
+  }
+  return resolved;
 }
 
 function withQuery(endpoint, query) {
@@ -788,7 +807,7 @@ export async function fetchAuthorizedFeed(inputConfig, options = {}) {
   const config = parseCollectorSourceConfig(inputConfig);
   const sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   const started = Date.now();
-  const url = withQuery(config.endpoint, config.query);
+  const url = withQuery(config.endpoint, resolveQueryMonthTokens(config.query, options.now ?? new Date()));
   const headers = jsonHeaders(config);
   let attempt = 0;
   while (true) {

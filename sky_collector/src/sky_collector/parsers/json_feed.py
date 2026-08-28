@@ -5,7 +5,12 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 from .base import BaseConnector
-from .mapping_adapter import JsonPathMappingAdapter, flatten_nested_rows, get_by_path
+from .mapping_adapter import (
+    JsonPathMappingAdapter,
+    flatten_nested_rows,
+    get_by_path,
+    resolve_query_month_tokens,
+)
 from ..models.batch import BatchMetrics, NormalizedBatch
 from ..models.offer import NormalizedOffer, Place
 from ..core.failure_codes import CollectorException, CollectorFailureCode
@@ -29,7 +34,7 @@ class AuthorizedJsonFeedConnector(BaseConnector):
     async def fetch_and_parse(self) -> NormalizedBatch:
         endpoint = self.config.get("endpoint")
         method = self.config.get("method", "GET").upper()
-        query = self.config.get("query", {})
+        query = resolve_query_month_tokens(self.config.get("query", {}))
         headers = {}
 
         auth = self.config.get("auth")
@@ -90,7 +95,7 @@ class AuthorizedJsonFeedConnector(BaseConnector):
             lookup = response_mapping.get("places_lookup")
             stay_filter = response_mapping.get("stay_nights_filter")
             for quote in raw_quotes:
-                row = {**(self.config.get("query") or {}), **quote}
+                row = {**resolve_query_month_tokens(self.config.get("query") or {}), **quote}
                 if lookup:
                     entry_key = str(get_by_path(row, lookup.get("key_field", "")) or "")
                     entry = (lookup.get("entries") or {}).get(entry_key)

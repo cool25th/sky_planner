@@ -526,3 +526,80 @@ test("json_path mapping flattens nested cheap-shaped feeds with places lookup an
   assert.equal(offer.price.total, 363285);
   assert.equal(offer.itinerary.duration_minutes, 310);
 });
+
+// RECO-20260828-004: 쿼리 상대 월 토큰과 calendar(dict 키=날짜) 매핑 계약.
+test("query month tokens resolve to YYYY-MM at fetch time", async () => {
+  const { monthOffsetIso, resolveQueryMonthTokens } = await import("../scripts/run-authorized-feed-collector.mjs");
+  const now = new Date("2026-08-28T01:00:00Z");
+  assert.equal(monthOffsetIso(now, 0), "2026-08");
+  assert.equal(monthOffsetIso(now, 1), "2026-09");
+  assert.equal(monthOffsetIso(now, -1), "2026-07");
+  assert.equal(monthOffsetIso(new Date("2026-12-15T00:00:00Z"), 1), "2027-01");
+  assert.deepEqual(
+    resolveQueryMonthTokens({ origin: "ICN", depart_date: "{month}:{month+2}", currency: "krw" }, now),
+    { origin: "ICN", depart_date: "2026-08:2026-10", currency: "krw" },
+  );
+});
+
+test("calendar-shaped date-keyed payload maps through single-level flatten", () => {
+  const config = {
+    schema_version: "collector.authorized_feed_source.v1",
+    source_id: "travelpayouts_aviasales_test",
+    source_type: "meta_search",
+    endpoint: "https://api.example.test/calendar",
+    auth: { header_name: "X-Access-Token", token_env: "TEST_TOKEN" },
+    query: { origin: "ICN", destination: "TYO", currency: "krw" },
+    response_mapping: {
+      adapter: "json_path_mapping",
+      offers_path: "data",
+      flatten_nested: { key_fields: ["depart_date"] },
+      places_lookup: {
+        key_field: "destination",
+        drop_unmatched: true,
+        entries: {
+          TYO: { display_name_ko: "도쿄", display_name_en: "Tokyo", country_code: "JP", region: "JAPAN", latitude: 35.6762, longitude: 139.6503 },
+        },
+      },
+      templates: {
+        id: "tpcal_{destination}_{depart_date}_{return_at|date}",
+        return_date: "{return_at|date}",
+        deep_link: "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=TEST",
+      },
+      stay_nights_filter: { depart_field: "departure_at", return_field: "return_at", min: 3, max: 14 },
+      defaults: { booking_source: "travelpayouts_aviasales" },
+      fields: {
+        origin_airport: "origin",
+        destination_airport: "destination",
+        destination_city_id: "destination",
+        destination_display_name: "display_name_ko",
+        country_code: "country_code",
+        region: "region",
+        depart_date: "depart_date",
+        airline_code: "airline",
+        airline_name: "airline",
+        total_price: "price",
+        stop_count: "transfers",
+      },
+    },
+  };
+  const payload = {
+    data: {
+      "2026-09-16": { origin: "SEL", destination: "TYO", airline: "7C", departure_at: "2026-09-16T07:10:00+09:00", return_at: "2026-09-20T12:50:00+09:00", price: 363285, transfers: 1 },
+      "2026-09-17": { origin: "SEL", destination: "PAR", airline: "KE", departure_at: "2026-09-17T07:10:00+09:00", return_at: "2026-09-18T12:50:00+09:00", price: 900000, transfers: 0 },
+    },
+  };
+
+  const result = mapJsonPathFeedPayload(payload, config, { now: new Date("2026-08-28T00:00:00Z") });
+
+  assert.equal(result.offers.length, 1, "미등록 목적지(PAR)·1박(규칙 밖) 행은 버려야 한다");
+  const offer = result.offers[0];
+  assert.equal(offer.origin.airport, "SEL");
+  assert.equal(offer.destination.city_id, "TYO");
+  assert.equal(offer.destination.display_name_ko, "도쿄");
+  assert.equal(offer.dates.depart, "2026-09-16");
+  assert.equal(offer.dates.return, "2026-09-20");
+  assert.equal(offer.id, "tpcal_TYO_2026-09-16_2026-09-20");
+  assert.equal(offer.source.deep_link, "https://www.aviasales.com/search/SELTYO160920091?marker=TEST");
+  assert.equal(offer.itinerary.stops, 1);
+  assert.equal(offer.price.total, 363285);
+});

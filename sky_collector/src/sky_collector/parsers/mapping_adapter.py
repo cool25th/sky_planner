@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone
 import re
 
 from ..models.offer import CabinClass, NormalizedOffer, QualityBucket, SourceType
@@ -50,6 +51,28 @@ def flatten_nested_rows(value: Any, key_fields: List[str]) -> List[Dict[str, Any
             else:
                 rows.append({head: key, "value": child})
     return rows
+
+
+MONTH_TOKEN_RE = re.compile(r"\{month([+-]\d+)?\}")
+
+
+def month_offset_iso(delta: int = 0, now=None) -> str:
+    base = now or datetime.now(timezone.utc)
+    total = base.year * 12 + (base.month - 1) + delta
+    return f"{total // 12:04d}-{total % 12 + 1:02d}"
+
+
+def resolve_query_month_tokens(query: Dict[str, Any], now=None) -> Dict[str, Any]:
+    """Node 런타임 resolveQueryMonthTokens과 동일 규약 — "{month±N}" → YYYY-MM."""
+
+    def replace(match: "re.Match[str]") -> str:
+        delta = int(match.group(1)) if match.group(1) else 0
+        return month_offset_iso(delta, now)
+
+    return {
+        key: (MONTH_TOKEN_RE.sub(replace, value) if isinstance(value, str) else value)
+        for key, value in (query or {}).items()
+    }
 
 
 def get_by_path(data: Dict[str, Any], path: str, default: Any = None) -> Any:
