@@ -47,7 +47,9 @@ export async function resolveCalendarDataFromPostgres(
     calendarQuery.destination,
   ]);
   const dealRow = dealRows[0] as Record<string, unknown> | undefined;
-  if (!dealRow) return null;
+  // UX-20260828-001 잔여: 쿼리한 주간에 데이터가 없으면(과거 주간) null(데모 폴백) 대신
+  // 빈 live 달력으로 응답한다 — UI는 destination null·빈 cells를 이미 안전 처리한다.
+  if (!dealRow) return buildCalendarDataFromOffers(calendarQuery, null, []);
 
   const lat = typeof dealRow.latitude === "number" ? dealRow.latitude : 37.5665;
   const lon = typeof dealRow.longitude === "number" ? dealRow.longitude : 126.978;
@@ -102,7 +104,6 @@ export async function resolveCalendarDataFromPostgres(
 
   const { rows: offerRows } = await pgQuery(offersSql, params);
   const offers = offerRows.map((offerRow) => mapOfferFromSql(parseOfferJoinRow(offerRow), lastBatchAt));
-  if (!offers.length) return null;
 
   return buildCalendarDataFromOffers(calendarQuery, {
     code: String(dealRow.destination_city_id ?? calendarQuery.destination),

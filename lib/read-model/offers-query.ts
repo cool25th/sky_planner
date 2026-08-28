@@ -53,8 +53,8 @@ export async function resolveOffersDataFromPostgres(
   ]);
 
   const allOffers = rows.map((row) => mapOfferFromSql(parseOfferJoinRow(row), lastBatchAt));
-  if (!allOffers.length) return null;
 
+  // UX-20260828-001 잔여: 0행(과거 출발일 등)은 null(데모 폴백) 대신 빈 live 목록으로 응답한다.
   const offers = allOffers
     .filter((offer) => {
       if (isHiddenFare(offer.last_seen_at || offer.last_batch_at)) return false;

@@ -69,3 +69,39 @@ test("emptyMapDataForQuery returns truthy live-shaped empty data, not null", asy
   assert.equal(empty.week, query.week);
   assert.equal(empty.stay_bucket, query.stay_bucket);
 });
+
+// UX-20260828-001 잔여: calendar·offers도 0행 시 빈 live 형태로 응답한다(가드 삭제로 자연 처리).
+// 이 계약이 깨지면(빈 입력이 예외 또는 null 반환) resolve*FromPostgres의 가드 삭제가 무너진다.
+test("buildCalendarDataFromOffers renders live-shaped empty calendar for zero offers", async () => {
+  const { buildCalendarDataFromOffers } = await import("../lib/read-model-source-filter.ts");
+  const query = {
+    origin: "ICN",
+    week: availableWeeks(1)[0].code,
+    destination: "TYO",
+    stay_bucket: "5_7",
+    traveler: "adt1",
+    cabin: "ALL",
+    airlines: [],
+  };
+  const destination = {
+    code: "TYO",
+    city: "도쿄",
+    country: "일본",
+    region_code: "ASIA",
+    region_label: "아시아",
+    lat: 35.68,
+    lon: 139.69,
+  };
+
+  const withDestination = buildCalendarDataFromOffers(query, destination, []);
+  assert.ok(withDestination, "zero-offer calendar must stay truthy so the resolver reports live");
+  assert.equal(withDestination.destination?.code, "TYO");
+  assert.deepEqual(withDestination.cells, []);
+  assert.deepEqual(withDestination.departure_dates, []);
+  assert.deepEqual(withDestination.return_dates, []);
+
+  const withoutDestination = buildCalendarDataFromOffers(query, null, []);
+  assert.ok(withoutDestination, "destination-less calendar (past week) must also return truthy live data");
+  assert.equal(withoutDestination.destination, null);
+  assert.deepEqual(withoutDestination.cells, []);
+});
