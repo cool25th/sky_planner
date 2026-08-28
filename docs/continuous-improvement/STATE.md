@@ -4,7 +4,7 @@
 - **현재 커밋**: `1fcfbf8` (+7 커밋: 사용자 승인 작업 3 — audit fix·warmup·skip-link, 루프 문서 4)
 - **배포 버전**: 2026-08-27 오전 배포 유지(skip-link 포함, 사용자 검증 완료), `https://skyplanner-kappa.vercel.app` 200. Vercel CLI는 scope 오류로 관측 불가
 - **데이터 백엔드**: Firestore beta / 운영 read model은 Neon Postgres
-- **데이터 상태**: **ready 복귀(2026-08-28 오전 승인 실행)** — 스케줄러가 ~8h15m 지연 자체 회복(10:14 KST)한 뒤 사용자 승인 dispatch(10:56 KST, run 33134401615)로 이중 재게시. source-health `ready`(eligible 3/2). DATA-003 재개 시 스톱갑 자동 비활성(ADR-005). 단 **홈은 여전히 "데모 데이터"** — UX-20260828-001(주 후반 현재 주간 0행→mock 폴백), W36은 live 실측
+- **데이터 상태**: **ready·39/45 복귀(2026-08-28 종일 승인 실행 완료)** — 스케줄러 지연 자체 회복(10:14 KST) + 승인 dispatch(10:56 KST). **UX-20260828-001 (a) 배포 실측 종결**: 주 후반 현재 주간이 "실시간 데이터"+빈 상태(데모 폴백 아님)로 응답(W35 live 0건·W36 live 11건). DATA-003 재개 시 스톱갑 자동 비활성(ADR-005)
 - **미해결 P0**
   - 없음(코드·보안 관점). DATA-20260828-001은 즉시 회복·구조 완화 구현(배포 대기), 남은 관찰은 스케줄 정시성뿐
 - **진행 중 작업 (병행 세션)** — 없음
@@ -15,11 +15,10 @@
   - skip-link (`AX-20260825-001`, `9b6fd71`, 배포 실측 종결) / warmup (`PERF-20260824-001` 1단계, `16c966b`) / audit fix (`SEC-20260827-001` 1단계, `104d973`) — 어제 승인 작업
   - public_api_503 회귀 수정 (`42b9267`, 배포 반영 확인 — readiness 39 복귀 실측)
 - **다음 검증 예정**
-  - UX-20260828-001 배포 실측: 금~일 홈/맵이 "실시간 데이터"+빈 상태(데모 폴백 아님)로 응답하는지
   - 내일 02:00 KST 스케줄 정시 실행 여부(DATA-20260828-001 종결 조건) + 신규 프로브 스텝 첫 실전 동작
   - UX-20260828-001 방향 결정(honest empty vs 현행 유지)
   - Neon 콘솔 CU-hours 실측(INT-20260828-001 — warmup 정상화 시 월 ~22.5~90 CU-h vs 한도 100)
   - 내일 보조 관점(§8.7): 테스트 품질(토)
   - SEC-20260827-001 2단계(postcss high 1, breaking) 승인 여부
 - **제품 성숙도**: usability 2 / modularity 3 / data_freshness 1 / internal_modules 2 / convenience 3
-- **Go/No-Go**: **NO-GO** (readiness 스테일 연쇄는 회복 예상 — 재측정 대기. 잔여 6은 외부 값: partner 키 4·웹훅 1·SERVICE_REQUIRE_POSTGRES 1)
+- **Go/No-Go**: **NO-GO** (readiness **39/45** 복귀 실측. 잔여 6은 외부 값: partner 키 4·웹훅 1·SERVICE_REQUIRE_POSTGRES 1)
