@@ -17,8 +17,9 @@ export function normalizeRegion(region?: string) {
 }
 
 export function queryOrigins(origin: string): string[] {
-  // SEL(서울 메트로 코드)은 Aviasales 계열 응답의 origin 정규화 값 — ICN 조회에서 유효한 서울 출발 별칭으로 취급한다.
-  return origin === "SEL" ? ["ICN", "GMP", "SEL"] : [origin];
+  // 서울 메트로 등가: SEL(ICN/GMP 스키 초과)과 ICN/GMP는 서로의 조회에서 매칭된다.
+  // Aviasales 계열 응답이 origin을 SEL로 정규화해 저장하기 때문에 양방향 포함이 필요하다.
+  return ["SEL", "ICN", "GMP"].includes(origin) ? ["ICN", "GMP", "SEL"] : [origin];
 }
 
 export function regionLabel(region?: string) {
