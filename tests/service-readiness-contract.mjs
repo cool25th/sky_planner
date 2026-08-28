@@ -31,6 +31,7 @@ function readyInput(overrides = {}) {
       SOURCE_GOOGLE_FLIGHTS_ENABLED: "false",
       SOURCE_KAYAK_ENABLED: "false",
       SOURCE_PROMO_PAGES_ENABLED: "false",
+      SOURCE_TRAVELPAYOUTS_AVIASALES_ENABLED: "false",
       SUPPORT_EMAIL: "ops@example-prod.com",
     },
     now: NOW,
@@ -449,6 +450,7 @@ test("service readiness uses collector manifest token env credentials", () => {
       SOURCE_GOOGLE_FLIGHTS_ENABLED: "false",
       SOURCE_KAYAK_ENABLED: "false",
       SOURCE_PROMO_PAGES_ENABLED: "false",
+      SOURCE_TRAVELPAYOUTS_AVIASALES_ENABLED: "false",
       SUPPORT_EMAIL: "ops@example-prod.com",
     },
     sourceCredentialRequirements: {
@@ -1328,6 +1330,7 @@ test("service readiness exposes every source policy kill switch", () => {
     "SOURCE_GOOGLE_FLIGHTS_ENABLED",
     "SOURCE_KAYAK_ENABLED",
     "SOURCE_PROMO_PAGES_ENABLED",
+    "SOURCE_TRAVELPAYOUTS_AVIASALES_ENABLED",
   ]);
 });
 
@@ -1342,6 +1345,7 @@ test("service readiness requires explicit source kill switches and stale window"
       SOURCE_GOOGLE_FLIGHTS_ENABLED: "false",
       SOURCE_KAYAK_ENABLED: "false",
       SOURCE_PROMO_PAGES_ENABLED: "false",
+      SOURCE_TRAVELPAYOUTS_AVIASALES_ENABLED: "false",
     },
   }));
   const launchAxis = snapshot.axes.find((axis) => axis.id === "launch_operations");

@@ -76,6 +76,7 @@ function env(overrides = {}) {
     SOURCE_GOOGLE_FLIGHTS_ENABLED: "false",
     SOURCE_KAYAK_ENABLED: "false",
     SOURCE_PROMO_PAGES_ENABLED: "false",
+    SOURCE_TRAVELPAYOUTS_AVIASALES_ENABLED: "false",
     ...overrides,
   };
 }
@@ -107,6 +108,7 @@ test("runtime environment preflight passes without collector manifest secrets", 
       SOURCE_GOOGLE_FLIGHTS_ENABLED: "false",
       SOURCE_KAYAK_ENABLED: "false",
       SOURCE_PROMO_PAGES_ENABLED: "false",
+      SOURCE_TRAVELPAYOUTS_AVIASALES_ENABLED: "false",
     },
   });
 
@@ -162,6 +164,7 @@ test("runtime environment preflight requires explicit source kill switches", () 
   assert.equal(killSwitchCheck.status, "fail");
   assert.deepEqual(killSwitchCheck.detail.invalid, [
     { source_id: "official_promo_pages", env_name: "SOURCE_PROMO_PAGES_ENABLED", reason: "missing" },
+    { source_id: "travelpayouts_aviasales", env_name: "SOURCE_TRAVELPAYOUTS_AVIASALES_ENABLED", reason: "missing" },
   ]);
 });
 

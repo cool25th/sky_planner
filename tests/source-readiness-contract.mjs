@@ -152,6 +152,7 @@ test("source readiness blocks service mode when source env config is implicit or
       SOURCE_GOOGLE_FLIGHTS_ENABLED: "false",
       SOURCE_KAYAK_ENABLED: "false",
       SOURCE_PROMO_PAGES_ENABLED: "",
+      SOURCE_TRAVELPAYOUTS_AVIASALES_ENABLED: "false",
       SOURCE_MAX_STALE_HOURS: "zero",
     },
   });

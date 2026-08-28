@@ -67,3 +67,49 @@ class TestMappingAdapter(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTravelpayoutsMappingExtensions(unittest.TestCase):
+    """DATA-20260818-003: flatten_nested·templates 매핑 확장(Node 런타임과 동일 규약)."""
+
+    def test_flatten_nested_rows_injects_keys(self):
+        from sky_collector.parsers.mapping_adapter import flatten_nested_rows
+
+        rows = flatten_nested_rows({"TYO": {"1": {"price": 1}}}, ["destination_city_id", "offer_index"])
+        self.assertEqual(rows, [{"destination_city_id": "TYO", "offer_index": "1", "price": 1}])
+
+    def test_template_filters_date_and_dmy(self):
+        from sky_collector.parsers.mapping_adapter import template_value
+
+        row = {"departure_at": "2026-10-12T07:10:00+09:00", "origin": "ICN", "destination_city_id": "TYO"}
+        self.assertEqual(template_value("{departure_at|date}", row, "depart_date"), "2026-10-12")
+        self.assertEqual(
+            template_value("{origin}{destination_city_id}{departure_at|dmy}", row, "deep_link"),
+            "ICNTYO1210",
+        )
+
+    def test_template_missing_path_raises(self):
+        from sky_collector.parsers.mapping_adapter import template_value
+
+        with self.assertRaises(ValueError):
+            template_value("{absent}", {"x": 1}, "id")
+
+    def test_map_offer_prefers_templates_over_field_paths(self):
+        config = {
+            "templates": {"deep_link": "https://x/{origin_airport}"},
+            "fields": {
+                "origin_airport": "origin_airport",
+                "airline_code": "airline",
+                "airline_name": "airline",
+                "total_price": "price",
+            },
+            "defaults": {},
+        }
+        offer = JsonPathMappingAdapter.map_offer(
+            raw_quote={"origin_airport": "ICN", "airline": "7C", "price": 100},
+            mapping_config=config,
+            raw_payload_ref="ref",
+            week="2026-W36",
+        )
+        self.assertEqual(offer.deep_link, "https://x/ICN")
+        self.assertEqual(offer.airline_code, "7C")

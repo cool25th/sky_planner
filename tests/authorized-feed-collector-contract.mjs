@@ -455,3 +455,74 @@ test("authorized feed normalization rejects invalid fares before ingest", async 
     /total/,
   );
 });
+
+// DATA-20260818-003: Travelpayouts cheap 응답(dict-of-dicts) 매핑 — flatten·places_lookup·templates·stay_nights_filter 계약.
+test("json_path mapping flattens nested cheap-shaped feeds with places lookup and templates", () => {
+  const config = {
+    schema_version: "collector.authorized_feed_source.v1",
+    source_id: "travelpayouts_aviasales_test",
+    source_type: "meta_search",
+    endpoint: "https://api.example.test/cheap",
+    auth: { header_name: "X-Access-Token", token_env: "TEST_TOKEN" },
+    query: { origin: "ICN", currency: "krw" },
+    response_mapping: {
+      adapter: "json_path_mapping",
+      offers_path: "data",
+      flatten_nested: { key_fields: ["destination_city_id", "offer_index"] },
+      places_lookup: {
+        key_field: "destination_city_id",
+        drop_unmatched: true,
+        entries: {
+          TYO: { display_name_ko: "도쿄", display_name_en: "Tokyo", country_code: "JP", region: "JAPAN", latitude: 35.6762, longitude: 139.6503 },
+        },
+      },
+      templates: {
+        id: "tp_{destination_city_id}_{offer_index}_{departure_at|date}",
+        depart_date: "{departure_at|date}",
+        return_date: "{return_at|date}",
+        deep_link: "https://www.aviasales.com/search/{origin}{destination_city_id}{departure_at|dmy}{return_at|dmy}1?marker=TEST",
+      },
+      stay_nights_filter: { depart_field: "departure_at", return_field: "return_at", min: 3, max: 14 },
+      defaults: { booking_source: "travelpayouts_aviasales" },
+      fields: {
+        origin_airport: "origin",
+        destination_airport: "destination_city_id",
+        destination_city_id: "destination_city_id",
+        destination_display_name: "display_name_ko",
+        country_code: "country_code",
+        region: "region",
+        latitude: "latitude",
+        longitude: "longitude",
+        airline_code: "airline",
+        airline_name: "airline",
+        total_price: "price",
+        duration_minutes: "duration",
+      },
+    },
+  };
+  const payload = {
+    data: {
+      TYO: { 1: { airline: "7C", departure_at: "2026-10-12T07:10:00+09:00", return_at: "2026-10-16T12:50:00+09:00", price: 363285, duration: 310 } },
+      ADL: { 2: { airline: "GA", departure_at: "2027-01-08T10:35:00+09:00", return_at: "2027-01-10T06:05:00+10:30", price: 1465987, duration: 3530 } },
+      PAR: { 1: { airline: "KE", departure_at: "2026-10-12T10:00:00+09:00", return_at: "2026-10-13T10:00:00+09:00", price: 900000, duration: 700 } },
+    },
+  };
+
+  const result = mapJsonPathFeedPayload(payload, config, { now: new Date("2026-08-28T00:00:00Z") });
+
+  assert.equal(result.offers.length, 1, "ADL(미등록 목적지)·PAR(1박, 버킷 밖)은 버려야 한다");
+  const offer = result.offers[0];
+  assert.equal(offer.origin.airport, "ICN");
+  assert.equal(offer.destination.city_id, "TYO");
+  assert.equal(offer.destination.display_name_ko, "도쿄");
+  assert.equal(offer.destination.country_code, "JP");
+  assert.equal(offer.destination.latitude, 35.6762);
+  assert.equal(offer.dates.depart, "2026-10-12");
+  assert.equal(offer.dates.return, "2026-10-16");
+  assert.equal(offer.id, "tp_TYO_1_2026-10-12");
+  assert.equal(offer.source.deep_link, "https://www.aviasales.com/search/ICNTYO121016101?marker=TEST");
+  assert.equal(offer.source.booking_source, "travelpayouts_aviasales");
+  assert.equal(offer.carrier.code, "7C");
+  assert.equal(offer.price.total, 363285);
+  assert.equal(offer.itinerary.duration_minutes, 310);
+});
