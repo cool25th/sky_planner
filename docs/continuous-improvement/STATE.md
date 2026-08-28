@@ -1,23 +1,23 @@
 # STATE — Sky Planner Atlas 연속 개선 상태
 
-- **마지막 검토일**: 2026-08-27 04:00 KST (자동 — 자율 구현 첫 작동: public_api_503 회귀 수정, 커밋 대기)
-- **현재 커밋**: `1f96ac4` (신규 커밋 없음, working tree에 08-19 루프 문서만 추가)
-- **배포 버전**: 2026-08-18 저녁 배포 그대로 (UX-006 가드 포함), `https://skyplanner-kappa.vercel.app` 200
-- **데이터 백엔드**: Firestore beta
-- **데이터 상태**: **스톱갑 가동 중(2026-08-19~)** — daily-batch가 매일 02:00 KST `db:seed`(deterministic mock)로 재게시, batch_state 24h 이내 유지. 검증 완료: source-health `ready`, 사이트 "실시간 데이터" 표시. 운영 DB는 Neon(ap-southeast-1). DATA-003 재개 시 스톱갑 자동 비활성(ADR-005)
+- **마지막 검토일**: 2026-08-28 (04:00 KST 자동 루프 + 오전 전체 승인 실행)
+- **현재 커밋**: `1fcfbf8` (+7 커밋: 사용자 승인 작업 3 — audit fix·warmup·skip-link, 루프 문서 4)
+- **배포 버전**: 2026-08-27 오전 배포 유지(skip-link 포함, 사용자 검증 완료), `https://skyplanner-kappa.vercel.app` 200. Vercel CLI는 scope 오류로 관측 불가
+- **데이터 백엔드**: Firestore beta / 운영 read model은 Neon Postgres
+- **데이터 상태**: **ready 복귀(2026-08-28 오전 승인 실행)** — 스케줄러가 ~8h15m 지연 자체 회복(10:14 KST)한 뒤 사용자 승인 dispatch(10:56 KST, run 33134401615)로 이중 재게시. source-health `ready`(eligible 3/2). DATA-003 재개 시 스톱갑 자동 비활성(ADR-005). 단 **홈은 여전히 "데모 데이터"** — UX-20260828-001(주 후반 현재 주간 0행→mock 폴백), W36은 live 실측
 - **미해결 P0**
-  - 없음(코드·보안 관점). 단 **데이터 신선도 악화 지속** — `DATA-20260818-003`(DEFERRED)의 직접 결과로 매일 데모 폴백 반복. 회복 경로: DATA-003 재개 또는 `DATA-20260819-001` 스톱갑 결정
-- **진행 중 작업 (병행 세션)** — 없음 (UX-005 커맨드 팔레트·비교 모달은 `d78454a`로 완료·종결)
-- **최근 완료 (배포 검증 완료)**
-  - 커맨드 팔레트 + 목적지 비교 모달 (`UX-20260818-005`, `d78454a`, 2026-08-19 종결)
-  - KRW 포맷터 재중복 해소 + 계약 가드 (`MOD-20260818-001`)
-  - unknown destination not-found 처리 (`UX-20260818-006`, `302d203` — soft-404 한계 기록)
-  - 라우트별 error boundary + 과거 주간 안내 (`f1acbb7`)
+  - 없음(코드·보안 관점). DATA-20260828-001은 즉시 회복·구조 완화 구현(배포 대기), 남은 관찰은 스케줄 정시성뿐
+- **진행 중 작업 (병행 세션)** — 없음
+- **최근 완료**
+  - **2026-08-28 승인 실행**: stopgap dispatch 회복 + daily-batch `repository_dispatch` 트리거·배치 직후 source-health 프로브(INT-20260823-001 IMPLEMENTED) + TEST-20260824-002 커밋(로컬 — push 대기)
+  - TEST-20260824-002 row-mapper 계약 테스트 6건 + `textArray` nullable 수정(자율 구현 → 승인 커밋, npm test 261/261)
+  - skip-link (`AX-20260825-001`, `9b6fd71`, 배포 실측 종결) / warmup (`PERF-20260824-001` 1단계, `16c966b`) / audit fix (`SEC-20260827-001` 1단계, `104d973`) — 어제 승인 작업
+  - public_api_503 회귀 수정 (`42b9267`, 배포 반영 확인 — readiness 39 복귀 실측)
 - **다음 검증 예정**
-  - SUPPORT_EMAIL 반영 재배포(한도 리셋 확인 후) 및 readiness 변화
-  - stopgap 6일차 연속 안정성 (08-23: 5일 연속 성공)
-  - 내일 보조 관점(§8.7): 성능(월)
-  - `DATA-20260818-002`(빈 배치 가드) — 2026-08-26 검증 완료(RESOLVED, 실DB rollback 실행)
-  - 운영 env 패키지(DATA-20260820-001) 주입 여부
-- **제품 성숙도**: usability 2 / modularity 2 / data_freshness 1 / internal_modules 2 / convenience 3
-- **Go/No-Go**: **NO-GO** (service-readiness **39/45** 통과 — SUPPORT_EMAIL 반영 포함. 잔여 6 실패는 전부 외부 값: partner 키 4·웹훅 1·SERVICE_REQUIRE_POSTGRES 1)
+  - 내일 02:00 KST 스케줄 정시 실행 여부(DATA-20260828-001 종결 조건) + 신규 프로브 스텝 첫 실전 동작
+  - UX-20260828-001 방향 결정(honest empty vs 현행 유지)
+  - Neon 콘솔 CU-hours 실측(INT-20260828-001 — warmup 정상화 시 월 ~22.5~90 CU-h vs 한도 100)
+  - 내일 보조 관점(§8.7): 테스트 품질(토)
+  - SEC-20260827-001 2단계(postcss high 1, breaking) 승인 여부
+- **제품 성숙도**: usability 2 / modularity 3 / data_freshness 1 / internal_modules 2 / convenience 3
+- **Go/No-Go**: **NO-GO** (readiness 스테일 연쇄는 회복 예상 — 재측정 대기. 잔여 6은 외부 값: partner 키 4·웹훅 1·SERVICE_REQUIRE_POSTGRES 1)

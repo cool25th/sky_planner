@@ -1,5 +1,36 @@
 # LEARNINGS — 검증 결과와 학습
 
+## 2026-08-28 (자동 ANALYZE + IMPLEMENT_SAFE — 비용·쿼터 렌즈)
+
+### 오늘 확인된 사실
+
+- **GitHub Actions 스케줄은 워크플로가 active여도 런을 만들지 않을 수 있다** — daily-batch·collect-fares 미실행, warmup 2/36. 지연 누적 패턴(17:16→17:26→17:27→18:56→미실행)은 커뮤니티에 문서화된 만성 드리프트와 일치(플랫폼 특정 인시던트 아님). cron을 :03/:33처럼 분산해도 회피되지 않는다.
+- 사이트는 배치 미실행에도 무중단(데모 폴백 + 라벨) — UX-20260818-001 가드가 실전 2회차 정상 작동. "끊김 없음, 오인 없음"이 이 서비스의 폴백 설계 목표였음을 재확인.
+- readiness 36/45의 스테일 연쇄 3개(fresh_successful_batch·eligible_sources_minimum·source_health_ready)는 not_ready의 정확한 반영 — 08-18 학습("두 엔드포인트 기준 다름")대로 판정 소스는 service-readiness.
+- Vercel CLI `--scope cools-projects-d471a9e6`가 이제 "specified scope does not exist" 반환(기존 Not authorized와 다름) — §9.6 메모의 스코프 값이 만료/변경됐을 가능성. 배포 시각 확인 경로 재확보 필요(사용자).
+- Neon 무료 한도는 100 CU-hours/월(0.25 CU 기준 400h 벽시계) — warmup 전량 가동 시 월 ~22.5~90 CU-h로 compute 크기에 따라 예산 점유가 23~90%까지 달라진다. 실측 불가(콘솔 권한 없음).
+
+### 자율 구현 (2026-08-28 — TEST-20260824-002)
+
+- **계약 테스트는 작성 첫 실행이 가장 값지 있다**: row-mapper 테스트가 `warning_flags: null` 거부를 즉시 포착(readiness-bundle 테스트에 이은 2번째). "규약을 테스트로 고정" 항목은 고정 대상이 실제 규약과 어긋나 있는지부터 드러낸다.
+- zod row 스키마는 DDL nullability와 정확히 맞아야 한다 — `TEXT[] DEFAULT '{}'`는 NULL 명시 삽입을 막지 않는다. 매퍼의 `Array.isArray` 가드가 있어도 파서가 먼저 죽으면(500) 가드는 무의미. 신뢰 경계 검증은 진입 지점(파서)에서 실패해야지 통과한 뒤 관용적으로 넘겨서는 안 된다.
+- node-pg 타입 매핑 실측치: NUMERIC→string, TIMESTAMPTZ→Date, TEXT[]→string[]**|null** — 루프 문서 주석에 이제 반영.
+
+### 승인 실행 (2026-08-28 오전 — 전체 승인: stopgap 재개·구조 완화·커밋)
+
+- **GitHub 스케줄러는 지연되다가 스스로 회복했다**: 02:00 KST 예정 daily-batch가 10:14 KST에 schedule 트리거로 실행(±8h15m 지연 — 커뮤니티 #201738 "8-14시간 지연" 패턴과 일치). "미실행"이 아니라 "장지연"이었음. 이후 승인 dispatch로 이중 재게시(멱등 seed라 무해). 종합: 드랍이 아니라 지연이면 24h 창을 6~14h가량 침범하는 것이 실제 리스크 크기.
+- **source-health ready ≠ 사이트 live 라벨**: ready 복귀 직후 홈은 여전히 "데모 데이터". 근원은 신선도가 아니라 `resolveMapDataFromPostgres`의 과거출발일 필터 — 주 후반(금~일) 현재 주간 쿼리는 0행으로 떨어져 "DB 미구성"과 같은 mock 폴백 경로를 탄다(UX-20260828-001). W35=demo/W36=live로 재현. 지금까지 아침 검증은 source-health만 봤기에 08-22~23(토·일)에도 같았을 가능성 — **배치 무결성 검증은 API data_mode까지 봐야 한다**.
+- 프로브 스텝의 한계 인지: 배치 직후 프로브는 "배치는 됐는데 사이트가 안 따라온" 경우만 잡는다. 이번 6.3h 갭(03:57→10:14 KST)은 배치 자체가 늦은 것이라 프로브로 못 잡는다 — repository_dispatch(외부 크론)가 그 보완.
+
+### 다음 루프에서 확인할 사항
+
+- 내일 02:00 KST 스케줄 정시 실행 여부 + 프로브 스텝 첫 실전 동작(실패 시 run failed로 표시되는지)
+- UX-20260828-001 방향 결정(0행 honest empty vs 데모 미리보기 유지)
+- warmup 스케줄 회복 시 Neon CU-hours 실측값(사용자 콘솔 확인)
+- push 후 CI·배포에서 readiness 재측정(스테일 연쇄 해소로 39/45 복귀 예상)
+
+## 이전 기록
+
 ## 2026-08-19 (자동 ANALYZE_ONLY)
 
 ### 오늘 확인된 사실
