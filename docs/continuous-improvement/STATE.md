@@ -9,7 +9,7 @@
 - **데이터 상태**: **ready·39/45 복귀(2026-08-28 종일 승인 실행 완료)** — 스케줄러 지연 자체 회복(10:14 KST) + 승인 dispatch(10:56 KST). **UX-20260828-001 (a) 배포 실측 종결**: 주 후반 현재 주간이 "실시간 데이터"+빈 상태(데모 폴백 아님)로 응답(W35 live 0건·W36 live 11건). DATA-003 재개 시 스톱갑 자동 비활성(ADR-005)
 - **미해결 P0**
   - 없음(코드·보안 관점). DATA-20260828-001은 즉시 회복·구조 완화 구현(배포 대기), 남은 관찰은 스케줄 정시성뿐
-- **진행 중 작업 (병행 세션)** — **Travelpayouts 실데이터 소스 연결 (DATA-20260818-003 재개, 사용자 세션 2026-08-28~)**: 스파이크 통과 완료. 다음 블록: run-authorized-feed-collector 매핑 확장(2단계 dict flatten·places_lookup·deep_link_template) + 매니페스트·SOURCE_TRAVELPAYOUTS 플래그 + secrets 주입. **루프의 자율 구현은 이 영역(scripts/run-authorized-feed-collector.mjs·configs/·workflows)을 건드리지 않는다** — 병행 충돌 방지
+- **진행 중 작업 (병행 세션)** — 없음 (Travelpayouts 연결 2026-08-28 밤 종결: 첫 실배치 성공·스톱갑 자동 비활성 — DATA-20260818-003 RESOLVED, 잔여 관찰은 백로그 참조)
 - **최근 완료**
   - **2026-08-28 승인 실행**: stopgap dispatch 회복 + daily-batch `repository_dispatch` 트리거·배치 직후 source-health 프로브(INT-20260823-001 IMPLEMENTED) + TEST-20260824-002 커밋·push
   - **UX-20260828-001 옵션 (a) 적용**: 0행 쿼리 honest empty 전환(빈 live MapData + 홈 빈 상태) — 커밋·push, 배포 실측 대기(npm test 262/262)
