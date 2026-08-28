@@ -71,6 +71,8 @@ const CollectorSourceManifestSchema = z.object({
   run_id: z.string().optional(),
   artifact_root: z.string().default("runtime/collector-artifacts"),
   revalidate: RevalidateConfigSchema,
+  // RECO-20260828-004: 소스별 반복되는 places_lookup을 한 곳에 두고 주입한다(GitHub secret 48KB 한도).
+  places_lookup: z.record(z.string(), z.unknown()).optional(),
   sources: z.array(ManifestSourceSchema).min(1),
 });
 
@@ -88,16 +90,28 @@ function sourceLabel(source, index) {
 
 async function resolveCollectorSourceManifest(payload, baseDir) {
   const manifest = CollectorSourceManifestSchema.parse(payload);
+  const sharedLookup = manifest.places_lookup;
   return {
     ...manifest,
     sources: await Promise.all(manifest.sources.map(async (source) => {
-      if (source.config) return { ...source, config: source.config };
+      if (source.config) {
+        return { ...source, config: injectSharedPlacesLookup(source.config, sharedLookup) };
+      }
       const configPath = path.resolve(baseDir, source.config_path);
+      const loaded = await loadCollectorConfig(configPath);
       return {
         enabled: source.enabled,
-        config: await loadCollectorConfig(configPath),
+        config: injectSharedPlacesLookup(loaded, sharedLookup),
       };
     })),
+  };
+}
+
+function injectSharedPlacesLookup(config, sharedLookup) {
+  if (!sharedLookup || !config.response_mapping || config.response_mapping.places_lookup) return config;
+  return {
+    ...config,
+    response_mapping: { ...config.response_mapping, places_lookup: sharedLookup },
   };
 }
 

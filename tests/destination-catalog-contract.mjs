@@ -11,7 +11,8 @@ const manifestPath = new URL("../configs/collector-source-manifest.travelpayouts
 
 test("seed destinations and collector manifest places lookup stay in sync", async () => {
   const manifest = JSON.parse(await readFile(manifestPath, "utf-8"));
-  const lookup = manifest.sources[0].config.response_mapping.places_lookup;
+  // RECO-20260828-004: lookup은 소스별 중복 대신 매니페스트 최상위 1곳(GitHub secret 48KB 한도).
+  const lookup = manifest.places_lookup ?? manifest.sources[0].config.response_mapping.places_lookup;
   assert.equal(lookup.drop_unmatched, true, "drop_unmatched stays true so unknown cities are ignored");
 
   const seedCodes = new Set(getDestinationList().map((destination) => destination.code));
