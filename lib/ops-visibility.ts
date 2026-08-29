@@ -919,7 +919,7 @@ function sourceReadinessOperatorActions(
   const readinessBlockers = uniqueStrings(asArray(snapshot.readiness_blockers));
   const includeInternal = visibility === "internal";
   const searchEligibleCount = Number(counts.search_eligible_sources ?? 0);
-  const minimumSearchEligibleCount = Number(counts.minimum_search_eligible_sources ?? 2);
+  const minimumSearchEligibleCount = Number(counts.minimum_search_eligible_sources ?? 1);
 
   if (readinessBlockers.includes("source_kill_switches_invalid")) {
     actions.push({

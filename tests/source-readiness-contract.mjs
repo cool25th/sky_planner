@@ -60,7 +60,7 @@ test("source readiness is ready when the minimum enabled sources are healthy and
     "asiana_official",
   ]);
   assert.equal(snapshot.counts.search_eligible_sources, 3);
-  assert.equal(snapshot.counts.minimum_search_eligible_sources, 2);
+  assert.equal(snapshot.counts.minimum_search_eligible_sources, 1);
   assert.deepEqual(snapshot.readiness_blockers, []);
   assert.equal(snapshot.sources.find((source) => source.source_id === "skyscanner_affiliate").latest_job.execution_id, "job_1");
 });
@@ -101,7 +101,8 @@ test("source readiness reports stale, paused, and circuit-open enabled sources",
   assert.equal(snapshot.sources.find((source) => source.source_id === "asiana_official").block_reason, "circuit_breaker_open");
 });
 
-test("source readiness blocks launch when env-disabled sources leave too little coverage", () => {
+// DATA-20260829-001 ②: TP 단일 실소스 체제 — eligible 1소스로도 ready, 0소스는 미달.
+test("source readiness stays ready with a single eligible source", () => {
   const snapshot = buildSourceReadinessSnapshot({
     healthRows: healthyRows(),
     batchState: { status: "success" },
@@ -113,8 +114,27 @@ test("source readiness blocks launch when env-disabled sources leave too little 
     },
   });
 
-  assert.equal(snapshot.status, "not_ready");
+  assert.equal(snapshot.status, "ready");
   assert.deepEqual(snapshot.source_flags, ["asiana_official"]);
+  assert.equal(snapshot.counts.search_eligible_sources, 1);
+  assert.equal(snapshot.counts.minimum_search_eligible_sources, 1);
+  assert.deepEqual(snapshot.readiness_blockers, []);
+});
+
+test("source readiness blocks launch when every enabled source is env-disabled", () => {
+  const snapshot = buildSourceReadinessSnapshot({
+    healthRows: healthyRows(),
+    batchState: { status: "success" },
+    now: NOW,
+    env: {
+      SOURCE_SKYSCANNER_ENABLED: "false",
+      SOURCE_KOREAN_AIR_ENABLED: "false",
+      SOURCE_ASIANA_ENABLED: "false",
+    },
+  });
+
+  assert.equal(snapshot.status, "not_ready");
+  assert.deepEqual(snapshot.source_flags, []);
   assert.deepEqual(snapshot.readiness_blockers, ["insufficient_search_eligible_sources"]);
   assert.equal(snapshot.sources.find((source) => source.source_id === "skyscanner_affiliate").block_reason, "disabled_by_env");
 });
