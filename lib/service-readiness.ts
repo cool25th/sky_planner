@@ -4,6 +4,7 @@ import { OPS_READINESS_TOKEN_ENV, opsReadinessTokenFailure } from "./ops-visibil
 import { secretValueFailure } from "./secret-validation.ts";
 import { SERVICE_REQUIRE_POSTGRES_ENV, serviceRequirePostgresFailure } from "./service-mode.ts";
 import { SOURCE_POLICY_CATALOG, sourceMaxStaleHoursFromEnv } from "./source-policy.ts";
+import { MINIMUM_SEARCH_ELIGIBLE_SOURCES } from "./source-readiness.ts";
 
 export type ServiceCheckStatus = "pass" | "warn" | "fail";
 
@@ -168,7 +169,7 @@ const NEXT_ACTIONS: Record<string, string> = {
   postgres_read_model_queryable: "PostgreSQL read model 연결과 권한을 복구합니다.",
   fresh_successful_batch: "승인 source 배치를 다시 실행해 last_batch를 갱신합니다.",
   last_batch_source_coverage: "최신 collector run이 활성 source 전체를 포함하도록 다시 실행합니다.",
-  eligible_sources_minimum: "검색 가능한 승인 source를 2개 이상 확보합니다.",
+  eligible_sources_minimum: "검색 가능한 승인 source를 최소 자격 기준 이상 확보합니다.",
   source_policy_catalog_coverage: "운영 manifest의 source_id를 source policy catalog에 등록합니다.",
   live_collector_success: "local-mock이 아닌 승인 feed collector 성공 이력과 artifact ref를 남깁니다.",
   collector_manifest_configured: "COLLECTOR_SOURCE_MANIFEST_JSON에 실제 운영 source manifest를 주입합니다.",
@@ -711,9 +712,12 @@ export function buildServiceReadinessSnapshot(input: ServiceReadinessInput): Ser
     postgresQueryableCheck(input.databaseConfigured, input.databaseError),
     successfulBatchCheck(input.batchState, now, env),
     lastBatchSourceCoverageCheck(input.batchState, sourceScope),
-    eligibleSourceCount >= 2
+    eligibleSourceCount >= MINIMUM_SEARCH_ELIGIBLE_SOURCES
       ? check("eligible_sources_minimum", "pass", { search_eligible_sources: eligibleSourceCount })
-      : check("eligible_sources_minimum", "fail", { search_eligible_sources: eligibleSourceCount, minimum: 2 }),
+      : check("eligible_sources_minimum", "fail", {
+          search_eligible_sources: eligibleSourceCount,
+          minimum: MINIMUM_SEARCH_ELIGIBLE_SOURCES,
+        }),
     sourcePolicyCatalogCoverageCheck(sourceScope),
     missingLiveSourceIds.length === 0
       ? check("live_collector_success", "pass", { live_source_ids: [...liveSourceIds].sort() })

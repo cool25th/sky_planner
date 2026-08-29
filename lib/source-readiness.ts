@@ -10,7 +10,8 @@ import { serviceRequiresPostgres } from "./service-mode.ts";
 type EnvLike = Record<string, string | undefined>;
 // DATA-20260829-001: TP 단일 실소스 체제(사용자 승인 2026-08-30) — 최소 검색 자격 소스 1.
 // eligible 0소스는 여전히 not_ready다. 소스 재다양화 시 되돌린다.
-const MINIMUM_SEARCH_ELIGIBLE_SOURCES = 1;
+// service-readiness의 eligible_sources_minimum 체크도 이 값을 공유한다.
+export const MINIMUM_SEARCH_ELIGIBLE_SOURCES = 1;
 const SOURCE_FLAG_TRUE_VALUES = new Set(["1", "true", "yes", "on", "enabled"]);
 const SOURCE_FLAG_FALSE_VALUES = new Set(["0", "false", "no", "off", "disabled"]);
 
