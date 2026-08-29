@@ -13,6 +13,7 @@ import { DestinationCompareModal } from "@/components/destination-compare-modal"
 import { dataModeLabel, resolveCalendarResponse, resolveMapResponse } from "@/lib/data-source";
 import { formatDate, formatMoney, isPastWeek, stamp } from "@/lib/format";
 import { TRIP_BUCKETS, parseCalendarQuery, parseMapQuery, formatWeekNatural, availableWeeks, getDestinationList } from "@/lib/mock-market";
+import { PRICE_DEFINITION_SHORT } from "@/lib/price-definition";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
 import { href, siteUrl } from "@/lib/url";
 
@@ -163,7 +164,7 @@ export default async function DestinationPage(props: { params: Params; searchPar
               </div>
               <h1 className="dest-header-title">{calendar.destination.city}, {calendar.destination.country}</h1>
               <p className="dest-header-sub">
-                {query.origin} 출발 · {formatWeekNatural(query.week)} · {TRIP_BUCKETS.find((item) => item.code === query.stay_bucket)?.label} · 왕복 총액 (성인 1인 · 세금 포함)
+                {query.origin} 출발 · {formatWeekNatural(query.week)} · {TRIP_BUCKETS.find((item) => item.code === query.stay_bucket)?.label} · {PRICE_DEFINITION_SHORT}
               </p>
             </div>
             <div className="dest-header-actions">

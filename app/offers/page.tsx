@@ -7,6 +7,7 @@ import { dataModeLabel, resolveOffersResponse } from "@/lib/data-source";
 import { fareFreshness } from "@/lib/fare-freshness";
 import { formatCompactDate, formatMoney, formatTime } from "@/lib/format";
 import { parseOffersQuery } from "@/lib/mock-market";
+import { PRICE_DEFINITION_SHORT } from "@/lib/price-definition";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
 import { href } from "@/lib/url";
 
@@ -51,7 +52,7 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
               <strong>{query.destination || "목적지"}</strong>
             </div>
             <p className="summary-conditions">
-              {dateRangeLabel} · 성인 1인 · {cabinLabel} · 왕복 · {dataModeLabel(offersResponse.diagnostics)}
+              {dateRangeLabel} · {PRICE_DEFINITION_SHORT} · {cabinLabel} · {dataModeLabel(offersResponse.diagnostics)}
             </p>
           </div>
           <div className="summary-banner-actions">
@@ -234,7 +235,7 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
                   {/* Right: Fare Box & CTA */}
                   <div className="flight-fare-box">
                     <div className="fare-amount-group">
-                      <span className="fare-type-label">왕복 총액 (성인 1인)</span>
+                      <span className="fare-type-label">왕복 총액</span>
                       <strong className="fare-total-amount">{formatMoney(offer.price_total)}</strong>
                       <span className="fare-tax-label">유류세·공항세 포함</span>
                     </div>
