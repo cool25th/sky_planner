@@ -1,0 +1,22 @@
+# 토큰 없는 무료 자동화(사용자 원칙) — public 저장소라 비용 0.
+# npm minor/patch는 주 1회 그룹 PR로 묶고, major(예: postcss high 잔여 — SEC-20260827-001 2단계)는
+# 개별 PR로 열려 breaking 여부가 바로 보이게 둔다.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    open-pull-requests-limit: 5
+  - package-ecosystem: "pip"
+    directory: "/sky_collector"
+    schedule:
+      interval: "monthly"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
