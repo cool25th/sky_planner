@@ -3,11 +3,13 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
 
-import { BookmarkButton } from "@/components/bookmark-button";
 import { DealsMap } from "@/components/deals-map";
 import { saveRecentSearch } from "@/components/recent-searches";
+import { TripCard } from "@/components/trip-card";
 import type { MapDeal, MapQuery } from "@/lib/mock-market";
-import { formatMoney, stamp } from "@/lib/format";
+import { PRICE_DEFINITION_SHORT } from "@/lib/price-definition";
+import { stamp } from "@/lib/format";
+import { toTripCardModel } from "@/lib/trip-card";
 import { href } from "@/lib/url";
 
 interface MapSplitViewProps {
@@ -53,7 +55,7 @@ export function MapSplitView({ deals, query, lastBatchAt, lastSeenAt, dataMode }
             <span className="results-count">
               검색 결과 <strong>{deals.length}개 도시</strong>
             </span>
-            <span className="results-sub">왕복 총액 · 성인 1인 · 세금 포함</span>
+            <span className="results-sub">{PRICE_DEFINITION_SHORT}</span>
           </div>
           <span className="last-batch-tag">
             게시 {stamp(lastBatchAt)}{lastSeenAt ? ` · 관측 ${stamp(lastSeenAt)}` : ""} · {dataMode}
@@ -75,67 +77,18 @@ export function MapSplitView({ deals, query, lastBatchAt, lastSeenAt, dataMode }
           </div>
         ) : (
           <div ref={listContainerRef} className="destination-items-scroll">
-            {deals.map((deal) => {
-              const isSelected = selectedCode === deal.destination_code;
-              const bestOrigin = query.cabin === "BUSINESS"
-                ? deal.best_origin_by_cabin?.BUSINESS
-                : deal.best_origin_by_cabin?.ECONOMY;
-              return (
-                <article
-                  key={deal.destination_code}
-                  className={`dest-list-card ${isSelected ? "is-active" : ""}`}
-                  id={`deal-${deal.destination_code}`}
-                  onMouseEnter={() => handleHoverCard(deal.destination_code)}
-                >
-                  <div className="dest-card-main">
-                    <div className="dest-card-header">
-                      <div>
-                        <span className="dest-card-region">{deal.region_label}</span>
-                        <h3 className="dest-card-city">{deal.city}</h3>
-                        <span className="dest-card-country">
-                          {deal.country} · {deal.destination_code}
-                        </span>
-                      </div>
-                      <BookmarkButton
-                        deal={deal}
-                        origin={query.origin}
-                        week={query.week}
-                        stayBucket={query.stay_bucket}
-                      />
-                    </div>
-
-                    <div className="dest-card-price-row">
-                      <div>
-                        <span className="fare-sub">
-                          {query.cabin === "BUSINESS" ? "비즈니스석 왕복" : "일반석 왕복"}
-                          {query.origin === "SEL" && bestOrigin ? ` · ${bestOrigin === "GMP" ? "김포" : "인천"} 출발 최저` : ""}
-                        </span>
-                        <strong className="fare-value">
-                          {formatMoney(
-                            query.cabin === "BUSINESS" ? deal.business_min_total : deal.economy_min_total,
-                          )}
-                        </strong>
-                      </div>
-                      <Link
-                        href={href(`/destination/${deal.destination_code}`, {
-                          origin: query.origin,
-                          week: query.week,
-                          region: query.region,
-                          stay_bucket: query.stay_bucket,
-                          traveler: query.traveler,
-                          cabin: query.cabin,
-                          budget: query.budget,
-                          airlines: query.airlines.join(",") || null,
-                        })}
-                        className="dest-card-cta"
-                      >
-                        날짜 보기 →
-                      </Link>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+            {deals.map((deal) => (
+              <TripCard
+                key={deal.destination_code}
+                variant="compact"
+                model={toTripCardModel(deal, query)}
+                origin={query.origin}
+                week={query.week}
+                stayBucket={query.stay_bucket}
+                selected={selectedCode === deal.destination_code}
+                onMouseEnter={() => handleHoverCard(deal.destination_code)}
+              />
+            ))}
           </div>
         )}
       </aside>

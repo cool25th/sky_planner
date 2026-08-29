@@ -93,6 +93,23 @@ test("SEL origin hint uses best airport without changing the fare", () => {
   assert.equal(model.priceLabel, formatMoney(238000));
 });
 
+test("filtered queries keep region and airline filters in the card link", () => {
+  const model = toTripCardModel(deal(), {
+    ...query,
+    region: "JAPAN",
+    airlines: ["KE", "7C"],
+  });
+  const params = new URL(model.href, "https://example.com").searchParams;
+  assert.equal(params.get("region"), "JAPAN");
+  assert.equal(params.get("airlines"), "KE,7C");
+
+  // 필터 없는 홈 카드는 region/airlines 파라미터를 만들지 않는다.
+  const plain = toTripCardModel(deal(), query);
+  const plainParams = new URL(plain.href, "https://example.com").searchParams;
+  assert.equal(plainParams.has("region"), false);
+  assert.equal(plainParams.has("airlines"), false);
+});
+
 test("missing price disables the destination link", () => {
   const model = toTripCardModel(
     deal({ economy_min_total: null, economy_discount_pct: null }),

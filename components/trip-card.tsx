@@ -10,6 +10,7 @@ export function TripCard({
   week,
   stayBucket,
   selected = false,
+  onMouseEnter,
 }: {
   model: TripCardModel;
   variant: TripCardVariant;
@@ -17,6 +18,7 @@ export function TripCard({
   week: string;
   stayBucket: string;
   selected?: boolean;
+  onMouseEnter?: () => void;
 }) {
   const className = `trip-card trip-card--${variant}${selected ? " is-selected" : ""}`;
 
@@ -36,10 +38,15 @@ export function TripCard({
         </ul>
       )}
       <strong className="trip-card__price">{model.priceLabel}</strong>
-      <p className="trip-card__definition">
-        {model.definition}
-        {model.originHint ? ` · ${model.originHint}` : ""}
-      </p>
+      {variant !== "compact" ? (
+        <p className="trip-card__definition">
+          {model.definition}
+          {model.originHint ? ` · ${model.originHint}` : ""}
+        </p>
+      ) : (
+        // compact(지도 패널)는 가격 정의를 패널 헤더가 1회 고지 — 카드에는 SEL 출발 힌트만 남긴다.
+        model.originHint && <p className="trip-card__definition">{model.originHint}</p>
+      )}
       {variant === "grid" && model.reasons.length > 0 && (
         <ul className="trip-card__reasons">
           {model.reasons.map((reason) => (
@@ -54,7 +61,11 @@ export function TripCard({
   );
 
   return (
-    <article id={`deal-${model.destinationCode}`} className={className}>
+    <article
+      id={`deal-${model.destinationCode}`}
+      className={className}
+      onMouseEnter={onMouseEnter}
+    >
       {model.priceAvailable ? (
         <Link href={model.href} className="trip-card__hit" aria-label={model.ariaLabel}>
           {body}

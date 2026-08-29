@@ -36,6 +36,9 @@ export interface TripCardQuery {
   traveler?: string;
   cabin?: CabinCode;
   budget?: number | null;
+  // 지도 패널처럼 필터가 걸린 조회에서는 링크가 필터를 유지해야 한다.
+  region?: string;
+  airlines?: string[];
 }
 
 export interface TripCardModel {
@@ -141,6 +144,8 @@ export function toTripCardModel(
     traveler: query.traveler ?? "adt1",
     cabin,
     budget: query.budget ?? undefined,
+    region: query.region,
+    airlines: query.airlines?.length ? query.airlines.join(",") : undefined,
   });
 
   return {
