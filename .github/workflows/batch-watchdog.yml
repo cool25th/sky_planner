@@ -1,0 +1,48 @@
+name: Batch watchdog
+
+# DATA-20260828-001 완화(B안): GitHub 스케줄 cron은 best-effort라 지연·드랍된다
+# (2026-08-28~30 3일 연속 관찰: 8h15m 지연 → 7h50m 지연 → 미실행).
+# 03/05/08 KST에 배포 source-health의 last_batch 경과를 검사해 20h 초과(또는 판독 불가)면
+# daily-batch를 workflow_call로 대신 실행한다. 정상일 때는 ~10초 no-op로 종료.
+# 외부 크론(repository_dispatch)과 병행 가능 — GITHUB_TOKEN 발파 이벤트는 재귀 방지로
+# 스케줄을 못 살리므로 개입은 workflow_call 직접 호출로만 한다.
+on:
+  schedule:
+    - cron: "0 18 * * *" # 03:00 KST
+    - cron: "0 20 * * *" # 05:00 KST
+    - cron: "0 23 * * *" # 08:00 KST — 관측된 7~8h 지연 패턴(도착 ~10:00 KST)이 24h 마감을 넘기기 전 마지막 개입 창
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: batch-watchdog
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      intervene: ${{ steps.freshness.outputs.intervene }}
+    steps:
+      - name: Measure last batch age
+        id: freshness
+        env:
+          SOURCE_HEALTH_URL: https://skyplanner-kappa.vercel.app/api/ops/source-health
+        run: |
+          hours=$(curl -s --max-time 30 "$SOURCE_HEALTH_URL" \
+            | jq -r 'if (.last_batch.last_batch_at // null) != null then ((.last_batch.last_batch_at | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) as $t | (now - $t) / 3600) else empty end')
+          echo "last_batch_age_hours=${hours:-unknown}"
+          # 판독 불가(응답 이상·last_batch 부재)는 개입으로 판정 — 배치 1회 추가 실행은 멱등이라 안전.
+          if [ -z "$hours" ] || awk -v h="$hours" 'BEGIN { exit !(h >= 20) }'; then
+            echo "intervene=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "intervene=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  rescue:
+    needs: check
+    if: needs.check.outputs.intervene == 'true'
+    uses: ./.github/workflows/daily-batch.yml
+    secrets: inherit

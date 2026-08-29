@@ -10,6 +10,9 @@ on:
   schedule:
     - cron: "0 17 * * *"
   workflow_dispatch:
+  # DATA-20260828-001(B안 watchdog): batch-watchdog.yml이 last_batch 경과 20h 초과 시
+  # 이 워크플로를 workflow_call로 대신 실행한다(secrets: inherit).
+  workflow_call:
   # DATA-20260828-001: GitHub 스케줄 cron은 best-effort라 지연·드랍된다(2026-08-28 야간 전멸).
   # 외부 크론(cron-job.org 등)이 이 이벤트로 대신 발화할 수 있다(repo 스코프 PAT 필요):
   #   curl -X POST -H "Authorization: Bearer <PAT>" \
