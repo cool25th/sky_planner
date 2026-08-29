@@ -5,14 +5,16 @@ export function formatMoney(value: number | null): string {
   return new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(value);
 }
 
+// 타임스탬프 표기는 KST 고정 — SSR 런타임(TZ=UTC)에서 last_batch_at·출발 시각이
+// 9시간 어긋난(심지어 전날 날짜) 값으로 렌더되는 것을 방지한다.
 export function stamp(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(date);
+  return new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Seoul" }).format(date);
 }
 
 export function formatTime(value: string): string {
-  return new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+  return new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Seoul" }).format(new Date(value));
 }
 
 export function formatCompactDate(value: string): string {

@@ -25,6 +25,15 @@ test("stamp renders short datetime or dash for invalid input", () => {
   assert.match(stamp("2026-08-17T11:30"), /8월 17일/);
 });
 
+test("stamp and formatTime render timestamps in KST regardless of runtime timezone", () => {
+  // 2026-08-28T15:17Z = 2026-08-29 00:17 KST — SSR(TZ=UTC)에서 날짜가 전날로 어긋나던 회귀 방어.
+  // 오전/오후 토큰은 런타임 ICU에 따라 AM/PM으로 렌더되므로 날짜·시각(타임존 변환)만 고정한다.
+  const stamped = stamp("2026-08-28T15:17:04.439Z");
+  assert.match(stamped, /8월 29일/);
+  assert.match(stamped, /12:17/);
+  assert.match(formatTime("2026-08-24T09:05:00Z"), /06:05/);
+});
+
 test("formatWeekNatural renders natural month-day ranges", () => {
   assert.equal(formatWeekNatural("2026-W34"), "8월 17일 ~ 23일");
   assert.equal(formatWeekNatural("2026-W01"), "12월 29일 ~ 1월 4일");
