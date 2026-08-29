@@ -1,5 +1,11 @@
 import unittest
-from sky_collector.parsers.mapping_adapter import JsonPathMappingAdapter
+from datetime import datetime, timezone
+
+from sky_collector.parsers.mapping_adapter import (
+    JsonPathMappingAdapter,
+    month_offset_iso,
+    resolve_query_month_tokens,
+)
 from sky_collector.models.offer import CabinClass
 
 
@@ -113,3 +119,24 @@ class TestTravelpayoutsMappingExtensions(unittest.TestCase):
         )
         self.assertEqual(offer.deep_link, "https://x/ICN")
         self.assertEqual(offer.airline_code, "7C")
+
+
+# TEST-20260829-002: RECO-20260828-004 쿼리 상대 월 토큰 파서의 Node 계약 테스트 포팅 —
+# 런타임 양측 파리티 주장의 Python 절반을 방어한다.
+class TestQueryMonthTokens(unittest.TestCase):
+    def test_month_offset_iso_resolves_yyyy_mm(self):
+        now = datetime(2026, 8, 28, 1, 0, 0, tzinfo=timezone.utc)
+        self.assertEqual(month_offset_iso(0, now), "2026-08")
+        self.assertEqual(month_offset_iso(1, now), "2026-09")
+        self.assertEqual(month_offset_iso(-1, now), "2026-07")
+
+    def test_month_offset_iso_rolls_over_year_boundary(self):
+        now = datetime(2026, 12, 15, tzinfo=timezone.utc)
+        self.assertEqual(month_offset_iso(1, now), "2027-01")
+
+    def test_resolve_query_month_tokens_substitutes_strings_only(self):
+        now = datetime(2026, 8, 28, 1, 0, 0, tzinfo=timezone.utc)
+        self.assertEqual(
+            resolve_query_month_tokens({"origin": "ICN", "depart_date": "{month}:{month+2}", "currency": "krw"}, now),
+            {"origin": "ICN", "depart_date": "2026-08:2026-10", "currency": "krw"},
+        )
