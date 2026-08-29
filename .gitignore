@@ -16,3 +16,11 @@ build/
 .vercel
 .omo/
 tsconfig.tsbuildinfo
+
+# 중요 요구사항·설계 자료는 로컬에만 보관한다(2026-08-29 사용자 결정 — public 저장소 노출 최소화).
+# require/ops.md은 readiness 런타임 정적 체크(next.config READINESS_STATIC_FILES)가 읽으므로 예외.
+require/*
+!require/ops.md
+PROJECT_REQUIREMENTS_AND_ACCEPTANCE.md
+# 일일 개선 루프 산출물(보고서·상태원장 — 운영 정보)도 같은 결정(2026-08-29)으로 로컬 전용. 검토는 채팅 전달 본문+로컬 파일로.
+docs/continuous-improvement/

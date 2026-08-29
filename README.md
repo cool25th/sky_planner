@@ -2,7 +2,7 @@
 
 한국 출발 항공 특가 서비스 MVP. `Next.js 15 App Router + same-origin BFF + PostgreSQL read model + 일 1회 배치 수집` 구조이며, 초기 Python 프로토타입도 함께 보관한다.
 
-- 제품 요구사항: [`require/prd.md`](require/prd.md)
+- 제품 요구사항: 비공개(로컬 보관)
 - 운영 가이드(배치/수집기/readiness gate): [`docs/operations.md`](docs/operations.md)
 
 ## 구조
