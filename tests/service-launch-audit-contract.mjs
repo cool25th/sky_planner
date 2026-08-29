@@ -1467,33 +1467,42 @@ test("service launch audit preserves step output summaries in evidence", async (
 });
 
 test("service launch audit action plan maps failed checks to operator env and verify commands", async () => {
-  const report = await runServiceLaunchAudit({
-    continueOnFailure: true,
-    stepRunner: async (step) => {
-      const failedChecksByStep = {
-        runtime_env_preflight: ["database_url_production_shape", "mock_fallback_disabled"],
-        service_env_preflight: ["collector_manifest_configured", "source_credentials_present", "source_in_policy_catalog"],
-        service_readiness: ["live_collector_success", "last_batch_source_coverage", "collector_success_rate_7d", "source_health_ready", "source_policy_catalog_coverage", "booking_deeplink_sample_depth"],
-      };
-      const failedChecks = failedChecksByStep[step.id] ?? [];
-      return {
-        id: step.id,
-        code: failedChecks.length > 0 ? 1 : 0,
-        signal: null,
-        status: failedChecks.length > 0 ? "fail" : "pass",
-        output: {
-          stdout_tail: JSON.stringify({ status: "fail", summary: { failed_checks: failedChecks } }),
-          stdout_truncated: false,
-          stderr_tail: "",
-          stderr_truncated: false,
-          json_summary: {
-            status: failedChecks.length > 0 ? "fail" : "pass",
-            failed_checks: failedChecks,
+  // TEST-20260830-001: 매니페스트 env가 주입된 러너(collect-fares)에서 token_env가 실제
+  // env 이름으로 확장되어 placeholder 단언이 깨지던 사례 방어 — audit 호출 동안 env를 차단한다.
+  const savedManifestEnv = process.env.COLLECTOR_SOURCE_MANIFEST_JSON;
+  delete process.env.COLLECTOR_SOURCE_MANIFEST_JSON;
+  let report;
+  try {
+    report = await runServiceLaunchAudit({
+      continueOnFailure: true,
+      stepRunner: async (step) => {
+        const failedChecksByStep = {
+          runtime_env_preflight: ["database_url_production_shape", "mock_fallback_disabled"],
+          service_env_preflight: ["collector_manifest_configured", "source_credentials_present", "source_in_policy_catalog"],
+          service_readiness: ["live_collector_success", "last_batch_source_coverage", "collector_success_rate_7d", "source_health_ready", "source_policy_catalog_coverage", "booking_deeplink_sample_depth"],
+        };
+        const failedChecks = failedChecksByStep[step.id] ?? [];
+        return {
+          id: step.id,
+          code: failedChecks.length > 0 ? 1 : 0,
+          signal: null,
+          status: failedChecks.length > 0 ? "fail" : "pass",
+          output: {
+            stdout_tail: JSON.stringify({ status: "fail", summary: { failed_checks: failedChecks } }),
+            stdout_truncated: false,
+            stderr_tail: "",
+            stderr_truncated: false,
+            json_summary: {
+              status: failedChecks.length > 0 ? "fail" : "pass",
+              failed_checks: failedChecks,
+            },
           },
-        },
-      };
-    },
-  });
+        };
+      },
+    });
+  } finally {
+    if (savedManifestEnv !== undefined) process.env.COLLECTOR_SOURCE_MANIFEST_JSON = savedManifestEnv;
+  }
   const itemByCheck = Object.fromEntries(report.action_plan.items.map((item) => [item.check, item]));
   const checklistById = Object.fromEntries(report.action_plan.env_checklist.map((item) => [item.id, item]));
 
