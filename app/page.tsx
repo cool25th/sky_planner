@@ -203,9 +203,9 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
               지도에서 전체 보기 →
             </Link>
           </div>
-          <div className="trip-strip" role="list">
+          <ul className="trip-strip">
             {stripDeals.map((deal) => (
-              <div role="listitem" key={deal.destination_code}>
+              <li key={deal.destination_code}>
                 <TripCard
                   variant="strip"
                   model={toTripCardModel(deal, searchState)}
@@ -213,9 +213,9 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
                   week={searchState.week}
                   stayBucket={searchState.stay_bucket}
                 />
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       )}
 
