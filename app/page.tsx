@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
 
-import { BookmarkButton } from "@/components/bookmark-button";
 import { RecentSearches } from "@/components/recent-searches";
 import { RecentDestinations } from "@/components/recent-destinations";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
+import { TripCard } from "@/components/trip-card";
 import { dataModeLabel, resolveMapResponse } from "@/lib/data-source";
-import { formatMoney, stamp } from "@/lib/format";
+import { stamp } from "@/lib/format";
 import { getMetaData, parseMapQuery, formatWeekNatural } from "@/lib/mock-market";
 import { curateFeaturedDeals } from "@/lib/recommendation";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
+import { selectLowestPriceDeals, toTripCardModel } from "@/lib/trip-card";
 import { href } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
@@ -92,6 +93,8 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
     4,
   );
   const mapHref = href("/map", searchState);
+  // P0-commerce 2단계: 최저가 스트립 — 그리드(큐레이션순)와 달리 순수 가격 오름차순. 국내선 포함(리전 라벨로 구분).
+  const stripDeals = selectLowestPriceDeals(mapResponse.data.deals, 8);
 
   return (
     <main className="home-container">
@@ -188,6 +191,34 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
         </div>
       </section>
 
+      {/* 1.5 최저가 스트립 (P0-commerce: 조건을 고르기 전에 가격을 먼저 보여준다) */}
+      {stripDeals.length > 0 && (
+        <section className="home-section trip-strip-section">
+          <div className="section-header">
+            <div>
+              <h2 className="section-title">지금 이 조건의 최저가</h2>
+              <p className="section-desc">선택한 조건에서 방금 확인된 가장 낮은 왕복 운임부터 순서대로 보여드립니다.</p>
+            </div>
+            <Link href={mapHref} className="section-link">
+              지도에서 전체 보기 →
+            </Link>
+          </div>
+          <div className="trip-strip" role="list">
+            {stripDeals.map((deal) => (
+              <div role="listitem" key={deal.destination_code}>
+                <TripCard
+                  variant="strip"
+                  model={toTripCardModel(deal, searchState)}
+                  origin={searchState.origin}
+                  week={searchState.week}
+                  stayBucket={searchState.stay_bucket}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* 2. Featured Deals Section (지금 확인할 수 있는 특가) */}
       <section className="home-section">
         <div className="section-header">
@@ -218,50 +249,14 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
         ) : (
           <div className="deals-grid">
             {curatedDeals.map(({ deal, reasons }) => (
-              <article key={deal.destination_code} className="deal-card">
-                <div className="deal-card__body">
-                  <div className="deal-card__top">
-                    <div>
-                      <span className="deal-card__region">{deal.region_label}</span>
-                      <h3 className="deal-card__city">{deal.city}</h3>
-                      <p className="deal-card__country">{deal.country}</p>
-                    </div>
-                    <BookmarkButton
-                      deal={deal}
-                      origin={searchState.origin}
-                      week={searchState.week}
-                      stayBucket={searchState.stay_bucket}
-                    />
-                  </div>
-
-                  {reasons.length > 0 && (
-                    <div className="deal-card__reasons">
-                      {reasons.map((reason) => (
-                        <span key={reason} className="deal-reason-chip">{reason}</span>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="deal-card__fare-box">
-                    <span className="fare-label">왕복 총액 (성인 1인)</span>
-                    <strong className="fare-amount">{formatMoney(deal.economy_min_total)}</strong>
-                    <span className="fare-meta">세금·유류세 포함</span>
-                  </div>
-
-                  <Link
-                    href={href(`/destination/${deal.destination_code}`, {
-                      origin: searchState.origin,
-                      week: searchState.week,
-                      stay_bucket: searchState.stay_bucket,
-                      traveler: searchState.traveler,
-                      cabin: "ALL",
-                    })}
-                    className="deal-card__cta"
-                  >
-                    날짜별 특가 보기 →
-                  </Link>
-                </div>
-              </article>
+              <TripCard
+                key={deal.destination_code}
+                variant="grid"
+                model={toTripCardModel(deal, searchState, reasons)}
+                origin={searchState.origin}
+                week={searchState.week}
+                stayBucket={searchState.stay_bucket}
+              />
             ))}
           </div>
         )}
