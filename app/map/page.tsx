@@ -5,7 +5,8 @@ import { MapFilterSelect } from "@/components/map-filter-select";
 import { MapSplitView } from "@/components/map-split-view";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { ShareButton } from "@/components/share-button";
-import { dataModeLabel, resolveMapResponse, resolveMetaResponse } from "@/lib/data-source";
+import { dataModeLabel, resolveMetaResponse } from "@/lib/data-source";
+import { resolveMapResponseWithBookableWeek } from "@/lib/map-week-fallback";
 import { isPastWeek } from "@/lib/format";
 import {
   parseMapQuery,
@@ -20,9 +21,17 @@ export const dynamic = "force-dynamic";
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function MapPage(props: { searchParams: SearchParams }) {
-  const query = parseMapQuery(await props.searchParams);
-  const [metaResponse, mapResponse] = await Promise.all([resolveMetaResponse(), resolveMapResponse(query)]);
+  const searchParams = await props.searchParams;
+  const query = parseMapQuery(searchParams);
+  const metaResponse = await resolveMetaResponse();
   const meta = metaResponse.data;
+
+  // UX-20260830-003: 기본 주간(미지정) 특가가 소진되면 다음 주 실데이터로 자동 진행한다.
+  const { response: mapResponse, week: resolvedWeek, weekAdvancedFrom } = await resolveMapResponseWithBookableWeek(
+    query,
+    { explicitWeek: Boolean(searchParams.week), nextWeek: meta.weeks[1]?.code ?? null },
+  );
+  const effectiveQuery = { ...query, week: resolvedWeek };
   const map = mapResponse.data;
   const serviceUnavailable = isServiceUnavailableDiagnostics(mapResponse.diagnostics);
   if (serviceUnavailable) noStore();
@@ -42,35 +51,35 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
           <MapFilterSelect
             id="map-origin-select"
             label="출발"
-            defaultValue={query.origin}
+            defaultValue={effectiveQuery.origin}
             paramName="origin"
             options={originOptions}
           />
           <MapFilterSelect
             id="map-region-select"
             label="지역"
-            defaultValue={query.region}
+            defaultValue={effectiveQuery.region}
             paramName="region"
             options={regionOptions}
           />
           <MapFilterSelect
             id="map-week-select"
             label="시기"
-            defaultValue={query.week}
+            defaultValue={effectiveQuery.week}
             paramName="week"
             options={weekOptions}
           />
           <MapFilterSelect
             id="map-stay-select"
             label="기간"
-            defaultValue={query.stay_bucket}
+            defaultValue={effectiveQuery.stay_bucket}
             paramName="stay_bucket"
             options={stayOptions}
           />
           <MapFilterSelect
             id="map-cabin-select"
             label="좌석"
-            defaultValue={query.cabin}
+            defaultValue={effectiveQuery.cabin}
             paramName="cabin"
             options={cabinOptions}
           />
@@ -81,11 +90,21 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
         </div>
       </header>
 
-      {isPastWeek(query.week) && (
+      {/* UX-20260830-003: 기본 주간 특가 소진으로 다음 주를 보여주는 중이라는 안내 */}
+      {weekAdvancedFrom && (
         <div className="beta-banner">
           <span>
-            <strong>지난 시기 안내:</strong> {formatWeekNatural(query.week)} — 이미 지난 주간이라 표시할 특가가 없습니다.{" "}
-            <Link href={href("/map", { ...query, week: availableWeeks(1)[0].code })}>이번 주간으로 다시 검색</Link>해 보세요.
+            <strong>시기 자동 이동:</strong> {formatWeekNatural(weekAdvancedFrom)}에는 예약 가능한 특가가 마감되어{" "}
+            {formatWeekNatural(effectiveQuery.week)} 특가를 보여드려요.
+          </span>
+        </div>
+      )}
+
+      {isPastWeek(effectiveQuery.week) && (
+        <div className="beta-banner">
+          <span>
+            <strong>지난 시기 안내:</strong> {formatWeekNatural(effectiveQuery.week)} — 이미 지난 주간이라 표시할 특가가 없습니다.{" "}
+            <Link href={href("/map", { ...effectiveQuery, week: availableWeeks(1)[0].code })}>이번 주간으로 다시 검색</Link>해 보세요.
           </span>
         </div>
       )}
@@ -96,7 +115,7 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
       ) : (
         <MapSplitView
           deals={map.deals}
-          query={query}
+          query={effectiveQuery}
           lastBatchAt={lastBatchAt}
           lastSeenAt={map.summary.last_seen_at}
           dataMode={dataModeLabel(mapResponse.diagnostics)}

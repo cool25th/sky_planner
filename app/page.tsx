@@ -7,9 +7,10 @@ import { ServiceUnavailableNotice } from "@/components/service-unavailable-notic
 import { TripCard } from "@/components/trip-card";
 import { AudienceCuration } from "@/components/audience-curation";
 import { seasonForWeekCode } from "@/lib/audience-calendar";
-import { dataModeLabel, resolveMapResponse } from "@/lib/data-source";
+import { dataModeLabel } from "@/lib/data-source";
 import { stamp } from "@/lib/format";
 import { getMetaData, parseMapQuery, formatWeekNatural } from "@/lib/mock-market";
+import { resolveMapResponseWithBookableWeek } from "@/lib/map-week-fallback";
 import { curateFeaturedDeals } from "@/lib/recommendation";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
 import { selectLowestPriceDeals, toTripCardModel } from "@/lib/trip-card";
@@ -61,28 +62,33 @@ const BUDGET_OPTIONS = [
 
 export default async function HomePage(props: { searchParams: SearchParams }) {
   const meta = getMetaData();
-  const initialQuery = parseMapQuery(await props.searchParams);
-  const defaultWeek = meta.weeks[0]?.code ?? initialQuery.week;
-  const searchState = {
+  const searchParams = await props.searchParams;
+  const initialQuery = parseMapQuery(searchParams);
+  const baseQuery = {
     origin: initialQuery.origin,
-    week: initialQuery.week || defaultWeek,
+    week: initialQuery.week || (meta.weeks[0]?.code ?? initialQuery.week),
     region: initialQuery.region,
     stay_bucket: initialQuery.stay_bucket === "ALL" ? "5_7" : initialQuery.stay_bucket,
-    traveler: "adt1",
+    traveler: "adt1" as const,
     cabin: "ALL" as const,
+    airlines: [] as string[],
     budget: initialQuery.budget ?? null,
   };
 
-  const mapResponse = await resolveMapResponse({
-    origin: searchState.origin,
-    week: searchState.week,
-    stay_bucket: searchState.stay_bucket,
-    traveler: searchState.traveler,
-    region: searchState.region,
-    cabin: searchState.cabin,
-    airlines: [],
-    budget: searchState.budget,
-  });
+  // UX-20260830-003: 기본 주간(미지정) 특가가 소진되면 다음 주 실데이터로 자동 진행한다.
+  const { response: mapResponse, week: resolvedWeek, weekAdvancedFrom } = await resolveMapResponseWithBookableWeek(
+    baseQuery,
+    { explicitWeek: Boolean(searchParams.week), nextWeek: meta.weeks[1]?.code ?? null },
+  );
+  const searchState = {
+    origin: baseQuery.origin,
+    week: resolvedWeek,
+    region: baseQuery.region,
+    stay_bucket: baseQuery.stay_bucket,
+    traveler: baseQuery.traveler,
+    cabin: baseQuery.cabin,
+    budget: baseQuery.budget,
+  };
 
   const serviceUnavailable = isServiceUnavailableDiagnostics(mapResponse.diagnostics);
   if (serviceUnavailable) noStore();
@@ -197,6 +203,16 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
           </div>
         </div>
       </section>
+
+      {/* UX-20260830-003: 기본 주간 특가 소진으로 다음 주를 보여주는 중이라는 안내 */}
+      {weekAdvancedFrom && (
+        <div className="beta-banner">
+          <span>
+            <strong>시기 자동 이동:</strong> {formatWeekNatural(weekAdvancedFrom)}에는 예약 가능한 특가가 마감되어{" "}
+            {formatWeekNatural(resolvedWeek)} 특가를 보여드려요.
+          </span>
+        </div>
+      )}
 
       {/* 1.5 최저가 스트립 (P0-commerce: 조건을 고르기 전에 가격을 먼저 보여준다) */}
       {stripDeals.length > 0 && (
