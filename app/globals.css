@@ -2973,7 +2973,11 @@ select {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  align-items: center;
+  margin: 0 0 16px;
+  border: none;
+  padding: 0;
+  min-inline-size: 0;
 }
 
 .audience-chip {
@@ -2997,4 +3001,13 @@ select {
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: #fff;
+}
+
+.audience-chips__legend {
+  float: left;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  padding: 6px 0;
+  margin-right: 4px;
 }

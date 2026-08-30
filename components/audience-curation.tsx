@@ -53,7 +53,8 @@ export function AudienceCuration({
 
   return (
     <div>
-      <div className="audience-chips" role="group" aria-label="연령대별 추천">
+      <fieldset className="audience-chips">
+        <legend className="audience-chips__legend">연령대별 추천</legend>
         {FILTERS.map((option) => (
           <button
             key={option}
@@ -65,7 +66,7 @@ export function AudienceCuration({
             {option === "ALL" ? "전체" : `${AGE_GROUP_LABELS[option]} 추천`}
           </button>
         ))}
-      </div>
+      </fieldset>
       <div className="deals-grid">
         {grid.map(({ destination_code, model }) => (
           <TripCard
