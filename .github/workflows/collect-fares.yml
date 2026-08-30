@@ -51,7 +51,7 @@ jobs:
         if: ${{ env.READY != 'true' }}
         run: echo "collector manifest not configured yet — skipping collect-fares (stopgap freshness handled by daily-batch)"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: ${{ env.READY == 'true' }}
 
       - uses: actions/setup-node@v4

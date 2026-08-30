@@ -38,7 +38,7 @@ jobs:
         if: ${{ env.READY != 'true' && env.SEED_DB == '' }}
         run: echo "collector secrets not configured yet — skipping daily batch"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: ${{ env.READY == 'true' || env.SEED_DB != '' }}
 
       - uses: actions/setup-node@v4
