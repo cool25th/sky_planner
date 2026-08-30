@@ -1,10 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import maplibregl,
-  { type LngLatBoundsLike, type Map as MaplibreMap, type StyleSpecification }
-from "maplibre-gl";
+import maplibregl, { type Map as MaplibreMap } from "maplibre-gl";
 
 import type { MapDeal, MapQuery } from "@/lib/mock-market";
 import { clusterDeals, dealMinFare, type DealCluster } from "@/lib/map-clustering";
@@ -12,71 +10,14 @@ import { formatMoney, formatWeekNatural, stamp } from "@/lib/format";
 import { href } from "@/lib/url";
 import { STAY_BUCKET_LABELS, formatFareShort, interpolateGreatCircle, originCoordFor } from "@/lib/map-geo";
 
+// 국경 위주의 추상화된 벡터 스타일(딜 마커가 도시명·가격을 직접 표시하므로 기저 지도는 맥락만 제공).
+// 상세 지도가 필요해지면 NEXT_PUBLIC_MAPTILER_STYLE_URL로 교체한다.
 function mapStyle() {
-  const styleUrl = process.env.NEXT_PUBLIC_MAPTILER_STYLE_URL;
-  if (styleUrl) return styleUrl;
-
-  return {
-    version: 8,
-    sources: {
-      osm: {
-        type: "raster",
-        tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-        tileSize: 256,
-        attribution: "&copy; OpenStreetMap contributors",
-      },
-    },
-    layers: [
-      {
-        id: "osm",
-        type: "raster",
-        source: "osm",
-      },
-    ],
-  } satisfies StyleSpecification;
+  return process.env.NEXT_PUBLIC_MAPTILER_STYLE_URL ?? "https://demotiles.maplibre.org/style.json";
 }
 
-type CameraState =
-  | {
-      center: [number, number];
-      zoom: number;
-      bounds?: never;
-    }
-  | {
-      center?: never;
-      zoom?: never;
-      bounds: LngLatBoundsLike;
-    };
-
-function cameraForDeals(deals: MapDeal[]) {
-  if (!deals.length) {
-    return {
-      center: [127.8, 32.2] as [number, number],
-      zoom: 1.6,
-    } satisfies CameraState;
-  }
-
-  if (deals.length === 1) {
-    return {
-      center: [deals[0].lon, deals[0].lat] as [number, number],
-      zoom: 4.8,
-    } satisfies CameraState;
-  }
-
-  const latitudes = deals.map((deal) => deal.lat);
-  const longitudes = deals.map((deal) => deal.lon);
-  const minLat = Math.min(...latitudes);
-  const maxLat = Math.max(...latitudes);
-  const minLon = Math.min(...longitudes);
-  const maxLon = Math.max(...longitudes);
-
-  return {
-    bounds: [
-      [minLon, minLat],
-      [maxLon, maxLat],
-    ] as [[number, number], [number, number]],
-  } satisfies CameraState;
-}
+// 한국 출발 서비스의 기본 시점 — 딜 분포와 무관하게 한국 중심(제주~서울, 근거리 목적지 포함 줌).
+const KOREA_CAMERA = { center: [127.8, 35.8] as [number, number], zoom: 4.3 };
 
 interface DealsMapProps {
   deals: MapDeal[];
@@ -105,9 +46,6 @@ export function DealsMap({ deals, query, selectedCode: controlledCode, onSelectC
   );
   const [sheetState, setSheetState] = useState<"peek" | "half" | "full">("half");
   const clusterSignatureRef = useRef("");
-
-  const camera = useMemo(() => cameraForDeals(deals), [deals]);
-  const cameraBounds = "bounds" in camera ? camera.bounds : null;
 
   useEffect(() => {
     if (!controlledCode || !mapRef.current) return;
@@ -146,8 +84,8 @@ export function DealsMap({ deals, query, selectedCode: controlledCode, onSelectC
         container,
         style: mapStyle(),
         attributionControl: false,
-        center: "center" in camera ? camera.center : [127.8, 32.2],
-        zoom: "zoom" in camera ? camera.zoom : 1.6,
+        center: KOREA_CAMERA.center,
+        zoom: KOREA_CAMERA.zoom,
         cooperativeGestures: true,
       });
     } catch (err) {
@@ -157,12 +95,9 @@ export function DealsMap({ deals, query, selectedCode: controlledCode, onSelectC
     }
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
 
     map.on("load", () => {
-      if (cameraBounds) {
-        map.fitBounds(cameraBounds, { padding: 72, duration: 0 });
-      }
-
       // Add Arc Source and Layer
       map.addSource("route-arc", {
         type: "geojson",
@@ -200,7 +135,7 @@ export function DealsMap({ deals, query, selectedCode: controlledCode, onSelectC
       map.remove();
       mapRef.current = null;
     };
-  }, [camera, cameraBounds, deals]);
+  }, [deals]);
 
   // 줌/이동 시 화면 좌표 기반 클러스터 재계산. 구성이 바뀔 때만 다시 그린다.
   useEffect(() => {
@@ -329,17 +264,6 @@ export function DealsMap({ deals, query, selectedCode: controlledCode, onSelectC
       });
     };
   }, [clusters, deals, query.budget, query.cabin, query.origin, query.region, query.stay_bucket, query.traveler, query.week, router, selectedCode, setSelectedCode]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    if (cameraBounds) {
-      map.fitBounds(cameraBounds, { padding: 72, duration: 600 });
-    } else {
-      map.easeTo({ center: camera.center, zoom: camera.zoom, duration: 600 });
-    }
-  }, [camera, cameraBounds]);
 
   const selection = deals.find((deal) => deal.destination_code === selectedCode) ?? deals[0] ?? null;
 
