@@ -7,6 +7,7 @@ import { SavedDealsDrawer } from "@/components/saved-deals-drawer";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CurrencyToggle } from "@/components/currency-toggle";
 import { CommandPalette } from "@/components/command-palette";
+import { resolveSupportContact } from "@/lib/service-contact";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -37,6 +38,7 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const supportContact = resolveSupportContact();
   return (
     <html lang="ko">
       <head>
@@ -104,6 +106,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/affiliate-disclosure">가격 데이터 안내</Link>
               <Link href="/policies">운영정책</Link>
               <Link href="/service-readiness">서비스 상태</Link>
+              {/* UX-20260830-004: 사용자 목소리 수집 최소 채널 — 서포트 이메일이 유효할 때만 렌더 */}
+              {supportContact.ok && supportContact.email ? (
+                <a href={`mailto:${supportContact.email}?subject=${encodeURIComponent("[Sky Planner] 개선 요청")}`}>개선 요청</a>
+              ) : null}
             </div>
             <p className="site-footer__copy">
               &copy; 2026 Sky Planner Atlas. 한국 출발 여행자를 위한 지도 기반 항공권 탐색 서비스.
