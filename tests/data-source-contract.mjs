@@ -64,6 +64,18 @@ test("meta response keeps envelope shape on the mock path", hermeticMockEnv(asyn
   assert.ok(defaultBatchAt().length > 0);
 }));
 
+// INT-20260829-001: generated_at은 응답 생성 시각이다 — mock 빌드 상수(고정 11:30)가 아님.
+test("responses report actual generation time, not the mock build constant", hermeticMockEnv(async () => {
+  const before = Date.now();
+  const response = await resolveMapResponse(mapQuery());
+  const generated = Date.parse(response.generated_at);
+  assert.ok(Number.isFinite(generated), `generated_at not ISO: ${response.generated_at}`);
+  assert.ok(
+    generated >= before - 1000 && generated <= Date.now() + 1000,
+    `generated_at ${response.generated_at} is not ~now`,
+  );
+}));
+
 test("SERVICE_REQUIRE_POSTGRES suppresses mock fallback into unavailable diagnostics", hermeticMockEnv(async () => {
   process.env.SERVICE_REQUIRE_POSTGRES = "1";
   try {

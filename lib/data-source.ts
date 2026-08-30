@@ -36,6 +36,18 @@ import { postgresConfigured, resolveSourceContext } from "./read-model/source-co
 
 const MOCK_FALLBACK_WARNING_FLAGS = ["mock_data_source", "daily_batch_cached", "final_price_check_on_booking_source"];
 
+// INT-20260829-001: BFF 응답의 generated_at은 실제 응답 생성 시각이다 — mock 빌드 상수(GENERATED_AT)를
+// 실으면 live 응답이 실제와 무관한 고정 시각을 주장한다. request_id 해시는 그대로 둔다(결정론 유지).
+function liveEnvelope<T>(
+  prefix: string,
+  payload: Record<string, string>,
+  data: T,
+  lastBatchAt: string,
+  sourceFlags?: string[],
+) {
+  return { ...envelope(prefix, payload, data, lastBatchAt, sourceFlags), generated_at: new Date().toISOString() };
+}
+
 interface ResponseResolution<Q, D> {
   endpoint: string;
   queryParams: Record<string, string>;
@@ -51,7 +63,7 @@ async function resolveReadModelResponse<Q, D>(query: Q, plan: ResponseResolution
   const readinessFallbackReason = sourceReadinessFallbackReason(sourceContext);
   if (readinessFallbackReason) {
     return suppressMockFallback(
-      envelope(plan.endpoint, plan.queryParams, plan.mockData(query, batchState.lastBatchAt, []), batchState.lastBatchAt, sourceFlags),
+      liveEnvelope(plan.endpoint, plan.queryParams, plan.mockData(query, batchState.lastBatchAt, []), batchState.lastBatchAt, sourceFlags),
       sourceContext,
       readinessFallbackReason,
     );
@@ -63,7 +75,7 @@ async function resolveReadModelResponse<Q, D>(query: Q, plan: ResponseResolution
     if (postgresData) {
       return addDiagnostics(
         {
-          ...envelope(plan.endpoint, plan.queryParams, postgresData, batchState.lastBatchAt, sourceFlags),
+          ...liveEnvelope(plan.endpoint, plan.queryParams, postgresData, batchState.lastBatchAt, sourceFlags),
           ...(plan.postgresWarningFlags ? { warning_flags: plan.postgresWarningFlags } : {}),
         },
         "postgres",
@@ -77,7 +89,7 @@ async function resolveReadModelResponse<Q, D>(query: Q, plan: ResponseResolution
 
   if (serviceRequiresPostgres()) {
     return suppressMockFallback(
-      envelope(plan.endpoint, plan.queryParams, plan.mockData(query, batchState.lastBatchAt, []), batchState.lastBatchAt, sourceFlags),
+      liveEnvelope(plan.endpoint, plan.queryParams, plan.mockData(query, batchState.lastBatchAt, []), batchState.lastBatchAt, sourceFlags),
       sourceContext,
       fallbackReason,
     );
@@ -85,7 +97,7 @@ async function resolveReadModelResponse<Q, D>(query: Q, plan: ResponseResolution
 
   return addDiagnostics(
     {
-      ...envelope(plan.endpoint, plan.queryParams, plan.mockData(query, batchState.lastBatchAt, sourceFlags), batchState.lastBatchAt, sourceFlags),
+      ...liveEnvelope(plan.endpoint, plan.queryParams, plan.mockData(query, batchState.lastBatchAt, sourceFlags), batchState.lastBatchAt, sourceFlags),
       warning_flags: MOCK_FALLBACK_WARNING_FLAGS,
     },
     "mock",
@@ -98,7 +110,7 @@ export async function resolveMetaResponse(): Promise<ApiResponse<ReturnType<type
   const batchState = await getBatchState();
   const sourceContext = await resolveSourceContext(batchState);
   return addDiagnostics(
-    envelope("meta", {}, buildMetaFromSourceFlags(sourceContext.sourceFlags), batchState.lastBatchAt, sourceContext.sourceFlags),
+    liveEnvelope("meta", {}, buildMetaFromSourceFlags(sourceContext.sourceFlags), batchState.lastBatchAt, sourceContext.sourceFlags),
     postgresConfigured() ? "postgres" : "mock",
     sourceContext,
   );
