@@ -2967,3 +2967,34 @@ select {
     flex-direction: column;
   }
 }
+
+/* UX-20260830-002: 연령대별 추천 칩 */
+.audience-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.audience-chip {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  transition: all 150ms ease;
+  cursor: pointer;
+}
+
+.audience-chip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.audience-chip.is-active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}

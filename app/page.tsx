@@ -5,6 +5,8 @@ import { RecentSearches } from "@/components/recent-searches";
 import { RecentDestinations } from "@/components/recent-destinations";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { TripCard } from "@/components/trip-card";
+import { AudienceCuration } from "@/components/audience-curation";
+import { seasonForWeekCode } from "@/lib/audience-calendar";
 import { dataModeLabel, resolveMapResponse } from "@/lib/data-source";
 import { stamp } from "@/lib/format";
 import { getMetaData, parseMapQuery, formatWeekNatural } from "@/lib/mock-market";
@@ -87,11 +89,16 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
 
   const internationalDeals = mapResponse.data.deals.filter((deal) => deal.region_code !== "DOMESTIC");
   // RECO-20260828-002: 노출 순서를 규칙 점수(가격 메리트·시기 근접성·주말 포함)로 큐레이션하고 근거를 칩으로 보여준다.
+  // UX-20260830-002: 후보는 12개를 뽑아 클라이언트 연령대 칩(전체=상위 4)이 재정렬한다.
   const curatedDeals = curateFeaturedDeals(
     internationalDeals.length ? internationalDeals : mapResponse.data.deals,
     new Date().toISOString().slice(0, 10),
-    4,
+    12,
   );
+  const audienceEntries = curatedDeals.map(({ deal, reasons }) => ({
+    destination_code: deal.destination_code,
+    model: toTripCardModel(deal, searchState, reasons),
+  }));
   const mapHref = href("/map", searchState);
   // P0-commerce 2단계: 최저가 스트립 — 그리드(큐레이션순)와 달리 순수 가격 오름차순. 국내선 포함(리전 라벨로 구분).
   const stripDeals = selectLowestPriceDeals(mapResponse.data.deals, 8);
@@ -224,7 +231,7 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
         <div className="section-header">
           <div>
             <h2 className="section-title">지금 확인할 수 있는 특가</h2>
-            <p className="section-desc">최근 확인된 주요 취항지 최저가 운임입니다. 목적지를 선택하면 날짜별 조합을 비교할 수 있습니다.</p>
+            <p className="section-desc">최근 확인된 주요 취항지 최저가 운임입니다. 연령대 추천으로 순서를 바꿔보세요. 목적지를 선택하면 날짜별 조합을 비교할 수 있습니다.</p>
           </div>
           <Link href={mapHref} className="section-link">
             지도에서 전체 보기 →
@@ -247,18 +254,13 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
             </div>
           </div>
         ) : (
-          <div className="deals-grid">
-            {curatedDeals.map(({ deal, reasons }) => (
-              <TripCard
-                key={deal.destination_code}
-                variant="grid"
-                model={toTripCardModel(deal, searchState, reasons)}
-                origin={searchState.origin}
-                week={searchState.week}
-                stayBucket={searchState.stay_bucket}
-              />
-            ))}
-          </div>
+          <AudienceCuration
+            entries={audienceEntries}
+            season={seasonForWeekCode(searchState.week)}
+            origin={searchState.origin}
+            week={searchState.week}
+            stayBucket={searchState.stay_bucket}
+          />
         )}
         <div className="section-caption">
           <span>가격 확인: {stamp(mapResponse.last_batch_at)} · {dataModeLabel(mapResponse.diagnostics)} · 일 1회 배치 기준 참고 운임이며 최종 가격은 예약처에서 확인해야 합니다.</span>
