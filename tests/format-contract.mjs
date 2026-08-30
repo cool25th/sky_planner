@@ -52,6 +52,13 @@ test("isPastWeek flags weeks before the current week only", () => {
   assert.equal(isPastWeek(nextWeek), false);
 });
 
+test("formatTime degrades to a label instead of throwing on missing leg times", () => {
+  // UX-20260831-001: live 오퍼의 departure/arrival 시각 결측(row-mapper "" 정규화)이
+  // /offers SSR 전체를 RangeError로 죽이던 회귀 방어.
+  assert.equal(formatTime(""), "시간 미정");
+  assert.equal(formatTime("not-a-date"), "시간 미정");
+});
+
 test("date helpers render compact and full dates", () => {
   assert.equal(formatCompactDate("2026-08-24"), "8/24 (월)");
   assert.equal(formatDate("2026-08-24"), "8. 24. (월)");

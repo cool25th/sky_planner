@@ -13,8 +13,12 @@ export function stamp(value: string): string {
   return new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Seoul" }).format(date);
 }
 
+// UX-20260831-001: live 오퍼는 다리 시각이 결측될 수 있다(read-model이 NULL을 ""로 정규화) —
+// Intl format이 Invalid Date에서 throw하면 /offers 렌더 전체가 죽는다. stamp()와 같은 가드.
 export function formatTime(value: string): string {
-  return new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Seoul" }).format(new Date(value));
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "시간 미정";
+  return new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Seoul" }).format(date);
 }
 
 export function formatCompactDate(value: string): string {
