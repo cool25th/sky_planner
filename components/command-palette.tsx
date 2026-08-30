@@ -153,7 +153,7 @@ export function CommandPalette() {
         aria-label="빠른 검색"
       >
         <span>🔍</span>
-        <span style={{ fontSize: "0.8rem" }}>검색</span>
+        <span className="cmd-trigger-label" style={{ fontSize: "0.8rem" }}>검색</span>
         <kbd className="cmd-palette-kbd">⌘K</kbd>
       </button>
 

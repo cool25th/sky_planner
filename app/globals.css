@@ -2866,6 +2866,46 @@ select {
     padding: 12px 14px 48px;
   }
 
+  /* UX-20260831-002: 모바일 헤더 — 액션 행(찜·통화·테마)이 390px 뷰포트를 초과해
+     전 페이지 가로 스크롤(132px)을 만들던 회귀. 아이콘 중심으로 축소한다. */
+  .site-header {
+    padding: 0 12px;
+  }
+
+  .brand-name {
+    display: none;
+  }
+
+  .header-right {
+    gap: 8px;
+  }
+
+  .site-nav {
+    gap: 8px;
+  }
+
+  .nav-link {
+    padding: 6px 8px;
+    font-size: 0.85rem;
+  }
+
+  .cmd-trigger-label,
+  .cmd-palette-kbd {
+    display: none;
+  }
+
+  .saved-text {
+    display: none;
+  }
+
+  .saved-deals-trigger {
+    padding: 6px 10px;
+  }
+
+  .currency-toggle-btn {
+    padding: 0 8px;
+  }
+
   .home-hero {
     padding: var(--space-8) var(--space-4);
   }

@@ -77,8 +77,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <div className="site-shell">
           <a href="#main" className="skip-link">본문으로 건너뛰기</a>
+          {/* UX-20260831-003: live 서빙 중 "데모 데이터" 안내는 사실과 반대 — 모드 중립 참고 운임 고지로 교체.
+              실시간/데모 구분은 data_mode 스탬프가 담당한다. */}
           <div className="beta-banner">
-            <span><strong>데모 데이터 안내:</strong> 본 서비스는 항공권 탐색을 위한 데모 데이터 및 예시 운임을 제공합니다. 실제 예약 및 최종 결제 금액은 해당 항공사 및 예약처에서 확인하시기 바랍니다.</span>
+            <span><strong>운임 데이터 안내:</strong> 본 서비스의 운임은 일 1회 수집 기준 참고 운임입니다. 실제 예약 및 최종 결제 금액은 해당 항공사 및 예약처에서 확인하시기 바랍니다.</span>
           </div>
           <header className="site-header">
             <Link href="/" className="site-brand">

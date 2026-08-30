@@ -13,6 +13,13 @@ import { href } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
 
+// 도착이 출발 다음 날인지 — 결측 시각(Invalid Date)은 false. NaN !== NaN이 항상 true가 되는 것을 막는다.
+function isNextDay(from: string, to: string): boolean {
+  const a = new Date(from).getTime();
+  const b = new Date(to).getTime();
+  return Number.isFinite(a) && Number.isFinite(b) && new Date(a).getDate() !== new Date(b).getDate();
+}
+
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function OffersPage(props: { searchParams: SearchParams }) {
@@ -175,8 +182,9 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
         ) : sortedOffers.length ? (
           sortedOffers.map((offer) => {
             const freshness = fareFreshness(offer.last_seen_at || offer.last_batch_at);
-            const isOutboundNextDay = new Date(offer.outbound_arrival_at).getDate() !== new Date(offer.outbound_departure_at).getDate();
-            const isInboundNextDay = new Date(offer.inbound_arrival_at).getDate() !== new Date(offer.inbound_departure_at).getDate();
+            // UX-20260831-001 잔여: 시각 결측 오퍼는 Invalid Date 비교(NaN !== NaN)가 항상 true가 되어 "+1일" 필을 오노출한다.
+            const isOutboundNextDay = isNextDay(offer.outbound_departure_at, offer.outbound_arrival_at);
+            const isInboundNextDay = isNextDay(offer.inbound_departure_at, offer.inbound_arrival_at);
 
             return (
               <article key={offer.offer_id} className="flight-offer-card">
