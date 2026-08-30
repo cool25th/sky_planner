@@ -86,11 +86,9 @@ jobs:
           DATABASE_INGEST_URL: ${{ secrets.DATABASE_INGEST_URL }}
         run: npm run baseline:update
 
-      - name: Purge old batches (keep 2)
-        if: ${{ env.READY == 'true' && (success() || failure()) }}
-        env:
-          DATABASE_INGEST_URL: ${{ secrets.DATABASE_INGEST_URL }}
-        run: npm run cleanup:old-batches -- --keep 2 || true
+      # INT-20260829-002: "Purge old batches" 스텝 제거 — scripts/cleanup-old-batches.mjs는 Firestore 전용이라
+      # 현재 Postgres 파이프라인에서 구조적 no-op였고(매번 Firebase 자격증명 실패를 || true로 흡수),
+      # 작동시키면 RECO-20260828-001의 30일 baseline 히스토리와 충돌한다. Firestore publish 재개 시 설계 후 복원.
 
       # INT-20260823-001: 배치 직후 배포 사이트 프로브 — batch_state 갱신 후에도 사이트가
       # not_ready면 run을 실패로 만들어 무인 시간대 장애 인지 창을 ~24h에서 즉시로 줄인다.
