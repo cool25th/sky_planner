@@ -92,7 +92,7 @@ jobs:
 
       - name: Upload collector artifacts
         if: ${{ always() && env.READY == 'true' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: collector-artifacts
           path: runtime/collector-artifacts
@@ -101,7 +101,7 @@ jobs:
 
       - name: Upload service launch audit evidence
         if: ${{ always() && env.READY == 'true' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: service-launch-audit
           path: runtime/service-launch-audits
