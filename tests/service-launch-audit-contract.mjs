@@ -1914,7 +1914,8 @@ test("collector workflow uploads service launch audit evidence", async () => {
   assert.match(workflow, /--run-collector/);
   assert.match(workflow, /--continue-on-failure/);
   assert.match(workflow, /--output-dir runtime\/service-launch-audits/);
-  assert.match(workflow, /actions\/upload-artifact@v4/);
+  // 의도는 "증거를 artifact로 올린다" — 버전 고정은 의존성 업데이트(PR #1)를 막는 과잉 규약이다.
+  assert.match(workflow, /actions\/upload-artifact@v\d+/);
   assert.match(workflow, /name: collector-artifacts/);
   assert.match(workflow, /path: runtime\/collector-artifacts/);
   assert.match(workflow, /name: collector-artifacts[\s\S]*if-no-files-found: error/);
