@@ -2,8 +2,8 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 
-import { DealsMap } from "@/components/deals-map";
 import { saveRecentSearch } from "@/components/recent-searches";
 import { TripCard } from "@/components/trip-card";
 import type { MapDeal, MapQuery } from "@/lib/mock-market";
@@ -11,6 +11,13 @@ import { PRICE_DEFINITION_SHORT } from "@/lib/price-definition";
 import { stamp } from "@/lib/format";
 import { toTripCardModel } from "@/lib/trip-card";
 import { href } from "@/lib/url";
+
+// PERF-20260831-001: maplibre-gl(~1MB)을 /map 초기 JS에서 분리 — 지도는 어차피
+// 클라이언트 WebGL이라 SSR이 불가능하고, 목록이 먼저 렌더되는 동안 스트리밍 로드된다.
+const DealsMap = dynamic(() => import("@/components/deals-map").then((m) => m.DealsMap), {
+  ssr: false,
+  loading: () => <div className="map-canvas-fallback" aria-hidden="true" />,
+});
 
 interface MapSplitViewProps {
   deals: MapDeal[];

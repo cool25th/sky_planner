@@ -1,13 +1,14 @@
 name: Warmup
 
 # PERF-20260824-001: Neon 무료 autosuspend(유휴 5분) + 서버리스 함수 콜드스타트로
-# 낮 첫 방문이 5~6s 걸린다. 주간(KST 07:00~23:59) 30분 주기로 홈과 read-model API를
+# 낮 첫 방문이 5~6s 걸린다. 주간(KST 05:00~23:59) 30분 주기로 홈과 read-model API를
 # 예열 방문해 콜드히트를 대신 흡수한다. public 저장소라 Actions 무료.
+# PERF-20260831-001: 07시→05시로 확장(새벽 콜드 3.7s 실측, +4런/일 ≈ 활성 +20분/일).
 # ponytail: 항시 웜업(≤4분 주기)은 Neon 무료 compute-hours를 초과한다 —
 # 트래픽이 의미 있게 커지면 Neon 유료 전환 또는 엣지 캐시가 정석.
 on:
   schedule:
-    - cron: "3,33 22-23,0-14 * * *" # UTC 22:00~14:59 = KST 07:00~23:59
+    - cron: "3,33 20-23,0-14 * * *" # UTC 20:00~14:59 = KST 05:00~23:59
   workflow_dispatch:
 
 concurrency:
