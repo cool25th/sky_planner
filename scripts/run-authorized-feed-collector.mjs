@@ -359,17 +359,27 @@ const TEMPLATE_FILTERS = {
     const date = String(value).slice(0, 10);
     return `${date.slice(8, 10)}${date.slice(5, 7)}`;
   },
+  // DATA-20260831-001: 도착 시각 = 출발 시각 + 소요분(같은 행의 다른 필드). 피드가 소요분을
+  // 제공하지 않으면 빈 값으로 흘려 필드 생략(있는 데이터만 정직하게 채운다).
+  plus_minutes: (value, row, arg) => {
+    const minutes = Number(getPath(row, arg));
+    const date = new Date(String(value));
+    if (!arg || value === undefined || value === null || value === "" || !Number.isFinite(minutes) || Number.isNaN(date.getTime())) {
+      return "";
+    }
+    return new Date(date.getTime() + minutes * 60000).toISOString();
+  },
 };
 
 function templateValue(template, row, fieldName) {
-  return String(template).replace(/\{([^}|]+)(?:\|([a-z_]+))?\}/g, (_, rawPath, filterName) => {
+  return String(template).replace(/\{([^}|]+)(?:\|([a-z_]+)(?::([A-Za-z0-9_]+))?)?\}/g, (_, rawPath, filterName, filterArg) => {
     const value = getPath(row, rawPath.trim());
     if (value === undefined || value === null || value === "") {
       throw new Error(`Missing template path ${rawPath} for ${fieldName}`);
     }
     const filter = filterName ? TEMPLATE_FILTERS[filterName] : undefined;
     if (filterName && !filter) throw new Error(`Unknown template filter ${filterName} for ${fieldName}`);
-    return String(filter ? filter(value) : value);
+    return String(filter ? filter(value, row, filterArg) : value);
   });
 }
 

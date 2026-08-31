@@ -211,7 +211,9 @@
             "id": "tp_{destination}_{offer_index}_{departure_at|date}",
             "depart_date": "{departure_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{departure_at|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{departure_at|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -235,7 +237,10 @@
             "airline_code": "airline",
             "airline_name": "airline",
             "total_price": "price",
-            "duration_minutes": "duration"
+            "duration_minutes": "duration_to",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "return_duration_minutes": "duration_back"
           }
         }
       }
@@ -271,7 +276,9 @@
             "id": "tp_{destination}_{offer_index}_{departure_at|date}",
             "depart_date": "{departure_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{departure_at|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{departure_at|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -295,7 +302,10 @@
             "airline_code": "airline",
             "airline_name": "airline",
             "total_price": "price",
-            "duration_minutes": "duration"
+            "duration_minutes": "duration_to",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "return_duration_minutes": "duration_back"
           }
         }
       }
@@ -331,7 +341,9 @@
             "id": "tp_{destination}_{offer_index}_{departure_at|date}",
             "depart_date": "{departure_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{departure_at|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{departure_at|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -355,7 +367,10 @@
             "airline_code": "airline",
             "airline_name": "airline",
             "total_price": "price",
-            "duration_minutes": "duration"
+            "duration_minutes": "duration_to",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "return_duration_minutes": "duration_back"
           }
         }
       }
@@ -388,7 +403,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -413,7 +430,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -447,7 +468,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -472,7 +495,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -506,7 +533,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -531,7 +560,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -565,7 +598,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -590,7 +625,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -624,7 +663,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -649,7 +690,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -683,7 +728,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -708,7 +755,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -742,7 +793,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -767,7 +820,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -801,7 +858,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -826,7 +885,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -860,7 +923,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -885,7 +950,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -919,7 +988,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -944,7 +1015,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -978,7 +1053,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -1003,7 +1080,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -1037,7 +1118,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -1062,7 +1145,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -1096,7 +1183,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -1121,7 +1210,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -1155,7 +1248,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -1180,7 +1275,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -1214,7 +1313,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -1239,7 +1340,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -1273,7 +1378,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -1298,7 +1405,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -1332,7 +1443,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -1357,7 +1470,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -1391,7 +1508,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -1416,7 +1535,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -1450,7 +1573,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -1475,7 +1600,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -1509,7 +1638,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -1534,7 +1665,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }
@@ -1568,7 +1703,9 @@
           "templates": {
             "id": "tpcal_{destination}_{depart_date}_{return_at|date}",
             "return_date": "{return_at|date}",
-            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170"
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
           },
           "stay_nights_filter": {
             "depart_field": "departure_at",
@@ -1593,7 +1730,11 @@
             "airline_name": "airline",
             "total_price": "price",
             "depart_date": "depart_date",
-            "stop_count": "transfers"
+            "stop_count": "transfers",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "duration_minutes": "duration_to",
+            "return_duration_minutes": "duration_back"
           },
           "allow_empty": true
         }

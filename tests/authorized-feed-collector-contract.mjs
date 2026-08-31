@@ -481,6 +481,8 @@ test("json_path mapping flattens nested cheap-shaped feeds with places lookup an
         depart_date: "{departure_at|date}",
         return_date: "{return_at|date}",
         deep_link: "https://www.aviasales.com/search/{origin}{destination_city_id}{departure_at|dmy}{return_at|dmy}1?marker=TEST",
+        arrival_time_local: "{departure_at|plus_minutes:duration_to}",
+        return_arrival_time_local: "{return_at|plus_minutes:duration_back}",
       },
       stay_nights_filter: { depart_field: "departure_at", return_field: "return_at", min: 3, max: 14 },
       defaults: { booking_source: "travelpayouts_aviasales" },
@@ -497,12 +499,14 @@ test("json_path mapping flattens nested cheap-shaped feeds with places lookup an
         airline_name: "airline",
         total_price: "price",
         duration_minutes: "duration",
+        departure_time_local: "departure_at",
+        return_departure_time_local: "return_at",
       },
     },
   };
   const payload = {
     data: {
-      TYO: { 1: { airline: "7C", departure_at: "2026-10-12T07:10:00+09:00", return_at: "2026-10-16T12:50:00+09:00", price: 363285, duration: 310 } },
+      TYO: { 1: { airline: "7C", departure_at: "2026-10-12T07:10:00+09:00", return_at: "2026-10-16T12:50:00+09:00", price: 363285, duration: 310, duration_to: 185, duration_back: 200 } },
       ADL: { 2: { airline: "GA", departure_at: "2027-01-08T10:35:00+09:00", return_at: "2027-01-10T06:05:00+10:30", price: 1465987, duration: 3530 } },
       PAR: { 1: { airline: "KE", departure_at: "2026-10-12T10:00:00+09:00", return_at: "2026-10-13T10:00:00+09:00", price: 900000, duration: 700 } },
     },
@@ -525,6 +529,11 @@ test("json_path mapping flattens nested cheap-shaped feeds with places lookup an
   assert.equal(offer.carrier.code, "7C");
   assert.equal(offer.price.total, 363285);
   assert.equal(offer.itinerary.duration_minutes, 310);
+  // DATA-20260831-001: 다리 시각 매핑 — 출발은 원문 통과, 도착은 출발+소요분(plus_minutes) 산술.
+  assert.equal(offer.itinerary.departure_time_local, "2026-10-12T07:10:00+09:00");
+  assert.equal(offer.itinerary.return_departure_time_local, "2026-10-16T12:50:00+09:00");
+  assert.equal(offer.itinerary.arrival_time_local, "2026-10-12T01:15:00.000Z", "07:10+09:00 + 185분");
+  assert.equal(offer.itinerary.return_arrival_time_local, "2026-10-16T07:10:00.000Z", "12:50+09:00 + 200분");
 });
 
 // RECO-20260828-004: 쿼리 상대 월 토큰과 calendar(dict 키=날짜) 매핑 계약.
@@ -564,6 +573,8 @@ test("calendar-shaped date-keyed payload maps through single-level flatten", () 
         id: "tpcal_{destination}_{depart_date}_{return_at|date}",
         return_date: "{return_at|date}",
         deep_link: "https://www.aviasales.com/search/{origin}{destination}{depart_date|dmy}{return_at|dmy}1?marker=TEST",
+        arrival_time_local: "{departure_at|plus_minutes:duration_to}",
+        return_arrival_time_local: "{return_at|plus_minutes:duration_back}",
       },
       stay_nights_filter: { depart_field: "departure_at", return_field: "return_at", min: 3, max: 14 },
       defaults: { booking_source: "travelpayouts_aviasales" },
@@ -579,6 +590,8 @@ test("calendar-shaped date-keyed payload maps through single-level flatten", () 
         airline_name: "airline",
         total_price: "price",
         stop_count: "transfers",
+        departure_time_local: "departure_at",
+        return_departure_time_local: "return_at",
       },
     },
   };
@@ -602,6 +615,12 @@ test("calendar-shaped date-keyed payload maps through single-level flatten", () 
   assert.equal(offer.source.deep_link, "https://www.aviasales.com/search/SELTYO160920091?marker=TEST");
   assert.equal(offer.itinerary.stops, 1);
   assert.equal(offer.price.total, 363285);
+  // DATA-20260831-001 관성: 소요분(duration_to/back)이 없는 calendar 응답은 도착 시각을
+  // 생략한다(plus_minutes가 빈 값 → 필드 미매핑) — 있는 출발 시각만 정직하게 채운다.
+  assert.equal(offer.itinerary.departure_time_local, "2026-09-16T07:10:00+09:00");
+  assert.equal(offer.itinerary.return_departure_time_local, "2026-09-20T12:50:00+09:00");
+  assert.equal(offer.itinerary.arrival_time_local, undefined);
+  assert.equal(offer.itinerary.return_arrival_time_local, undefined);
 });
 
 // RECO-20260828-004: allow_empty — 목적지별 calendar처럼 정상적으로 빈 수가 있는 소스는

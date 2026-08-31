@@ -1,30 +1,46 @@
 from typing import Any, Dict, List, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import re
 
 from ..models.offer import CabinClass, NormalizedOffer, QualityBucket, SourceType
 
-TEMPLATE_PATTERN = re.compile(r"\{([^}|]+?)(?:\|([a-z_]+))?\}")
+TEMPLATE_PATTERN = re.compile(r"\{([^}|]+?)(?:\|([a-z_]+)(?::([A-Za-z0-9_]+))?)?\}")
 
 
-def _template_filter_date(value: Any) -> str:
+def _template_filter_date(value: Any, row: Dict[str, Any] = None, arg: Optional[str] = None) -> str:
     return str(value)[:10]
 
 
-def _template_filter_dmy(value: Any) -> str:
+def _template_filter_dmy(value: Any, row: Dict[str, Any] = None, arg: Optional[str] = None) -> str:
     date = str(value)[:10]
     return f"{date[8:10]}{date[5:7]}"
+
+
+def _template_filter_plus_minutes(value: Any, row: Dict[str, Any], arg: Optional[str]) -> str:
+    """DATA-20260831-001: 도착 시각 = 출발 시각 + 소요분(같은 행의 다른 필드).
+    피드가 소요분을 제공하지 않으면 빈 값으로 흘려 필드 생략 — Node 런타임과 동일 규약."""
+    if not arg:
+        return ""
+    minutes = get_by_path(row, arg)
+    try:
+        parsed = datetime.fromisoformat(str(value))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return (parsed + timedelta(minutes=float(minutes))).isoformat()
+    except (TypeError, ValueError):
+        return ""
 
 
 TEMPLATE_FILTERS = {
     "date": _template_filter_date,
     "dmy": _template_filter_dmy,
+    "plus_minutes": _template_filter_plus_minutes,
 }
 
 
 def template_value(template: str, raw_quote: Dict[str, Any], field_key: str) -> str:
     def replace(match: "re.Match[str]") -> str:
-        path, filter_name = match.group(1).strip(), match.group(2)
+        path, filter_name, filter_arg = match.group(1).strip(), match.group(2), match.group(3)
         value = get_by_path(raw_quote, path)
         if value is None or value == "":
             raise ValueError(f"Missing template path {path} for {field_key}")
@@ -32,7 +48,7 @@ def template_value(template: str, raw_quote: Dict[str, Any], field_key: str) -> 
             template_filter = TEMPLATE_FILTERS.get(filter_name)
             if template_filter is None:
                 raise ValueError(f"Unknown template filter {filter_name} for {field_key}")
-            value = template_filter(value)
+            value = template_filter(value, raw_quote, filter_arg)
         return str(value)
 
     return TEMPLATE_PATTERN.sub(replace, str(template))

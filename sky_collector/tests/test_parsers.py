@@ -100,6 +100,31 @@ class TestTravelpayoutsMappingExtensions(unittest.TestCase):
         with self.assertRaises(ValueError):
             template_value("{absent}", {"x": 1}, "id")
 
+    def test_plus_minutes_computes_arrival_from_duration_field(self):
+        # DATA-20260831-001: 도착 시각 = 출발 + 소요분 — Node 런타임 plus_minutes와 동일 규약.
+        from sky_collector.parsers.mapping_adapter import template_value
+
+        row = {
+            "departure_at": "2026-10-12T07:10:00+09:00",
+            "return_at": "2026-10-16T12:50:00+09:00",
+            "duration_to": 185,
+            "duration_back": 200,
+        }
+        self.assertEqual(
+            template_value("{departure_at|plus_minutes:duration_to}", row, "arrival_time_local"),
+            "2026-10-12T10:15:00+09:00",
+        )
+        self.assertEqual(
+            template_value("{return_at|plus_minutes:duration_back}", row, "return_arrival_time_local"),
+            "2026-10-16T16:10:00+09:00",
+        )
+
+    def test_plus_minutes_omits_when_duration_missing(self):
+        from sky_collector.parsers.mapping_adapter import template_value
+
+        row = {"departure_at": "2026-09-16T07:10:00+09:00"}
+        self.assertEqual(template_value("{departure_at|plus_minutes:duration_to}", row, "arrival_time_local"), "")
+
     def test_map_offer_prefers_templates_over_field_paths(self):
         config = {
             "templates": {"deep_link": "https://x/{origin_airport}"},
