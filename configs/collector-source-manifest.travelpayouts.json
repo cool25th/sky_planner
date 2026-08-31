@@ -306,7 +306,8 @@
             "departure_time_local": "departure_at",
             "return_departure_time_local": "return_at",
             "return_duration_minutes": "duration_back"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
@@ -371,7 +372,8 @@
             "departure_time_local": "departure_at",
             "return_departure_time_local": "return_at",
             "return_duration_minutes": "duration_back"
-          }
+          },
+          "allow_empty": true
         }
       }
     },
