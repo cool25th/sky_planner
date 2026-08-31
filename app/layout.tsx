@@ -83,8 +83,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <span><strong>운임 데이터 안내:</strong> 본 서비스의 운임은 일 1회 수집 기준 참고 운임입니다. 실제 예약 및 최종 결제 금액은 해당 항공사 및 예약처에서 확인하시기 바랍니다.</span>
           </div>
           <header className="site-header">
-            <Link href="/" className="site-brand">
-              <span className="brand-logo">✈️</span>
+            {/* UX-20260901-001: 모바일에서 브랜드명 텍스트를 숨기므로 접근 가능한 이름을 별도로 제공한다. */}
+            <Link href="/" className="site-brand" aria-label="Sky Planner Atlas 홈">
+              <span className="brand-logo" aria-hidden="true">✈️</span>
               <span className="brand-name">Sky Planner Atlas</span>
             </Link>
             <div className="header-right">

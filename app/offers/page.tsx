@@ -59,11 +59,12 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
       <section className="offers-summary-banner">
         <div className="summary-banner-main">
           <div>
-            <div className="summary-route">
+            {/* UX-20260901-002: 페이지 식별 헤딩 — 다른 페이지는 h1이 있는데 /offers만 없었다(스크린리더 방향 상실). */}
+            <h1 className="summary-route">
               <strong>{query.origin}</strong>
               <span className="route-arrow">✈</span>
               <strong>{query.destination || "목적지"}</strong>
-            </div>
+            </h1>
             <p className="summary-conditions">
               {dateRangeLabel} · {PRICE_DEFINITION_SHORT} · {cabinLabel} · {dataModeLabel(offersResponse.diagnostics)}
               {pax > 1 ? ` · 성인 ${pax}인` : ""}

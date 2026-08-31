@@ -228,6 +228,8 @@ select {
   font-weight: 700;
   font-size: 1.05rem;
   color: var(--color-text-primary);
+  min-width: 24px; /* UX-20260901-001: 모바일 브랜드명 숨김 시 이모지만 남는 타깃의 WCAG 2.5.8 최소 크기 확보 */
+  min-height: 24px;
 }
 
 .brand-logo {
@@ -1392,6 +1394,7 @@ select {
   font-size: 1.45rem;
   font-weight: 800;
   color: var(--color-text-primary);
+  margin: 0; /* UX-20260901-002: h1 승격에 따른 기본 여백 제거 — 시각 변화 0 */
 }
 
 .route-arrow {
