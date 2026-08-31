@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import maplibregl, { type Map as MaplibreMap } from "maplibre-gl";
+// INT-20260901-001: maplibre-gl 6은 default export를 제거했다 — namespace import로 전환.
+import * as maplibregl from "maplibre-gl";
+import type { Map as MaplibreMap } from "maplibre-gl";
 
 import type { MapDeal, MapQuery } from "@/lib/mock-market";
 import { clusterDeals, dealMinFare, type DealCluster } from "@/lib/map-clustering";
