@@ -828,6 +828,24 @@ export async function recordCollectorRunBatchState(lastBatch, options = {}) {
   }
 }
 
+export function partitionOfferRows(offerRows, currentManifest) {
+  const changedRows = offerRows.filter((row) => currentManifest[row.offer_id] !== row.write_fingerprint);
+  const unchangedRows = offerRows.filter((row) => currentManifest[row.offer_id] === row.write_fingerprint);
+  return { changedRows, unchangedRows };
+}
+
+// DATA-20260901-001: 지문이 같아도 재수집됐으면 "보았음"을 갱신한다 — 이 갱신이 없으면
+// last_seen_at이 '마지막 변경 시각'으로 퇴화해 fare-freshness 72h 숨김이 살아 있는 재고를 지운다.
+export async function touchUnchangedOffers(client, unchangedRows, batch) {
+  if (!unchangedRows.length) return 0;
+  const seenAt = utcTimestamp(batch.collected_at);
+  await client.query(
+    "UPDATE offers SET last_seen_at = $1, last_batch_at = $1 WHERE offer_id = ANY($2)",
+    [seenAt, unchangedRows.map((row) => row.offer_id)],
+  );
+  return unchangedRows.length;
+}
+
 export async function ingestCollectorBatch(batch, options = {}) {
   const connectionString = collectorDatabaseUrl(options);
   const placeRows = buildPlaceRows(batch);
@@ -837,7 +855,8 @@ export async function ingestCollectorBatch(batch, options = {}) {
   try {
     await client.query("BEGIN");
     const currentManifest = await currentOfferHashes(client);
-    const changedRows = offerRows.filter((row) => currentManifest[row.offer_id] !== row.write_fingerprint);
+    const { changedRows, unchangedRows } = partitionOfferRows(offerRows, currentManifest);
+    const offersTouched = await touchUnchangedOffers(client, unchangedRows, batch);
     const snapshotRows = buildSnapshotRows(changedRows);
     const groups = [...new Map(changedRows.map((row) => [`${row.origin_airport}_${row.destination_city_id}_${row.week}_${row.stay_bucket}_${row.traveler}`, row])).values()];
     await upsertPlaces(client, placeRows);
@@ -856,6 +875,7 @@ export async function ingestCollectorBatch(batch, options = {}) {
       places_seen: placeRows.length,
       offers_received: offerRows.length,
       offers_changed: changedRows.length,
+      offers_touched: offersTouched,
       snapshots_written: snapshotRows.length,
       deals_recomputed: dealRows.length,
       anomaly_offers: offerRows.filter((row) => row.price_anomaly_status === "anomaly").length,
