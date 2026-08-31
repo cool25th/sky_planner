@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
 
+import { MapFilterSelect } from "@/components/map-filter-select";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { ShareButton } from "@/components/share-button";
 import { dataModeLabel, resolveOffersResponse } from "@/lib/data-source";
 import { fareFreshness } from "@/lib/fare-freshness";
 import { formatCompactDate, formatMoney, formatTime } from "@/lib/format";
 import { parseOffersQuery } from "@/lib/mock-market";
-import { PRICE_DEFINITION_SHORT } from "@/lib/price-definition";
+import { PAX_CHILD_NOTE, PRICE_DEFINITION_SHORT } from "@/lib/price-definition";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
 import { href } from "@/lib/url";
 
@@ -47,6 +48,11 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
     ? `${formatCompactDate(query.depart)} ~ ${formatCompactDate(query.return)}`
     : "일정 선택됨";
 
+  // UX-20260831-005: 성인 인원 — 표시층 총액만 계산(데이터는 adt1 고정). 필터 칩 링크는 기본값(1)을 붙이지 않는다.
+  const pax = query.pax ?? 1;
+  const chipQuery = { ...query, pax: pax > 1 ? pax : null };
+  const paxOptions = Array.from({ length: 9 }, (_, i) => ({ code: String(i + 1), label: `성인 ${i + 1}명` }));
+
   return (
     <main className="offers-page-container">
       {/* 1. Natural Language Search Summary Bar */}
@@ -60,7 +66,9 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
             </div>
             <p className="summary-conditions">
               {dateRangeLabel} · {PRICE_DEFINITION_SHORT} · {cabinLabel} · {dataModeLabel(offersResponse.diagnostics)}
+              {pax > 1 ? ` · 성인 ${pax}인` : ""}
             </p>
+            {pax > 1 && <p className="summary-conditions">{PAX_CHILD_NOTE}</p>}
           </div>
           <div className="summary-banner-actions">
             <ShareButton
@@ -90,31 +98,31 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
             <div className="filter-chips-group">
               <span className="filter-group-label">여정:</span>
               <Link
-                href={href("/offers", { ...query, stops: "ALL", sort: sortBy !== "price" ? sortBy : null })}
+                href={href("/offers", { ...chipQuery, stops: "ALL", sort: sortBy !== "price" ? sortBy : null })}
                 className={`filter-chip ${query.stops === "ALL" ? "is-active" : ""}`}
               >
                 전체 여정
               </Link>
               <Link
-                href={href("/offers", { ...query, stops: "0", sort: sortBy !== "price" ? sortBy : null })}
+                href={href("/offers", { ...chipQuery, stops: "0", sort: sortBy !== "price" ? sortBy : null })}
                 className={`filter-chip ${query.stops === "0" ? "is-active" : ""}`}
               >
                 직항만
               </Link>
               <Link
-                href={href("/offers", { ...query, cabin: "ALL", sort: sortBy !== "price" ? sortBy : null })}
+                href={href("/offers", { ...chipQuery, cabin: "ALL", sort: sortBy !== "price" ? sortBy : null })}
                 className={`filter-chip ${query.cabin === "ALL" ? "is-active" : ""}`}
               >
                 전체 좌석
               </Link>
               <Link
-                href={href("/offers", { ...query, cabin: "ECONOMY", sort: sortBy !== "price" ? sortBy : null })}
+                href={href("/offers", { ...chipQuery, cabin: "ECONOMY", sort: sortBy !== "price" ? sortBy : null })}
                 className={`filter-chip ${query.cabin === "ECONOMY" ? "is-active" : ""}`}
               >
                 일반석
               </Link>
               <Link
-                href={href("/offers", { ...query, cabin: "BUSINESS", sort: sortBy !== "price" ? sortBy : null })}
+                href={href("/offers", { ...chipQuery, cabin: "BUSINESS", sort: sortBy !== "price" ? sortBy : null })}
                 className={`filter-chip ${query.cabin === "BUSINESS" ? "is-active" : ""}`}
               >
                 비즈니스석
@@ -137,7 +145,7 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
                   <Link
                     key={al.code}
                     href={href("/offers", {
-                      ...query,
+                      ...chipQuery,
                       airline: nextAirline,
                       sort: sortBy !== "price" ? sortBy : null,
                     })}
@@ -152,23 +160,35 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
             <div className="filter-chips-group">
               <span className="filter-group-label">정렬:</span>
               <Link
-                href={href("/offers", { ...query, sort: "price" })}
+                href={href("/offers", { ...chipQuery, sort: "price" })}
                 className={`filter-chip ${sortBy === "price" ? "is-active" : ""}`}
               >
                 최저가순
               </Link>
               <Link
-                href={href("/offers", { ...query, sort: "duration" })}
+                href={href("/offers", { ...chipQuery, sort: "duration" })}
                 className={`filter-chip ${sortBy === "duration" ? "is-active" : ""}`}
               >
                 최단시간순
               </Link>
               <Link
-                href={href("/offers", { ...query, sort: "departure" })}
+                href={href("/offers", { ...chipQuery, sort: "departure" })}
                 className={`filter-chip ${sortBy === "departure" ? "is-active" : ""}`}
               >
                 출발빠른순
               </Link>
+            </div>
+
+            {/* UX-20260831-005: 성인 인원 선택 — 표시 총액 = 1인가 × 인원 */}
+            <div className="filter-chips-group">
+              <MapFilterSelect
+                id="offers-pax-select"
+                label="인원"
+                defaultValue={String(pax)}
+                paramName="pax"
+                options={paxOptions}
+                basePath="/offers"
+              />
             </div>
           </div>
           <span className="results-badge">검색 결과 {sortedOffers.length}건</span>
@@ -243,9 +263,11 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
                   {/* Right: Fare Box & CTA */}
                   <div className="flight-fare-box">
                     <div className="fare-amount-group">
-                      <span className="fare-type-label">왕복 총액</span>
-                      <strong className="fare-total-amount">{formatMoney(offer.price_total)}</strong>
-                      <span className="fare-tax-label">유류세·공항세 포함</span>
+                      <span className="fare-type-label">{pax > 1 ? `왕복 총액 · 성인 ${pax}인` : "왕복 총액"}</span>
+                      <strong className="fare-total-amount">{formatMoney(offer.price_total * pax)}</strong>
+                      <span className="fare-tax-label">
+                        {pax > 1 ? `1인 ${formatMoney(offer.price_total)} · ` : ""}유류세·공항세 포함
+                      </span>
                     </div>
 
                     <div className="fare-cta-group">

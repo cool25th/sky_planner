@@ -244,6 +244,7 @@ export interface MapQuery {
   traveler: string;
   airlines: string[];
   budget?: number | null;
+  pax?: number;
 }
 
 export interface CalendarQuery {
@@ -256,6 +257,7 @@ export interface CalendarQuery {
   traveler: string;
   airlines: string[];
   budget?: number | null;
+  pax?: number;
 }
 
 export interface OffersQuery {
@@ -268,6 +270,7 @@ export interface OffersQuery {
   traveler: string;
   airline: string[];
   stops: "ALL" | "0" | "1";
+  pax?: number;
 }
 
 const REGIONS = [
@@ -1430,6 +1433,14 @@ function parseBudget(value?: string | string[]) {
   return raw && Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : null;
 }
 
+// UX-20260831-005: 성인 인원(1~9). 데이터는 성인 1인 요금만 제공하므로 조회 조건(traveler)은
+// adt1 그대로 두고 표시층 총액(1인가 × pax)에만 사용한다 — 아동 요금은 피드에 없어 계산하지 않는다.
+export function parsePax(value?: string | string[]): number {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed >= 1 && parsed <= 9 ? Math.floor(parsed) : 1;
+}
+
 export function parseMapQuery(input: Record<string, string | string[] | undefined>): MapQuery {
   return {
     origin: (Array.isArray(input.origin) ? input.origin[0] : input.origin ?? "ICN").toUpperCase(),
@@ -1440,6 +1451,7 @@ export function parseMapQuery(input: Record<string, string | string[] | undefine
     traveler: normalizeTraveler(Array.isArray(input.traveler) ? input.traveler[0] : input.traveler),
     airlines: normalizeAirlines(input.airlines),
     budget: parseBudget(input.budget),
+    pax: parsePax(input.pax),
   };
 }
 
@@ -1462,6 +1474,7 @@ export function parseOffersQuery(input: Record<string, string | string[] | undef
     traveler: normalizeTraveler(Array.isArray(input.traveler) ? input.traveler[0] : input.traveler),
     airline: normalizeAirlines(input.airline ?? input.airlines),
     stops: (((Array.isArray(input.stops) ? input.stops[0] : input.stops) ?? "ALL").toUpperCase() as "ALL" | "0" | "1"),
+    pax: parsePax(input.pax),
   };
 }
 

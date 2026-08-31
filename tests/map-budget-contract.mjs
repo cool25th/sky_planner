@@ -36,3 +36,21 @@ test("seoul-wide search attributes each deal's best fare to ICN or GMP", () => {
   }
   assert.ok(deals.length >= getMapData(parseMapQuery({ origin: "ICN" })).deals.length);
 });
+
+// UX-20260831-005: 성인 인원(pax) 파싱 — 조회 조건(traveler=adt1)은 그대로 두고
+// 표시층 총액에만 쓰는 값이다. 범위 밖·비숫자는 기본값 1로 클램프한다.
+test("parsePax clamps to adult range 1-9 and defaults to 1", async () => {
+  const { parsePax, parseMapQuery, parseOffersQuery } = await import("../lib/mock-market.ts");
+  assert.equal(parsePax("4"), 4);
+  assert.equal(parsePax(["3"]), 3);
+  assert.equal(parsePax(undefined), 1);
+  assert.equal(parsePax("abc"), 1);
+  assert.equal(parsePax("0"), 1);
+  assert.equal(parsePax("10"), 1);
+  assert.equal(parsePax("-2"), 1);
+  assert.equal(parsePax("2.7"), 2);
+  assert.equal(parseMapQuery({ origin: "ICN", pax: "6" }).pax, 6);
+  assert.equal(parseMapQuery({ origin: "ICN" }).pax, 1);
+  assert.equal(parseOffersQuery({ origin: "ICN", destination: "FUK", pax: "9" }).pax, 9);
+  assert.equal(parseOffersQuery({ origin: "ICN", destination: "FUK" }).pax, 1);
+});

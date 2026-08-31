@@ -6,6 +6,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import { RecentDestinationTracker } from "@/components/recent-destinations";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { MatrixKeyboardNavigator } from "@/components/matrix-keyboard-navigator";
+import { MapFilterSelect } from "@/components/map-filter-select";
 import { ShareButton } from "@/components/share-button";
 import { PriceAlertModal } from "@/components/price-alert-modal";
 import { BoardingPassModal } from "@/components/boarding-pass-modal";
@@ -13,7 +14,7 @@ import { DestinationCompareModal } from "@/components/destination-compare-modal"
 import { dataModeLabel, resolveCalendarResponse, resolveMapResponse } from "@/lib/data-source";
 import { formatDate, formatMoney, isPastWeek, stamp } from "@/lib/format";
 import { TRIP_BUCKETS, parseCalendarQuery, parseMapQuery, formatWeekNatural, availableWeeks, getDestinationList } from "@/lib/mock-market";
-import { PRICE_DEFINITION_SHORT } from "@/lib/price-definition";
+import { PAX_CHILD_NOTE, PRICE_DEFINITION_SHORT } from "@/lib/price-definition";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
 import { href, siteUrl } from "@/lib/url";
 
@@ -165,9 +166,19 @@ export default async function DestinationPage(props: { params: Params; searchPar
               <h1 className="dest-header-title">{calendar.destination.city}, {calendar.destination.country}</h1>
               <p className="dest-header-sub">
                 {query.origin} 출발 · {formatWeekNatural(query.week)} · {TRIP_BUCKETS.find((item) => item.code === query.stay_bucket)?.label} · {PRICE_DEFINITION_SHORT}
+                {(query.pax ?? 1) > 1 ? ` · 성인 ${query.pax}인` : ""}
               </p>
+              {(query.pax ?? 1) > 1 && <p className="dest-header-sub">{PAX_CHILD_NOTE}</p>}
             </div>
             <div className="dest-header-actions">
+              <MapFilterSelect
+                id="dest-pax-select"
+                label="인원"
+                defaultValue={String(query.pax ?? 1)}
+                paramName="pax"
+                options={Array.from({ length: 9 }, (_, i) => ({ code: String(i + 1), label: `성인 ${i + 1}명` }))}
+                basePath={`/destination/${placeId}`}
+              />
               <DestinationCompareModal currentPlaceId={placeId} />
               <PriceAlertModal
                 destinationCode={placeId}
@@ -413,9 +424,9 @@ export default async function DestinationPage(props: { params: Params; searchPar
                         </span>
                       </div>
                       <div className="top-date-card__price">
-                        <span className="price-type">{query.cabin === "BUSINESS" ? "비즈니스석 왕복" : "일반석 왕복"}</span>
-                        <strong className="price-amount">{formatMoney(fare)}</strong>
-                        <span className="price-meta">세금 포함 · 성인 1인</span>
+                        <span className="price-type">{query.cabin === "BUSINESS" ? "비즈니스석 왕복" : "일반석 왕복"}{(query.pax ?? 1) > 1 ? ` · 성인 ${query.pax}인 총액` : ""}</span>
+                        <strong className="price-amount">{formatMoney(fare == null ? null : fare * (query.pax ?? 1))}</strong>
+                        <span className="price-meta">{(query.pax ?? 1) > 1 ? `세금 포함 · 1인 ${formatMoney(fare)}` : "세금 포함 · 성인 1인"}</span>
                       </div>
                       <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                         <Link
@@ -427,6 +438,7 @@ export default async function DestinationPage(props: { params: Params; searchPar
                             return: String(cell.return_date),
                             cabin: query.cabin,
                             traveler: query.traveler,
+                            pax: (query.pax ?? 1) > 1 ? query.pax : null,
                           })}
                           className="top-date-card__cta"
                           style={{ flex: 1, textAlign: "center" }}
@@ -459,7 +471,7 @@ export default async function DestinationPage(props: { params: Params; searchPar
               <summary className="matrix-summary-head">
                 <div>
                   <h2 className="section-title">전체 출발·귀국일 가격 매트릭스</h2>
-                  <p className="section-desc">출발일(세로)과 귀국일(가로)의 모든 조합별 최저가를 색상 히트맵으로 한눈에 비교합니다.</p>
+                  <p className="section-desc">출발일(세로)과 귀국일(가로)의 모든 조합별 최저가를 색상 히트맵으로 한눈에 비교합니다.{(query.pax ?? 1) > 1 ? " 표시 가격은 성인 1인 기준입니다." : ""}</p>
                 </div>
                 <div className="heatmap-legend">
                   <span className="legend-item"><span className="legend-box fare-level-1" /> 최저가</span>
@@ -523,6 +535,7 @@ export default async function DestinationPage(props: { params: Params; searchPar
                                       return: String(cell.return_date),
                                       cabin: query.cabin,
                                       traveler: query.traveler,
+                                      pax: (query.pax ?? 1) > 1 ? query.pax : null,
                                     })}
                                     className={`matrix-cell-link ${heatClass} ${isLowest ? "is-best-fare" : ""}`}
                                     aria-label={`${formatDate(departDate)} 출발 ${formatDate(returnDate)} 귀국 ${String(cell.stay_nights)}박, 최저가 ${formatMoney(fare)}`}

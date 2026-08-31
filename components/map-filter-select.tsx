@@ -8,12 +8,14 @@ export function MapFilterSelect({
   defaultValue,
   paramName,
   options,
+  basePath = "/map",
 }: {
   id: string;
   label: string;
   defaultValue: string;
   paramName: string;
   options: { code: string; label: string }[];
+  basePath?: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -22,7 +24,7 @@ export function MapFilterSelect({
     const val = e.target.value;
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set(paramName, val);
-    router.push(`/map?${nextParams.toString()}`);
+    router.push(`${basePath}?${nextParams.toString()}`);
   };
 
   return (
