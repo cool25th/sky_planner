@@ -16,12 +16,21 @@ export interface DealPriceRow {
   destination_code: string;
   economy_min_total: number | null;
   business_min_total: number | null;
+  // UX-20260902-001: 도달 알림의 "항공편 보기" 링크에 싣는 최저가 날짜 조합(map API 딜 필드).
+  economy_best_depart_date?: string | null;
+  economy_best_return_date?: string | null;
+}
+
+export interface DealPriceMatch {
+  price: number | null;
+  deal: DealPriceRow | null;
 }
 
 export interface AlertEvaluation {
   alert: StoredPriceAlert;
   currentPrice: number | null;
   reached: boolean;
+  deal: DealPriceRow | null;
 }
 
 const ALERTS_STORAGE_KEY = "sky_planner_price_alerts";
@@ -57,26 +66,38 @@ export function parseStoredPriceAlerts(raw: string | null): StoredPriceAlert[] {
   }
 }
 
-export function dealPriceLookup(deals: DealPriceRow[]): (alert: StoredPriceAlert) => number | null {
+export function dealPriceLookup(deals: DealPriceRow[]): (alert: StoredPriceAlert) => DealPriceMatch {
   const byCode = new Map(deals.map((deal) => [deal.destination_code, deal]));
   return (alert) => {
-    const deal = byCode.get(alert.destinationCode);
-    if (!deal) return null;
-    const price = alert.cabin === "BUSINESS" ? deal.business_min_total : deal.economy_min_total;
-    return typeof price === "number" && Number.isFinite(price) ? price : null;
+    const deal = byCode.get(alert.destinationCode) ?? null;
+    if (!deal) return { price: null, deal: null };
+    const raw = alert.cabin === "BUSINESS" ? deal.business_min_total : deal.economy_min_total;
+    const price = typeof raw === "number" && Number.isFinite(raw) ? raw : null;
+    return { price, deal };
   };
 }
 
 export function evaluatePriceAlerts(
   alerts: StoredPriceAlert[],
-  priceFor: (alert: StoredPriceAlert) => number | null,
+  lookup: (alert: StoredPriceAlert) => DealPriceMatch,
 ): { reached: AlertEvaluation[]; pending: AlertEvaluation[] } {
   const evaluations = alerts.map((alert) => {
-    const currentPrice = priceFor(alert);
-    return { alert, currentPrice, reached: currentPrice !== null && currentPrice <= alert.targetPrice };
+    const { price, deal } = lookup(alert);
+    return { alert, currentPrice: price, deal, reached: price !== null && price <= alert.targetPrice };
   });
   return {
     reached: evaluations.filter((item) => item.reached),
     pending: evaluations.filter((item) => !item.reached),
   };
+}
+
+// UX-20260902-001: /offers의 postgres 조회는 depart+return 필수다 — 없으면 데모 폴백으로 이어진다.
+// 딜의 최저가 날짜를 붙여 도달 알림이 실제 live 오퍼 목록으로 연결되게 한다. 날짜 결측 시 기존 링크 유지(폴백).
+export function offersHrefForAlert(alert: StoredPriceAlert, deal: DealPriceRow | null): string {
+  const params = new URLSearchParams({ origin: alert.origin, destination: alert.destinationCode });
+  if (deal?.economy_best_depart_date && deal?.economy_best_return_date) {
+    params.set("depart", deal.economy_best_depart_date);
+    params.set("return", deal.economy_best_return_date);
+  }
+  return `/offers?${params.toString()}`;
 }

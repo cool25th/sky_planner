@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import { formatMoney } from "@/lib/format";
 import {
+  type AlertEvaluation,
   dealPriceLookup,
   evaluatePriceAlerts,
+  offersHrefForAlert,
   parseStoredPriceAlerts,
   priceAlertsStorageKey,
-  type AlertEvaluation,
 } from "@/lib/price-alerts";
 
 // UX-20260831-006 MVP(재방문 비교): 발송 인프라 없이도 알림 가치를 먼저 제공한다 —
@@ -49,14 +50,16 @@ export function PriceAlertStatus() {
               🔔 설정하신 목표 가격에 도달했어요
             </p>
             <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: "6px" }}>
-              {result.reached.slice(0, MAX_REACHED_ROWS).map(({ alert, currentPrice }) => (
+              {result.reached.slice(0, MAX_REACHED_ROWS).map(({ alert, currentPrice, deal }) => (
                 <li key={alert.id} style={{ fontSize: "0.88rem", display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
                   <span>
                     <strong>{alert.cityName}</strong> 목표 {formatMoney(alert.targetPrice)} · 현재{" "}
                     <strong style={{ color: "var(--color-primary)" }}>{formatMoney(currentPrice ?? 0)}</strong>
                   </span>
                   <Link
-                    href={`/offers?origin=${encodeURIComponent(alert.origin)}&destination=${encodeURIComponent(alert.destinationCode)}`}
+                    // UX-20260902-001: depart/return 없는 /offers 링크는 postgres 조회가 비어 데모 폴백이 된다.
+                    // 딜의 최저가 날짜를 붙여 live 오퍼 목록으로 연결한다.
+                    href={offersHrefForAlert(alert, deal)}
                     style={{ fontSize: "0.85rem", whiteSpace: "nowrap" }}
                   >
                     항공편 보기 →
