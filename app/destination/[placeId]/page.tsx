@@ -126,10 +126,9 @@ export default async function DestinationPage(props: { params: Params; searchPar
     offers: {
       "@type": "AggregateOffer",
       priceCurrency: "KRW",
-      // SEO-20260902-001: 구조화 데이터의 대표 최저가는 stay_bucket·cabin 쿼리와 무관해야 한다.
-      // 셀 최저가를 쓰면 기본 5_7 조합의 셀 1개 가격이 대표가처럼 노출된다(왜곡) — 지도 딜의
-      // 최저가(전 체류 최저)를 우선하고 딜이 없을 때만 폴백. offerCount는 오퍼 수가 아닌 셀 수라 제거했다.
-      lowPrice: spotlight?.economy_min_total ?? lowestCellPrice ?? undefined,
+      // SEO-20260902-001: 이 페이지가 소유한 가격은 전부 stay_bucket·week 쿼리 종속이다(달력 셀도
+      // 지도 딜도 같은 버킷의 최저가) — 조건별 가격을 대표가처럼 노출하면 왜곡되므로 lowPrice를
+      // 붙이지 않는다. 전 체류 대표가 산출(버킷별 최저의 min, 별도 조회)이 생기면 재도입한다.
     },
   };
 
