@@ -31,7 +31,8 @@ test("stamp and formatTime render timestamps in KST regardless of runtime timezo
   const stamped = stamp("2026-08-28T15:17:04.439Z");
   assert.match(stamped, /8월 29일/);
   assert.match(stamped, /12:17/);
-  assert.match(formatTime("2026-08-24T09:05:00Z"), /06:05/);
+  // UX-20260901-003: formatTime은 24시간제 — 09:05Z는 KST 18:05.
+  assert.equal(formatTime("2026-08-24T09:05:00Z"), "18:05");
 });
 
 test("formatWeekNatural renders natural month-day ranges", () => {
@@ -57,6 +58,14 @@ test("formatTime degrades to a label instead of throwing on missing leg times", 
   // /offers SSR 전체를 RangeError로 죽이던 회귀 방어.
   assert.equal(formatTime(""), "시간 미정");
   assert.equal(formatTime("not-a-date"), "시간 미정");
+});
+
+test("formatTime renders leg times in 24-hour notation", () => {
+  // UX-20260901-003: 항공편 시각은 업계 표준 24시간제 — "오후 06:05" 오독 방지.
+  // 저장은 출발 계열(+09:00)·도착 계열(Z)이 혼재하므로 두 형식 모두 KST로 동일 렌더되는지 함께 고정한다.
+  assert.equal(formatTime("2026-09-07T18:05:00+09:00"), "18:05");
+  assert.equal(formatTime("2026-09-07T10:10:00.000Z"), "19:10");
+  assert.equal(formatTime("2026-09-10T10:55:00+09:00"), "10:55");
 });
 
 test("date helpers render compact and full dates", () => {

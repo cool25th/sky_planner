@@ -15,10 +15,11 @@ export function stamp(value: string): string {
 
 // UX-20260831-001: live 오퍼는 다리 시각이 결측될 수 있다(read-model이 NULL을 ""로 정규화) —
 // Intl format이 Invalid Date에서 throw하면 /offers 렌더 전체가 죽는다. stamp()와 같은 가드.
+// UX-20260901-003: 항공편 다리 시각은 업계 표준 24시간제로 표기한다("오후 06:05" 오독 방지).
 export function formatTime(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "시간 미정";
-  return new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Seoul" }).format(date);
+  return new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Seoul" }).format(date);
 }
 
 export function formatCompactDate(value: string): string {
