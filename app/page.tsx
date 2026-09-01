@@ -6,6 +6,7 @@ import { RecentDestinations } from "@/components/recent-destinations";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { TripCard } from "@/components/trip-card";
 import { AudienceCuration } from "@/components/audience-curation";
+import { PriceAlertStatus } from "@/components/price-alert-status";
 import { seasonForWeekCode } from "@/lib/audience-calendar";
 import { dataModeLabel } from "@/lib/data-source";
 import { stamp } from "@/lib/format";
@@ -213,6 +214,9 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
           </span>
         </div>
       )}
+
+      {/* UX-20260831-006 MVP: 저장된 가격 알림의 재방문 시점 도달 확인(클라이언트 비교 — 발송은 A3) */}
+      <PriceAlertStatus />
 
       {/* 1.5 최저가 스트립 (P0-commerce: 조건을 고르기 전에 가격을 먼저 보여준다) */}
       {stripDeals.length > 0 && (

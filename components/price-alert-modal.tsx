@@ -98,7 +98,7 @@ export function PriceAlertModal({
                     가격 알림 신청이 완료되었습니다!
                   </h4>
                   <p style={{ fontSize: "0.9rem", color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
-                    <strong>{cityName}</strong> 항공권이 <strong>{formatMoney(targetPrice)}</strong> 이하로 떨어지면 <strong>{email}</strong>(으)로 가장 먼저 알려드릴게요.
+                    <strong>{cityName}</strong> 항공권이 <strong>{formatMoney(targetPrice)}</strong> 이하로 확인되면 홈 화면에 표시해 드려요. 입력하신 <strong>{email}</strong>로의 발송은 준비되는 대로 함께 전달됩니다.
                   </p>
                   <button
                     type="button"
@@ -112,7 +112,7 @@ export function PriceAlertModal({
               ) : (
                 <form onSubmit={handleSubmit}>
                   <p style={{ fontSize: "0.88rem", color: "var(--color-text-secondary)", marginBottom: "18px", lineHeight: 1.5 }}>
-                    {origin} 출발 {cityName} 왕복 항공권 가격이 희망하시는 목표 가격 이하로 내려가면 즉시 이메일로 알림을 보내드립니다.
+                    {origin} 출발 {cityName} 왕복 항공권의 목표 가격을 저장해 두고, <strong>다시 방문하시면 홈 화면에서 도달 여부를 바로 확인</strong>해 드려요. 이메일 발송은 준비 중입니다.
                   </p>
 
                   <div className="price-alert-field">
@@ -143,7 +143,7 @@ export function PriceAlertModal({
                       required
                     />
                     <div className="price-alert-tip">
-                      스팸 메일 없이 목표 가격 도달 시에만 1회성 알림이 발송됩니다.
+                      목표가와 이메일은 이 브라우저에만 저장됩니다(서버 전송 없음).
                     </div>
                   </div>
 
