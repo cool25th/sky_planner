@@ -158,3 +158,12 @@ test("unknown destination returns a stable empty result", () => {
   assert.equal(result.total_offers, 0);
   assert.deepEqual(result.offers, []);
 });
+
+// DATA-20260828-001 완화(2026-09-01 승인): 스케줄 지연(관측 최대 8h15m)이 24h 마감을 넘기면
+// 실운임을 버리고 목 데이터로 갈아끼우던 것을 막는다 — 기본 임계 48h는 하루 종일 드랍이 아니면
+// 넘지 않는 여유. 정책 변경은 의도적인 결정이므로 계약으로 고정한다(env SOURCE_MAX_STALE_HOURS가 우선).
+test("default stale budget tolerates a full day of scheduler drift", async () => {
+  const { sourceMaxStaleHoursFromEnv } = await import("../lib/source-policy.ts");
+  assert.equal(sourceMaxStaleHoursFromEnv({}), 48);
+  assert.equal(sourceMaxStaleHoursFromEnv({ SOURCE_MAX_STALE_HOURS: "24" }), 24, "env가 우선한다");
+});

@@ -8,7 +8,10 @@ name: Daily fare batch
 #   VERCEL_REVALIDATE_SECRET        — /api/revalidate 호출용 (Vercel env과 동일값)
 on:
   schedule:
-    - cron: "0 17 * * *"
+    # DATA-20260828-001 완화: GitHub 스케줄은 best-effort 지연(관측 최대 8h15m)이라
+    # 슬롯 2개로 도착 기회를 늘린다. 배치는 멱등(같은 날 2회 실행 무해 — 09-01 실측).
+    - cron: "30 15 * * *" # 00:30 KST
+    - cron: "0 17 * * *"  # 02:00 KST
   workflow_dispatch:
   # DATA-20260828-001(B안 watchdog): batch-watchdog.yml이 last_batch 경과 20h 초과 시
   # 이 워크플로를 workflow_call로 대신 실행한다(secrets: inherit).

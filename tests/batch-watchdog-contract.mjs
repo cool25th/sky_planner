@@ -37,3 +37,12 @@ test("daily-batch accepts workflow_call from the watchdog", async () => {
   const yaml = await workflow("daily-batch.yml");
   assert.match(yaml, /^ {2}workflow_call:$/m);
 });
+
+test("daily-batch keeps two nightly schedule slots for scheduler-delay redundancy", async () => {
+  // DATA-20260828-001 완화: GitHub 스케줄 지연(관측 최대 8h15m)에 도착 기회를 2배로 늘린다.
+  // 배치는 멱등이라 같은 날 2회 실행이 무해하다(2026-09-01 이중 실행 실측).
+  const yaml = await workflow("daily-batch.yml");
+  for (const cron of ['"30 15 * * *"', '"0 17 * * *"']) {
+    assert.ok(yaml.includes(`- cron: ${cron}`), `missing schedule ${cron}`);
+  }
+});

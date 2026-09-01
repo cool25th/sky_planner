@@ -64,7 +64,12 @@ export const DEFAULT_ENABLED_SOURCE_FLAGS = SOURCE_POLICY_CATALOG
   .map((source) => source.source_id);
 
 type EnvLike = Record<string, string | undefined>;
-const DEFAULT_SOURCE_MAX_STALE_HOURS = 24;
+// DATA-20260828-001 완화(2026-09-01 승인): GitHub 스케줄 지연(관측 최대 8h15m)이 24h 마감을 넘기면
+// 살아 있는 실운임을 버리고 목 데이터로 갈아끼우던 것을 "스테일 라이브"로 바꾼다 — 48h는 하루 종일
+// 드랍이 아니면 넘지 않는 여유. 정직성 장치는 기존 것을 그대로 사용한다(스탬프에 실제 배치 시각 표시·
+// 오퍼 CTA 28h 후 "가격 갱신 대기 중"·오퍼 72h 후 숨김·배너 "일 1회 수집 참고 운임").
+// 운영은 SOURCE_MAX_STALE_HOURS env가 우선한다(프로덕션 값 갱신 필요 — 24 → 48).
+const DEFAULT_SOURCE_MAX_STALE_HOURS = 48;
 
 function envFlagEnabled(value: string | undefined, fallback: boolean) {
   if (value === undefined || value === "") return fallback;
