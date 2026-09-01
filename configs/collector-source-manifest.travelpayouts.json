@@ -1741,6 +1741,203 @@
           "allow_empty": true
         }
       }
+    },
+    {
+      "config": {
+        "schema_version": "collector.authorized_feed_source.v1",
+        "source_id": "travelpayouts_aviasales",
+        "source_type": "meta_search",
+        "parser_version": "authorized-json-feed-v1",
+        "endpoint": "https://api.travelpayouts.com/v1/prices/cheap",
+        "method": "GET",
+        "auth": {
+          "header_name": "X-Access-Token",
+          "token_env": "TRAVELPAYOUTS_API_KEY"
+        },
+        "query": {
+          "origin": "PUS",
+          "currency": "krw",
+          "limit": 100
+        },
+        "response_mapping": {
+          "adapter": "json_path_mapping",
+          "offers_path": "data",
+          "flatten_nested": {
+            "key_fields": [
+              "destination",
+              "offer_index"
+            ]
+          },
+          "templates": {
+            "id": "tppus_{destination}_{offer_index}_{departure_at|date}",
+            "depart_date": "{departure_at|date}",
+            "return_date": "{return_at|date}",
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{departure_at|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
+          },
+          "stay_nights_filter": {
+            "depart_field": "departure_at",
+            "return_field": "return_at",
+            "min": 3,
+            "max": 14
+          },
+          "defaults": {
+            "booking_source": "travelpayouts_aviasales",
+            "currency": "KRW"
+          },
+          "fields": {
+            "origin_airport": "origin",
+            "destination_airport": "destination",
+            "destination_city_id": "destination",
+            "destination_display_name": "display_name_ko",
+            "country_code": "country_code",
+            "region": "region",
+            "latitude": "latitude",
+            "longitude": "longitude",
+            "airline_code": "airline",
+            "airline_name": "airline",
+            "total_price": "price",
+            "duration_minutes": "duration_to",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "return_duration_minutes": "duration_back"
+          },
+          "allow_empty": true
+        }
+      }
+    },
+    {
+      "config": {
+        "schema_version": "collector.authorized_feed_source.v1",
+        "source_id": "travelpayouts_aviasales",
+        "source_type": "meta_search",
+        "parser_version": "authorized-json-feed-v1",
+        "endpoint": "https://api.travelpayouts.com/v1/prices/cheap",
+        "method": "GET",
+        "auth": {
+          "header_name": "X-Access-Token",
+          "token_env": "TRAVELPAYOUTS_API_KEY"
+        },
+        "query": {
+          "origin": "PUS",
+          "currency": "krw",
+          "limit": 100,
+          "depart_date": "{month}"
+        },
+        "response_mapping": {
+          "adapter": "json_path_mapping",
+          "offers_path": "data",
+          "flatten_nested": {
+            "key_fields": [
+              "destination",
+              "offer_index"
+            ]
+          },
+          "templates": {
+            "id": "tppus_{destination}_{offer_index}_{departure_at|date}",
+            "depart_date": "{departure_at|date}",
+            "return_date": "{return_at|date}",
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{departure_at|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
+          },
+          "stay_nights_filter": {
+            "depart_field": "departure_at",
+            "return_field": "return_at",
+            "min": 3,
+            "max": 14
+          },
+          "defaults": {
+            "booking_source": "travelpayouts_aviasales",
+            "currency": "KRW"
+          },
+          "fields": {
+            "origin_airport": "origin",
+            "destination_airport": "destination",
+            "destination_city_id": "destination",
+            "destination_display_name": "display_name_ko",
+            "country_code": "country_code",
+            "region": "region",
+            "latitude": "latitude",
+            "longitude": "longitude",
+            "airline_code": "airline",
+            "airline_name": "airline",
+            "total_price": "price",
+            "duration_minutes": "duration_to",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "return_duration_minutes": "duration_back"
+          },
+          "allow_empty": true
+        }
+      }
+    },
+    {
+      "config": {
+        "schema_version": "collector.authorized_feed_source.v1",
+        "source_id": "travelpayouts_aviasales",
+        "source_type": "meta_search",
+        "parser_version": "authorized-json-feed-v1",
+        "endpoint": "https://api.travelpayouts.com/v1/prices/cheap",
+        "method": "GET",
+        "auth": {
+          "header_name": "X-Access-Token",
+          "token_env": "TRAVELPAYOUTS_API_KEY"
+        },
+        "query": {
+          "origin": "PUS",
+          "currency": "krw",
+          "limit": 100,
+          "depart_date": "{month+1}"
+        },
+        "response_mapping": {
+          "adapter": "json_path_mapping",
+          "offers_path": "data",
+          "flatten_nested": {
+            "key_fields": [
+              "destination",
+              "offer_index"
+            ]
+          },
+          "templates": {
+            "id": "tppus_{destination}_{offer_index}_{departure_at|date}",
+            "depart_date": "{departure_at|date}",
+            "return_date": "{return_at|date}",
+            "deep_link": "https://www.aviasales.com/search/{origin}{destination}{departure_at|dmy}{return_at|dmy}1?marker=771170",
+            "arrival_time_local": "{departure_at|plus_minutes:duration_to}",
+            "return_arrival_time_local": "{return_at|plus_minutes:duration_back}"
+          },
+          "stay_nights_filter": {
+            "depart_field": "departure_at",
+            "return_field": "return_at",
+            "min": 3,
+            "max": 14
+          },
+          "defaults": {
+            "booking_source": "travelpayouts_aviasales",
+            "currency": "KRW"
+          },
+          "fields": {
+            "origin_airport": "origin",
+            "destination_airport": "destination",
+            "destination_city_id": "destination",
+            "destination_display_name": "display_name_ko",
+            "country_code": "country_code",
+            "region": "region",
+            "latitude": "latitude",
+            "longitude": "longitude",
+            "airline_code": "airline",
+            "airline_name": "airline",
+            "total_price": "price",
+            "duration_minutes": "duration_to",
+            "departure_time_local": "departure_at",
+            "return_departure_time_local": "return_at",
+            "return_duration_minutes": "duration_back"
+          },
+          "allow_empty": true
+        }
+      }
     }
   ]
 }
