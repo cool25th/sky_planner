@@ -1,19 +1,18 @@
 import type { Metadata } from "next";
+import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { unstable_noStore as noStore } from "next/cache";
-
-import { RecentDestinationTracker } from "@/components/recent-destinations";
-import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
-import { MatrixKeyboardNavigator } from "@/components/matrix-keyboard-navigator";
-import { MapFilterSelect } from "@/components/map-filter-select";
-import { ShareButton } from "@/components/share-button";
-import { PriceAlertModal } from "@/components/price-alert-modal";
 import { BoardingPassModal } from "@/components/boarding-pass-modal";
 import { DestinationCompareModal } from "@/components/destination-compare-modal";
+import { MapFilterSelect } from "@/components/map-filter-select";
+import { MatrixKeyboardNavigator } from "@/components/matrix-keyboard-navigator";
+import { PriceAlertModal } from "@/components/price-alert-modal";
+import { RecentDestinationTracker } from "@/components/recent-destinations";
+import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
+import { ShareButton } from "@/components/share-button";
 import { dataModeLabel, resolveCalendarResponse, resolveMapResponse } from "@/lib/data-source";
 import { formatDate, formatMoney, isPastWeek, stamp } from "@/lib/format";
-import { TRIP_BUCKETS, parseCalendarQuery, parseMapQuery, formatWeekNatural, availableWeeks, getDestinationList } from "@/lib/mock-market";
+import { availableWeeks, formatWeekNatural, getDestinationList, parseCalendarQuery, parseMapQuery, TRIP_BUCKETS } from "@/lib/mock-market";
 import { PAX_CHILD_NOTE, PRICE_DEFINITION_SHORT } from "@/lib/price-definition";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
 import { href, siteUrl } from "@/lib/url";
@@ -127,8 +126,10 @@ export default async function DestinationPage(props: { params: Params; searchPar
     offers: {
       "@type": "AggregateOffer",
       priceCurrency: "KRW",
-      lowPrice: lowestCellPrice ?? undefined,
-      offerCount: validCells.length,
+      // SEO-20260902-001: 구조화 데이터의 대표 최저가는 stay_bucket·cabin 쿼리와 무관해야 한다.
+      // 셀 최저가를 쓰면 기본 5_7 조합의 셀 1개 가격이 대표가처럼 노출된다(왜곡) — 지도 딜의
+      // 최저가(전 체류 최저)를 우선하고 딜이 없을 때만 폴백. offerCount는 오퍼 수가 아닌 셀 수라 제거했다.
+      lowPrice: spotlight?.economy_min_total ?? lowestCellPrice ?? undefined,
     },
   };
 
