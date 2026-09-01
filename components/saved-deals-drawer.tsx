@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { href } from "@/lib/url";
-import { formatMoney, formatWeekNatural } from "@/lib/format";
+import { useCallback, useEffect, useState } from "react";
 import type { BookmarkedDeal } from "@/components/bookmark-button";
+import { formatMoney, formatWeekNatural } from "@/lib/format";
+import { href } from "@/lib/url";
 
 const STORAGE_KEY = "sky_planner_saved_deals";
 

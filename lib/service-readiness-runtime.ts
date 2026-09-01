@@ -8,8 +8,8 @@ import { errorMessage } from "@/lib/error-message";
 import { policyArtifactSnapshot, userExperienceArtifactSnapshot } from "@/lib/readiness-artifacts";
 import { sourceCredentialRequirementsFromManifestEnv } from "@/lib/service-credential-requirements";
 import { buildServiceReadinessSnapshot, serviceSourceScope } from "@/lib/service-readiness";
-import { buildSourceReadinessSnapshot, type SourceHealthRow, type SourceJobRow } from "@/lib/source-readiness";
 import { SOURCE_POLICY_CATALOG, sourceIdForBookingSourceKey } from "@/lib/source-policy";
+import { buildSourceReadinessSnapshot, type SourceHealthRow, type SourceJobRow } from "@/lib/source-readiness";
 
 interface DeepLinkRow {
   deep_link: string | null;

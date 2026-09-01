@@ -1,11 +1,11 @@
+import { serviceRequiresPostgres } from "./service-mode.ts";
 import {
-  SOURCE_POLICY_CATALOG,
   enabledSourceFlagsFromEnv,
+  SOURCE_POLICY_CATALOG,
+  type SourceHealthStatus,
   sourceHealthBlockReason,
   sourceMaxStaleHoursFromEnv,
-  type SourceHealthStatus,
 } from "./source-policy.ts";
-import { serviceRequiresPostgres } from "./service-mode.ts";
 
 type EnvLike = Record<string, string | undefined>;
 // DATA-20260829-001: TP 단일 실소스 체제(사용자 승인 2026-08-30) — 최소 검색 자격 소스 1.

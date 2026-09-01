@@ -2,19 +2,19 @@ import "server-only";
 
 import { query as pgQuery } from "@/lib/db";
 import {
+  buildSearchResult,
   DEFAULT_TRAVELER,
   type DestinationMatch,
+  findDestinationMatches,
+  isBroadDestinationSearch,
   type SearchDestination,
   type SearchQuery,
   type SearchResult,
-  buildSearchResult,
-  findDestinationMatches,
-  isBroadDestinationSearch,
 } from "@/lib/mock-market";
 import { eligibleBookingSourceKeys } from "@/lib/source-policy";
 import { countryLabel, normalizeRegion } from "./labels";
-import { postgresConfigured } from "./source-context";
 import { mapOfferFromSql, parseOfferJoinRow } from "./row-mappers";
+import { postgresConfigured } from "./source-context";
 
 export async function resolveSearchDataFromPostgres(
   searchQuery: SearchQuery,

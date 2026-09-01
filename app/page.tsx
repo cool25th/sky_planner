@@ -1,17 +1,16 @@
-import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
-
-import { RecentSearches } from "@/components/recent-searches";
-import { RecentDestinations } from "@/components/recent-destinations";
-import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
-import { TripCard } from "@/components/trip-card";
+import Link from "next/link";
 import { AudienceCuration } from "@/components/audience-curation";
 import { PriceAlertStatus } from "@/components/price-alert-status";
+import { RecentDestinations } from "@/components/recent-destinations";
+import { RecentSearches } from "@/components/recent-searches";
+import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
+import { TripCard } from "@/components/trip-card";
 import { seasonForWeekCode } from "@/lib/audience-calendar";
 import { dataModeLabel } from "@/lib/data-source";
 import { stamp } from "@/lib/format";
-import { getMetaData, parseMapQuery, formatWeekNatural } from "@/lib/mock-market";
 import { resolveMapResponseWithBookableWeek } from "@/lib/map-week-fallback";
+import { formatWeekNatural, getMetaData, parseMapQuery } from "@/lib/mock-market";
 import { curateFeaturedDeals } from "@/lib/recommendation";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
 import { selectLowestPriceDeals, toTripCardModel } from "@/lib/trip-card";

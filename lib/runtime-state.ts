@@ -1,8 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-
-import { ACTIVE_SOURCE_FLAGS, DEFAULT_LAST_BATCH_AT, GENERATED_AT } from "./mock-market";
 import { isHiddenFare } from "./fare-freshness.ts";
+import { ACTIVE_SOURCE_FLAGS, DEFAULT_LAST_BATCH_AT, GENERATED_AT } from "./mock-market";
 
 const runtimeDir = join(process.cwd(), "runtime");
 const batchStatePath = join(runtimeDir, "batch-state.json");

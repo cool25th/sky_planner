@@ -3,10 +3,10 @@ import Link from "next/link";
 import Script from "next/script";
 import "maplibre-gl/dist/maplibre-gl.css";
 
+import { CommandPalette } from "@/components/command-palette";
+import { CurrencyToggle } from "@/components/currency-toggle";
 import { SavedDealsDrawer } from "@/components/saved-deals-drawer";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { CurrencyToggle } from "@/components/currency-toggle";
-import { CommandPalette } from "@/components/command-palette";
 import { resolveSupportContact } from "@/lib/service-contact";
 import "./globals.css";
 

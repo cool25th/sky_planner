@@ -3,14 +3,14 @@
 import { useState } from "react";
 
 import { TripCard } from "@/components/trip-card";
-import type { TripCardModel } from "@/lib/trip-card";
 import {
   AGE_GROUP_LABELS,
+  type AgeGroup,
   audienceChipLabel,
   orderForAudience,
-  type AgeGroup,
   type Season,
 } from "@/lib/audience-calendar";
+import type { TripCardModel } from "@/lib/trip-card";
 
 // UX-20260830-002: 연령대 칩으로 큐레이션 그리드를 재정렬한다. 후보는 서버가 점수순으로
 // 12개를 전달하고(전체=상위 4 그대로), 연령 선택 시 친화도 순으로 4개를 다시 뽑는다.

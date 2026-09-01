@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { href } from "@/lib/url";
+import { useCallback, useEffect, useState } from "react";
 import { formatWeekNatural } from "@/lib/format";
+import { href } from "@/lib/url";
 
 export interface RecentSearchItem {
   id: string;

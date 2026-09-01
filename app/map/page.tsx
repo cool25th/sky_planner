@@ -1,17 +1,17 @@
-import Link from "next/link";
 import { unstable_noStore as noStore } from "next/cache";
+import Link from "next/link";
 
 import { MapFilterSelect } from "@/components/map-filter-select";
 import { MapSplitView } from "@/components/map-split-view";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { ShareButton } from "@/components/share-button";
 import { dataModeLabel, resolveMetaResponse } from "@/lib/data-source";
-import { resolveMapResponseWithBookableWeek } from "@/lib/map-week-fallback";
 import { isPastWeek } from "@/lib/format";
+import { resolveMapResponseWithBookableWeek } from "@/lib/map-week-fallback";
 import {
-  parseMapQuery,
-  formatWeekNatural,
   availableWeeks,
+  formatWeekNatural,
+  parseMapQuery,
 } from "@/lib/mock-market";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
 import { href } from "@/lib/url";

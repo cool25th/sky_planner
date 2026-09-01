@@ -1,12 +1,12 @@
 import "server-only";
 
 import { query as pgQuery } from "@/lib/db";
-import type { OffersData, OffersQuery } from "@/lib/mock-market";
 import { isHiddenFare } from "@/lib/fare-freshness";
+import type { OffersData, OffersQuery } from "@/lib/mock-market";
 import { eligibleBookingSourceKeys } from "@/lib/source-policy";
 import { queryOrigins } from "./labels";
-import { postgresConfigured } from "./source-context";
 import { mapOfferFromSql, parseOfferJoinRow } from "./row-mappers";
+import { postgresConfigured } from "./source-context";
 
 export async function resolveOffersDataFromPostgres(
   offersQuery: OffersQuery,

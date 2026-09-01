@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-
-import { availableWeeks } from "../lib/mock-market.ts";
 import { dataModeLabel, defaultBatchAt, resolveMapResponse, resolveMetaResponse } from "../lib/data-source.ts";
+import { availableWeeks } from "../lib/mock-market.ts";
 
 // TEST-20260822-002: BFF 데이터 경로 계약 — DB 미구성 테스트 프로세스에서
 // mock 폴백 진단·data_mode 라벨·suppressMockFallback 분기를 직접 검증한다.

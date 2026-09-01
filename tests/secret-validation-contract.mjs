@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { secretValueFailure, MIN_PRODUCTION_SECRET_LENGTH } from "../lib/secret-validation.ts";
+import { MIN_PRODUCTION_SECRET_LENGTH, secretValueFailure } from "../lib/secret-validation.ts";
 
 // TEST-20260822-003: 신뢰 경계(placeholder 거부·길이·누락) 규칙의 허용/거부 케이스 표.
 

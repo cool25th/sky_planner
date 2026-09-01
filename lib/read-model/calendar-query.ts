@@ -5,8 +5,8 @@ import type { CalendarData, CalendarQuery } from "@/lib/mock-market";
 import { buildCalendarDataFromOffers } from "@/lib/read-model-source-filter";
 import { eligibleBookingSourceKeys } from "@/lib/source-policy";
 import { countryLabel, normalizeRegion, queryOrigins, regionLabel } from "./labels";
-import { postgresConfigured } from "./source-context";
 import { mapOfferFromSql, parseOfferJoinRow } from "./row-mappers";
+import { postgresConfigured } from "./source-context";
 
 type CalendarDestination = NonNullable<CalendarData["destination"]>;
 

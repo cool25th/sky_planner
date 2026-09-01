@@ -3,21 +3,21 @@ import { z } from "zod";
 import {
   DEFAULT_STAY_BUCKET,
   DEFAULT_TRAVELER,
+  getMetaData,
   type MapDeal,
   type MapQuery,
   type Offer,
-  getMetaData,
 } from "@/lib/mock-market";
 import {
   AIRLINE_BY_CODE,
   AIRLINE_NAME_BY_CODE,
-  TRIP_BUCKET_LABEL_BY_CODE,
   countryLabel,
   normalizeCabin,
   normalizePriceStatus,
   normalizeRegion,
   normalizeStayBucket,
   regionLabel,
+  TRIP_BUCKET_LABEL_BY_CODE,
 } from "./labels";
 
 // node-pg 타입 매핑: NUMERIC→string|null, TIMESTAMPTZ/DATE→Date|null, TEXT[]→string[]|null(DDL이 DEFAULT만 있고 NOT NULL 아님), FLOAT8→number|null

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { href } from "@/lib/url";
+import { useState } from "react";
 import { formatMoney } from "@/lib/format";
+import { href } from "@/lib/url";
 
 interface DestinationMeta {
   code: string;

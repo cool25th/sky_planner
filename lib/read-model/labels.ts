@@ -1,9 +1,9 @@
 import {
   AIRLINES,
   DEFAULT_STAY_BUCKET,
-  TRIP_BUCKETS,
-  type MapQuery,
   getMetaData,
+  type MapQuery,
+  TRIP_BUCKETS,
 } from "@/lib/mock-market";
 
 export const AIRLINE_NAME_BY_CODE = new Map(AIRLINES.map((airline) => [airline.code, airline.name]));

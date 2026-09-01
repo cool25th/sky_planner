@@ -8,8 +8,8 @@ import {
   mapDealMatchesCabin,
 } from "@/lib/read-model-source-filter";
 import { AIRLINE_NAME_BY_CODE, queryOrigins } from "./labels";
-import { postgresConfigured } from "./source-context";
 import { mapDealFromSql, mergeMapDeals, parseDealCurrentRow, passesAirlineFilter, sortDeals } from "./row-mappers";
+import { postgresConfigured } from "./source-context";
 
 // UX-20260828-001: 쿼리는 실행했지만 예약 가능한 출발일이 없는 경우(주 후반·과거 주간·조건 무일치).
 // null을 반환하면 "DB 미구성"과 같은 mock 폴백(데모 가격 표시)으로 내려가므로 빈 live 결과로 응답한다.

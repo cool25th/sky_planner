@@ -1,37 +1,37 @@
 import "server-only";
 
 import {
-  DEFAULT_LAST_BATCH_AT,
-  GENERATED_AT,
   type ApiResponse,
   type CalendarData,
   type CalendarQuery,
+  DEFAULT_LAST_BATCH_AT,
+  envelope,
+  GENERATED_AT,
+  getCalendarData,
+  getMapData,
+  type getMetaData,
+  getOffersData,
+  getSearchResults,
   type MapData,
   type MapQuery,
   type OffersData,
   type OffersQuery,
   type SearchQuery,
   type SearchResult,
-  envelope,
-  getCalendarData,
-  getMapData,
-  type getMetaData,
-  getOffersData,
-  getSearchResults,
 } from "@/lib/mock-market";
 import { getBatchState } from "@/lib/runtime-state";
 import { serviceRequiresPostgres } from "@/lib/service-mode";
 import { resolveCalendarDataFromPostgres } from "./read-model/calendar-query";
-import { resolveMapDataFromPostgres } from "./read-model/map-query";
-import { resolveOffersDataFromPostgres } from "./read-model/offers-query";
-import { resolveSearchDataFromPostgres } from "./read-model/search-query";
 import {
   addDiagnostics,
   sanitizedPostgresFailure,
   sourceReadinessFallbackReason,
   suppressMockFallback,
 } from "./read-model/diagnostics";
+import { resolveMapDataFromPostgres } from "./read-model/map-query";
+import { resolveOffersDataFromPostgres } from "./read-model/offers-query";
 import { buildMetaFromSourceFlags } from "./read-model/row-mappers";
+import { resolveSearchDataFromPostgres } from "./read-model/search-query";
 import { postgresConfigured, resolveSourceContext } from "./read-model/source-context";
 
 const MOCK_FALLBACK_WARNING_FLAGS = ["mock_data_source", "daily_batch_cached", "final_price_check_on_booking_source"];

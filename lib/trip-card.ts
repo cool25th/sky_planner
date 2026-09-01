@@ -1,10 +1,9 @@
 import { formatCompactDate, formatMoney } from "./format.ts";
+import type { CabinCode, StayBucket } from "./mock-market.ts";
 import { PRICE_DEFINITION_SHORT } from "./price-definition.ts";
 import { stayIncludesWeekend } from "./recommendation.ts";
 import { holidayReason, holidaysInStay } from "./season-calendar.ts";
 import { href } from "./url.ts";
-
-import type { CabinCode, StayBucket } from "./mock-market.ts";
 
 export type TripCardVariant = "grid" | "strip" | "compact";
 export type TripCardBadgeTone = "emphasis" | "neutral";

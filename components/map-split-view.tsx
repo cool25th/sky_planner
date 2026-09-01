@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import Link from "next/link";
 import dynamic from "next/dynamic";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { saveRecentSearch } from "@/components/recent-searches";
 import { TripCard } from "@/components/trip-card";
+import { stamp } from "@/lib/format";
 import type { MapDeal, MapQuery } from "@/lib/mock-market";
 import { PRICE_DEFINITION_SHORT } from "@/lib/price-definition";
-import { stamp } from "@/lib/format";
 import { toTripCardModel } from "@/lib/trip-card";
 import { href } from "@/lib/url";
 

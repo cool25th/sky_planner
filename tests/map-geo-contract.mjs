@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  ORIGIN_COORDS,
-  STAY_BUCKET_LABELS,
   formatFareShort,
   interpolateGreatCircle,
+  ORIGIN_COORDS,
   originCoordFor,
+  STAY_BUCKET_LABELS,
 } from "../lib/map-geo.ts";
 
 function closeTo(actual, expected, tolerance = 1e-9) {

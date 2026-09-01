@@ -1,16 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import type { Map as MaplibreMap } from "maplibre-gl";
 // INT-20260901-001: maplibre-gl 6은 default export를 제거했다 — namespace import로 전환.
 import * as maplibregl from "maplibre-gl";
-import type { Map as MaplibreMap } from "maplibre-gl";
-
-import type { MapDeal, MapQuery } from "@/lib/mock-market";
-import { clusterDeals, dealMinFare, type DealCluster } from "@/lib/map-clustering";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { formatMoney, formatWeekNatural, stamp } from "@/lib/format";
+import { clusterDeals, type DealCluster, dealMinFare } from "@/lib/map-clustering";
+import { formatFareShort, interpolateGreatCircle, originCoordFor, STAY_BUCKET_LABELS } from "@/lib/map-geo";
+import type { MapDeal, MapQuery } from "@/lib/mock-market";
 import { href } from "@/lib/url";
-import { STAY_BUCKET_LABELS, formatFareShort, interpolateGreatCircle, originCoordFor } from "@/lib/map-geo";
 
 // 국경 위주의 추상화된 벡터 스타일(딜 마커가 도시명·가격을 직접 표시하므로 기저 지도는 맥락만 제공).
 // 상세 지도가 필요해지면 NEXT_PUBLIC_MAPTILER_STYLE_URL로 교체한다.

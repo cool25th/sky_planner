@@ -1,11 +1,10 @@
 import { createHash } from "node:crypto";
-
+import { isHiddenFare } from "./fare-freshness.ts";
+import { formatWeekNatural } from "./format.ts";
 import {
   DEFAULT_ENABLED_SOURCE_FLAGS,
   isOfferSourceEligible,
 } from "./source-policy.ts";
-import { isHiddenFare } from "./fare-freshness.ts";
-import { formatWeekNatural } from "./format.ts";
 
 export { formatWeekNatural };
 

@@ -1,7 +1,7 @@
-import { resolveSupportContact } from "./service-contact.ts";
-import type { SourceCredentialRequirements } from "./service-credential-requirements.ts";
 import { OPS_READINESS_TOKEN_ENV, opsReadinessTokenFailure } from "./ops-visibility.ts";
 import { secretValueFailure } from "./secret-validation.ts";
+import { resolveSupportContact } from "./service-contact.ts";
+import type { SourceCredentialRequirements } from "./service-credential-requirements.ts";
 import { SERVICE_REQUIRE_POSTGRES_ENV, serviceRequirePostgresFailure } from "./service-mode.ts";
 import { SOURCE_POLICY_CATALOG, sourceMaxStaleHoursFromEnv } from "./source-policy.ts";
 import { MINIMUM_SEARCH_ELIGIBLE_SOURCES } from "./source-readiness.ts";
