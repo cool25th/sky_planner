@@ -81,6 +81,7 @@ test("dealPriceLookup maps destination and cabin to the matching price column", 
 
 // UX-20260902-001: 도달 알림 링크는 depart+return을 싣는다 — /offers의 postgres 조회는 둘 필수라
 // 빠지면 데모 폴백 화면으로 이어진다. 딜의 최저가 날짜가 없는 알림만 기존(날짜 없음) 링크로 폴백.
+// UX-20260903-002: 비즈니스 알림은 cabin=BUSINESS를 붙여 표시 가격과 같은 캐빈의 목록으로 연결한다.
 test("offersHrefForAlert carries the deal's best dates for the live offers query", () => {
   const withDates = {
     destination_code: "FUK",
@@ -92,6 +93,7 @@ test("offersHrefForAlert carries the deal's best dates for the live offers query
   assert.equal(
     offersHrefForAlert({ ...baseAlert }, withDates),
     "/offers?origin=ICN&destination=FUK&depart=2026-09-07&return=2026-09-10",
+    "이코노미 알림은 캐빈 파라미터 없음(기존 계약)",
   );
   assert.equal(
     offersHrefForAlert({ ...baseAlert }, { destination_code: "FUK", economy_min_total: 146960, business_min_total: null }),
@@ -101,12 +103,53 @@ test("offersHrefForAlert carries the deal's best dates for the live offers query
   assert.equal(offersHrefForAlert({ ...baseAlert }, null), "/offers?origin=ICN&destination=FUK", "딜 매칭 실패도 폴백");
   assert.equal(
     offersHrefForAlert(
-      { ...baseAlert, origin: "PUS", destinationCode: "TYO", cabin: "BUSINESS" },
+      { ...baseAlert, destinationCode: "TYO", cabin: "BUSINESS" },
+      {
+        ...withDates,
+        destination_code: "TYO",
+        business_best_depart_date: "2026-09-14",
+        business_best_return_date: "2026-09-18",
+      },
+    ),
+    "/offers?origin=ICN&destination=TYO&depart=2026-09-14&return=2026-09-18&cabin=BUSINESS",
+    "비즈니스 알림은 비즈니스 best 날짜 + cabin=BUSINESS",
+  );
+  assert.equal(
+    offersHrefForAlert(
+      { ...baseAlert, destinationCode: "TYO", cabin: "BUSINESS" },
       { ...withDates, destination_code: "TYO" },
     ),
-    "/offers?origin=PUS&destination=TYO&depart=2026-09-07&return=2026-09-10",
-    "비즈니스 알림도 이코노미 최저가 날짜로 연결(링크는 좌석 무관 목록)",
+    "/offers?origin=ICN&destination=TYO&depart=2026-09-07&return=2026-09-10&cabin=BUSINESS",
+    "비즈니스 날짜 결측 시 이코노미 날짜 + cabin=BUSINESS(빈 목록은 정직, 데모 폴백 아님)",
   );
+});
+
+// UX-20260903-001: 홈은 출발지별 map API 응답을 한 목록으로 합친다 — 같은 목적지가 ICN/PUS 양쪽에서 오면
+// 목적지만으로 조회하면 마지막 출발지 가격이 모든 알림에 적용된다. 알림 origin으로 딜을 고른다.
+test("dealPriceLookup picks the deal matching the alert origin across merged responses", () => {
+  const lookup = dealPriceLookup([
+    {
+      destination_code: "FUK",
+      economy_min_total: 200000,
+      business_min_total: null,
+      best_origin_by_cabin: { ECONOMY: "ICN", BUSINESS: null },
+      economy_best_depart_date: "2026-09-09",
+      economy_best_return_date: "2026-09-12",
+    },
+    {
+      destination_code: "FUK",
+      economy_min_total: 123205,
+      business_min_total: null,
+      best_origin_by_cabin: { ECONOMY: "PUS", BUSINESS: null },
+      economy_best_depart_date: "2026-09-08",
+      economy_best_return_date: "2026-09-11",
+    },
+  ]);
+  assert.equal(lookup({ ...baseAlert, origin: "PUS" }).price, 123205, "PUS 알림은 PUS 딜 가격");
+  assert.equal(lookup({ ...baseAlert, origin: "ICN" }).price, 200000, "ICN 알림은 ICN 딜 가격");
+  assert.equal(lookup({ ...baseAlert, origin: "SEL" }).price, 200000, "SEL 알림은 메트로 등가 ICN 딜과 매칭");
+  const pusDeal = lookup({ ...baseAlert, origin: "PUS" }).deal;
+  assert.equal(pusDeal?.economy_best_depart_date, "2026-09-08", "링크 날짜도 같은 출발지 딜에서 온다");
 });
 
 test("storage key stays stable across visits", () => {
