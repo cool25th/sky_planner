@@ -1,3 +1,5 @@
+import { createHash, timingSafeEqual } from "node:crypto";
+
 export const MIN_PRODUCTION_SECRET_LENGTH = 16;
 
 export type SecretValueFailureReason = "missing" | "placeholder_value" | "too_short";
@@ -31,4 +33,11 @@ export function secretValueFailure(
   }
   if (minLength > 0 && trimmed.length < minLength) return "too_short";
   return null;
+}
+
+// SEC-20260903-001: 요청이 보낸 시크릿과 설정된 시크릿의 비교는 타이밍 안전하게 한다.
+// timingSafeEqual은 길이가 다르면 예외를 던지므로 양쪽을 sha256로 다이제스트해 길이를 맞춘 뒤 비교한다.
+export function secretMatches(provided: string, configured: string): boolean {
+  const digest = (value: string) => createHash("sha256").update(value).digest();
+  return timingSafeEqual(digest(provided), digest(configured));
 }

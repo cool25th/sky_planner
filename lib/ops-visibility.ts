@@ -1,3 +1,4 @@
+import { secretMatches } from "./secret-validation.ts";
 import type { ServiceAxis, ServiceCheck, ServiceReadinessSnapshot } from "./service-readiness.ts";
 
 export const OPS_READINESS_TOKEN_ENV = "OPS_READINESS_TOKEN";
@@ -541,7 +542,7 @@ export function resolveOpsRequestVisibility(
   }
 
   const configuredToken = String(env[OPS_READINESS_TOKEN_ENV]).trim();
-  const authenticated = requestToken(request) === configuredToken;
+  const authenticated = secretMatches(requestToken(request), configuredToken);
   return {
     visibility: authenticated ? "internal" : "public",
     token_configured: true,

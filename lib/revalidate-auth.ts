@@ -1,4 +1,4 @@
-import { secretValueFailure } from "./secret-validation.ts";
+import { secretMatches, secretValueFailure } from "./secret-validation.ts";
 
 export { secretValueFailure };
 
@@ -17,5 +17,5 @@ export function isRevalidateRequestAuthorized(
 ) {
   const configuredSecret = env.VERCEL_REVALIDATE_SECRET;
   if (secretValueFailure(configuredSecret)) return false;
-  return revalidateRequestSecret(request) === configuredSecret;
+  return secretMatches(revalidateRequestSecret(request), configuredSecret ?? "");
 }
