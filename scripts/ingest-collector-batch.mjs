@@ -305,7 +305,16 @@ function buildOfferRows(batch) {
   });
 }
 
-function buildSnapshotRows(offerRows) {
+// DATA-20260904-001: require/database.md 보존 계약 — fare_snapshots expire_at은 수집시각+90일.
+// 만료 정리(DELETE) 소비자는 별도 승인 작업으로 남는다(여기선 만료 시각만 계약대로 기록).
+const SNAPSHOT_RETENTION_DAYS = 90;
+
+function snapshotExpireAt(capturedAt) {
+  const ms = Date.parse(capturedAt);
+  return Number.isFinite(ms) ? new Date(ms + SNAPSHOT_RETENTION_DAYS * 86_400_000).toISOString() : null;
+}
+
+export function buildSnapshotRows(offerRows) {
   return offerRows.map((offer) => ({
     snapshot_id: `snapshot-${md5(`${offer.offer_id}|${offer.execution_id}`).slice(0, 20)}`,
     snapshot_key: `${offer.origin_airport}_${offer.destination_city_id}_${offer.depart_date}_${offer.return_date}_${offer.cabin_group}_${offer.traveler}_${offer.booking_source}`,
@@ -334,7 +343,7 @@ function buildSnapshotRows(offerRows) {
     raw_payload_ref: offer.raw_payload_ref,
     verification_status: offer.price_anomaly_status === "anomaly" ? "failed" : "verified",
     price_anomaly_status: offer.price_anomaly_status,
-    expire_at: null,
+    expire_at: snapshotExpireAt(offer.captured_at),
   }));
 }
 
