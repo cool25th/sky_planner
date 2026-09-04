@@ -35,6 +35,10 @@ export async function resolveOffersDataFromPostgres(
       AND o.traveler = $5
       AND o.is_active = true
       AND o.depart_date >= CURRENT_DATE
+      AND COALESCE(o.bookability_status, 'available') <> 'sold_out'
+      AND COALESCE(o.price_status, 'active') <> 'sold_out'
+      AND COALESCE(o.price_anomaly_status, 'normal') = 'normal'
+      AND COALESCE(o.quality_bucket, 'preferred') <> 'excluded'
       AND (
         LOWER(COALESCE(o.booking_source, '')) = ANY($6::text[])
         OR (
