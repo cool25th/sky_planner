@@ -662,3 +662,58 @@ test("allow_empty mapping returns empty offers instead of throwing", async () =>
   assert.deepEqual(mapped.offers, []);
   assert.equal(normalizeAuthorizedFeedPayload(payload, config), null, "allow_empty + 빈 결과는 null(→ skipped)");
 });
+
+// DATA-20260901-002 슬리밍: 매니페스트 stay_nights_filter는 min/max만 남기고 필드명은
+// 런타임 기본값(departure_at/return_at — 스키마 default·Python 파리티)에 맡긴다.
+// 필드명 없는 필터도 직접 호출 경로에서 체류 필터가 살아 있어야 한다.
+test("stay_nights_filter without field names falls back to departure_at/return_at", () => {
+  const config = {
+    schema_version: "collector.authorized_feed_source.v1",
+    source_id: "travelpayouts_aviasales_test",
+    source_type: "meta_search",
+    endpoint: "https://api.example.test/cheap",
+    auth: { header_name: "X-Access-Token", token_env: "TEST_TOKEN" },
+    query: { origin: "PUS", currency: "krw" },
+    response_mapping: {
+      adapter: "json_path_mapping",
+      offers_path: "data",
+      flatten_nested: { key_fields: ["destination", "offer_index"] },
+      places_lookup: {
+        key_field: "destination",
+        drop_unmatched: true,
+        entries: {
+          FUK: { display_name_ko: "후쿠오카", display_name_en: "Fukuoka", country_code: "JP", region: "JAPAN" },
+          FUK2: { display_name_ko: "테스트", display_name_en: "Test", country_code: "JP", region: "JAPAN" },
+        },
+      },
+      templates: {
+        id: "tpcalpus_{destination}_{departure_at|date}_{return_at|date}",
+        depart_date: "{departure_at|date}",
+        return_date: "{return_at|date}",
+        deep_link: "https://www.aviasales.com/search/{origin}{destination}{departure_at|dmy}{return_at|dmy}1?marker=TEST",
+      },
+      stay_nights_filter: { min: 3, max: 14 },
+      defaults: { booking_source: "travelpayouts_aviasales" },
+      fields: {
+        origin_airport: "origin",
+        destination_airport: "destination",
+        destination_city_id: "destination",
+        destination_display_name: "display_name_ko",
+        country_code: "country_code",
+        region: "region",
+        airline_code: "airline",
+        airline_name: "airline",
+        total_price: "price",
+      },
+    },
+  };
+  const payload = {
+    data: {
+      FUK: { 1: { airline: "LJ", departure_at: "2026-09-08T18:05:00+09:00", return_at: "2026-09-11T20:10:00+09:00", price: 123205 } },
+      FUK2: { 2: { airline: "7C", departure_at: "2026-09-08T07:00:00+09:00", return_at: "2026-09-09T08:00:00+09:00", price: 90000 } },
+    },
+  };
+  const result = mapJsonPathFeedPayload(payload, config, { now: new Date("2026-09-04T00:00:00Z") });
+  assert.equal(result.offers.length, 1, "1박(버킷 밖) 행은 기본 필드명 필터로 버려야 한다");
+  assert.equal(result.offers[0].id, "tpcalpus_FUK_2026-09-08_2026-09-11");
+});

@@ -104,8 +104,9 @@ class AuthorizedJsonFeedConnector(BaseConnector):
                     elif lookup.get("drop_unmatched"):
                         continue
                 if stay_filter:
-                    depart = str(get_by_path(row, stay_filter.get("depart_field", "")) or "")[:10]
-                    ret = str(get_by_path(row, stay_filter.get("return_field", "")) or "")[:10]
+                    # 필드명 기본값은 런타임 양측 동일(TP 피드 관례 — 매니페스트 슬리밍, Node 스키마 default와 파리티)
+                    depart = str(get_by_path(row, stay_filter.get("depart_field", "departure_at")) or "")[:10]
+                    ret = str(get_by_path(row, stay_filter.get("return_field", "return_at")) or "")[:10]
                     try:
                         nights = (datetime.fromisoformat(ret) - datetime.fromisoformat(depart)).days
                     except ValueError:

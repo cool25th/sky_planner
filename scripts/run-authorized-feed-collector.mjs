@@ -93,10 +93,11 @@ const JsonPathMappingSchema = z.object({
   // 빈 결과를 실패가 아닌 skip으로 처리한다. 기본값 false(설정 버그는 여전히 실패).
   allow_empty: z.boolean().default(false),
   // 체류일이 스키마 stay_bucket(3_4/5_7/8_14) 밖인 행(예: 2박·21박 최저가)은 ingest가 거부하므로
-  // 수집 단계에서 미리 버린다. 없으면 통과.
+  // 수집 단계에서 미리 버린다. 없으면 통과. 필드명은 TP 피드 관례(departure_at/return_at)가 기본값 —
+  // 매니페스트 48KB 한도 슬리밍(DATA-20260901-002): 30소스에서 같은 필드명 반복을 제거한다.
   stay_nights_filter: z.object({
-    depart_field: z.string().min(1),
-    return_field: z.string().min(1),
+    depart_field: z.string().min(1).default("departure_at"),
+    return_field: z.string().min(1).default("return_at"),
     min: z.number().int().min(1),
     max: z.number().int().min(1),
   }).optional(),
@@ -472,7 +473,10 @@ export function mapJsonPathFeedPayload(payload, inputConfig, options = {}) {
 
   // query 파라미터를 행 기본값으로 병합(응답에 origin이 없는 API 대비) 후 places_lookup·stay_nights_filter 적용.
   const lookup = mapping.places_lookup;
-  const stayFilter = mapping.stay_nights_filter;
+  // 스키마 default와 같은 TP 관례 필드명 — 파싱 없이 직접 호출(계약 테스트) 경로도 필터가 살아있게.
+  const stayFilter = mapping.stay_nights_filter
+    ? { depart_field: "departure_at", return_field: "return_at", ...mapping.stay_nights_filter }
+    : undefined;
   const resolvedQuery = resolveQueryMonthTokens(config.query, options.now);
   const offersRows = [];
   for (const raw of offersRaw) {
