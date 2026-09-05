@@ -538,3 +538,63 @@ test("collector source manifest runner reports revalidation failures", async () 
     await rm(tmpDir, { recursive: true, force: true });
   }
 });
+
+// D2(NEXT-TASKS Workstream D): shared response_mapping 계약 — ref 전개·명시 우선·알 수 없는 ref 즉시 실패.
+// 매니페스트 secret 48KB 한도에서 소스별 mapping 반복(~1.6KB×N)을 없애는 메커니즘(PUS 캘린더 확장 전제).
+async function writeTempManifest(manifest) {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "sky-planner-shared-mapping-"));
+  const file = path.join(dir, "manifest.json");
+  await writeFile(file, JSON.stringify(manifest));
+  return { dir, file };
+}
+
+function refSourceConfig(sourceId, ref, overrides = {}) {
+  return {
+    schema_version: "collector.authorized_feed_source.v1",
+    source_id: sourceId,
+    source_type: "meta_search",
+    endpoint: "https://api.travelpayouts.com/v1/prices/calendar",
+    auth: { header_name: "X-Access-Token", token_env: "COLLECTOR_SOURCE_TEST_TOKEN" },
+    query: { origin: "PUS", destination: "FUK", currency: "krw" },
+    response_mapping_ref: ref,
+    ...overrides,
+  };
+}
+
+test("shared response mappings expand refs and inline mappings win", async () => {
+  const calendarMapping = {
+    adapter: "json_path_mapping",
+    offers_path: "data",
+    fields: { total_price: "price", depart_date: "depart_date" },
+  };
+  const { dir, file } = await writeTempManifest({
+    schema_version: "collector.source_manifest.v1",
+    shared: { response_mappings: { calendar: calendarMapping } },
+    sources: [
+      { config: refSourceConfig("pus_fuk_calendar", "calendar") },
+      { config: refSourceConfig("pus_inline_override", "calendar", { response_mapping: { adapter: "json_path_mapping", offers_path: "inline" } }) },
+    ],
+  });
+  try {
+    const loaded = await loadCollectorSourceManifest(file);
+    assert.deepEqual(loaded.sources[0].config.response_mapping, calendarMapping, "ref는 shared 실체로 전개");
+    assert.equal(loaded.sources[0].config.response_mapping_ref, undefined, "전개 후 ref 키는 제거");
+    assert.equal(loaded.sources[1].config.response_mapping.offers_path, "inline", "명시 mapping이 ref보다 우선(하위호환)");
+    assert.equal(loaded.sources[1].config.response_mapping_ref, undefined);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("unknown response_mapping_ref fails fast at manifest resolution", async () => {
+  const { dir, file } = await writeTempManifest({
+    schema_version: "collector.source_manifest.v1",
+    shared: { response_mappings: { calendar: { adapter: "json_path_mapping" } } },
+    sources: [{ config: refSourceConfig("typo_source", "calendr") }],
+  });
+  try {
+    await assert.rejects(() => loadCollectorSourceManifest(file), /Unknown response_mapping_ref: calendr/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

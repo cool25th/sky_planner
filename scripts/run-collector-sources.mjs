@@ -43,6 +43,8 @@ const InlineSourceConfigSchema = z.object({
   body: z.unknown().optional(),
   artifact_prefix: z.string().optional(),
   response_mapping: z.unknown().optional(),
+  // D2(NEXT-TASKS Workstream D): shared.response_mappings의 키를 참조한다(인라인 config 전용).
+  response_mapping_ref: z.string().min(1).optional(),
   auth: z.object({
     header_name: z.string().min(1),
     token_env: z.string().min(1),
@@ -73,6 +75,10 @@ const CollectorSourceManifestSchema = z.object({
   revalidate: RevalidateConfigSchema,
   // RECO-20260828-004: 소스별 반복되는 places_lookup을 한 곳에 두고 주입한다(GitHub secret 48KB 한도).
   places_lookup: z.record(z.string(), z.unknown()).optional(),
+  // D2(NEXT-TASKS Workstream D): 소스별 반복되는 response_mapping도 한 곳에 둔다(같은 48KB 한도).
+  shared: z.object({
+    response_mappings: z.record(z.string(), z.unknown()),
+  }).optional(),
   sources: z.array(ManifestSourceSchema).min(1),
 });
 
@@ -91,20 +97,34 @@ function sourceLabel(source, index) {
 async function resolveCollectorSourceManifest(payload, baseDir) {
   const manifest = CollectorSourceManifestSchema.parse(payload);
   const sharedLookup = manifest.places_lookup;
+  const sharedMappings = manifest.shared?.response_mappings;
   return {
     ...manifest,
     sources: await Promise.all(manifest.sources.map(async (source) => {
       if (source.config) {
-        return { ...source, config: injectSharedPlacesLookup(source.config, sharedLookup) };
+        return { ...source, config: injectSharedPlacesLookup(injectSharedResponseMapping(source.config, sharedMappings), sharedLookup) };
       }
       const configPath = path.resolve(baseDir, source.config_path);
       const loaded = await loadCollectorConfig(configPath);
       return {
         enabled: source.enabled,
-        config: injectSharedPlacesLookup(loaded, sharedLookup),
+        config: injectSharedPlacesLookup(injectSharedResponseMapping(loaded, sharedMappings), sharedLookup),
       };
     })),
   };
+}
+
+// D2(NEXT-TASKS Workstream D): response_mapping_ref를 shared.response_mappings의 실체로 전개한다.
+// 명시 response_mapping이 있으면 그것이 우선(하위호환) — ref는 오탈자도 잡도록 항상 검증 후 제거한다.
+function injectSharedResponseMapping(config, sharedMappings) {
+  const ref = config.response_mapping_ref;
+  if (!ref) return config;
+  const shared = sharedMappings?.[ref];
+  if (!shared || typeof shared !== "object") {
+    throw new Error(`Unknown response_mapping_ref: ${ref}`);
+  }
+  const { response_mapping_ref: _expanded, ...rest } = config;
+  return { ...rest, response_mapping: config.response_mapping ?? shared };
 }
 
 function injectSharedPlacesLookup(config, sharedLookup) {
