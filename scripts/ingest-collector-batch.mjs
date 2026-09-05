@@ -614,6 +614,9 @@ async function insertSnapshots(client, rows) {
 }
 
 async function fetchMaterializationOffers(client, groups) {
+  // DATA-20260906-001: 딜 최저가 재료는 /offers의 72h 신선도 계약(lib/fare-freshness
+  // HIDDEN_AFTER_HOURS)과 같은 조건으로만 쓴다 — 이 조건이 없으면 재계산 시점에 스테일 오퍼의
+  // 죽은 가격이 딜 카드 최저가로 승격된다(2026-09-06 실측: PUS-FUK ₩123,205).
   const eligibleKeys = [...eligibleBookingSourceKeys(enabledSourceFlagsFromEnv())];
   if (!groups.length || !eligibleKeys.length) return [];
   const rows = [];
@@ -630,6 +633,7 @@ async function fetchMaterializationOffers(client, groups) {
         AND o.stay_bucket = $4
         AND o.traveler = $5
         AND o.is_active = true
+        AND o.last_seen_at >= now() - interval '72 hours'
         AND COALESCE(o.bookability_status, 'available') <> 'sold_out'
         AND COALESCE(o.price_status, 'active') <> 'sold_out'
         AND COALESCE(o.price_anomaly_status, 'normal') = 'normal'

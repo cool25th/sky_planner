@@ -34,3 +34,22 @@ test("every live offer SQL site applies all four quality guards", () => {
     }
   }
 });
+
+// DATA-20260906-001: 딜 최저가 재료의 72h 신선도 계약은 lib/fare-freshness(isHiddenFare,
+// /offers가 클라이언트측으로 적용)와 짝을 이룬다 — 한쪽 상수만 바꾸면 맵과 /offers가 다른
+// 가격 세계를 보여준다(2026-09-06 실측: 활성 딜의 52%가 최저가 오퍼 스테일).
+test("deal materialization freshness contract stays paired with fare-freshness", () => {
+  const ingest = readFileSync(join(repoRoot, "scripts/ingest-collector-batch.mjs"), "utf8");
+  const freshness = readFileSync(join(repoRoot, "lib/fare-freshness.ts"), "utf8");
+
+  const hours = freshness.match(/HIDDEN_AFTER_HOURS = (\d+)/)?.[1];
+  assert.ok(hours, "lib/fare-freshness.ts에 HIDDEN_AFTER_HOURS 상수가 없다");
+  assert.ok(
+    ingest.includes(`o.last_seen_at >= now() - interval '${hours} hours'`),
+    `scripts/ingest-collector-batch.mjs 딜 재계산 SQL에 last_seen_at ${hours}h 조건이 없다 — 스테일 오퍼의 죽은 가격이 딜 최저가로 승격된다`,
+  );
+  assert.ok(
+    readFileSync(join(repoRoot, "lib/read-model/offers-query.ts"), "utf8").includes("isHiddenFare"),
+    "offers-query의 클라이언트측 isHiddenFare 필터가 사라졌다 — 신선도 계약의 읽기측 짝",
+  );
+});
