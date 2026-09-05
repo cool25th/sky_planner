@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { ApiResponse } from "@/lib/mock-market";
+import { isRetryableConnectionError } from "@/lib/db";
 import { serviceApiReadinessBlockReason } from "@/lib/service-api-readiness";
 import { serviceRequiresPostgres } from "@/lib/service-mode";
 import type { SourceContext } from "./source-context";
@@ -38,7 +39,8 @@ export function dataModeLabel(diagnostics?: Record<string, unknown>): string {
 
 export function sanitizedPostgresFailure(err: unknown) {
   console.error("Failed to fetch data from PostgreSQL.", err);
-  return "postgres_query_failed";
+  // 연결 계열(콜드스타트·네트워크)과 쿼리 계열을 구분해도 문자열 상수만 노출한다(내부 정보 비노출 유지).
+  return isRetryableConnectionError(err) ? "postgres_connection_failed" : "postgres_query_failed";
 }
 
 export function suppressMockFallback<T>(
