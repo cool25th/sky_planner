@@ -730,11 +730,28 @@ function weekStartFromCode(week: string) {
   return monday;
 }
 
-function currentWeekStart() {
-  const now = new Date();
-  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  monday.setUTCDate(monday.getUTCDate() - (now.getUTCDay() || 7) + 1);
+// UX-20260907-001: 주간 기본값은 KST(UTC+9, 서머타임 없음) '오늘' 기준으로 계산한다.
+// UTC 날짜로 계산하면 KST 월요일 00:00~08:59에 서버가 아직 일요일로 판정해
+// 지난 주간(과거 출발일 카드)이 기본 조회로 노출된다.
+export function currentWeekStart(now: Date = new Date()) {
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const monday = new Date(Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate()));
+  monday.setUTCDate(monday.getUTCDate() - (kst.getUTCDay() || 7) + 1);
   return monday;
+}
+
+// 그 주의 목요일이 속한 ISO 연도를 기준으로 주 코드를 산출한다(weekStartFromCode와 역함수).
+// 1월 1일 날짜산술 근사는 연말(12월 마지막 주~1월 첫 주)에서 실제 ISO 주차와 어긋난다.
+export function isoWeekCode(monday: Date) {
+  const thursday = new Date(monday);
+  thursday.setUTCDate(thursday.getUTCDate() + 3);
+  const year = thursday.getUTCFullYear();
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const day = jan4.getUTCDay() || 7;
+  const week1Monday = new Date(jan4);
+  week1Monday.setUTCDate(jan4.getUTCDate() - day + 1);
+  const week = 1 + Math.round((thursday.getTime() - week1Monday.getTime()) / (7 * 86400000));
+  return `${year}-W${String(week).padStart(2, "0")}`;
 }
 
 export function availableWeeks(count = 6) {
@@ -742,11 +759,7 @@ export function availableWeeks(count = 6) {
   return Array.from({ length: count }, (_, index) => {
     const day = new Date(start);
     day.setUTCDate(start.getUTCDate() + index * 7);
-    const year = day.getUTCFullYear();
-    const jan1 = new Date(Date.UTC(year, 0, 1));
-    const dayOfYear = Math.floor((day.getTime() - jan1.getTime()) / 86400000) + 1;
-    const week = Math.ceil((dayOfYear + ((jan1.getUTCDay() || 7) - 1)) / 7);
-    const code = `${year}-W${String(week).padStart(2, "0")}`;
+    const code = isoWeekCode(day);
     const m = day.getUTCMonth() + 1;
     const d = day.getUTCDate();
     return {
