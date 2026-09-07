@@ -19,6 +19,10 @@ export function isServiceUnavailableDiagnostics(diagnostics: unknown): boolean {
     (record.read_model === "unavailable" && record.fallback_suppressed === true) ||
     (
       record.service_requires_postgres === true &&
+      // DATA-20260908-001: live·last_good 응답은 readiness가 not_ready여도 데이터를 싣고 있다 —
+      // 장애 안내로 덮으면 last-good 폴백이 무의미해진다.
+      record.read_model !== "postgres" &&
+      record.read_model !== "last_good" &&
       sourceReadiness !== null &&
       sourceReadiness.status !== "ready"
     )

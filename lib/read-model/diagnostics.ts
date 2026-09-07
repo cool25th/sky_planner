@@ -7,7 +7,7 @@ import { serviceRequiresPostgres } from "@/lib/service-mode";
 import type { SourceContext } from "./source-context";
 import { postgresConfigured } from "./source-context";
 
-export type ReadModel = "postgres" | "mock" | "unavailable";
+export type ReadModel = "postgres" | "last_good" | "mock" | "unavailable";
 
 export function addDiagnostics<T>(
   response: ApiResponse<T>,
@@ -19,9 +19,15 @@ export function addDiagnostics<T>(
     ...response,
     diagnostics: {
       read_model: readModel,
-      data_mode: readModel === "postgres" ? "live" : readModel === "mock" ? "demo" : "unavailable",
+      data_mode: readModel === "postgres"
+        ? "live"
+        : readModel === "last_good"
+          ? "last_good"
+          : readModel === "mock"
+            ? "demo"
+            : "unavailable",
       postgres_configured: postgresConfigured(),
-      fallback_used: readModel === "mock",
+      fallback_used: readModel === "mock" || readModel === "last_good",
       fallback_suppressed: readModel === "unavailable",
       fallback_reason: fallbackReason,
       service_requires_postgres: serviceRequiresPostgres(),
@@ -34,7 +40,12 @@ export function addDiagnostics<T>(
 }
 
 export function dataModeLabel(diagnostics?: Record<string, unknown>): string {
-  return diagnostics?.data_mode === "live" ? "실시간 데이터" : "데모 데이터";
+  // DATA-20260908-001: 운영(unavailable·last_good)에서 "데모 데이터" 라벨이 나오면 실제로는
+  // 데모가 아닌 응답까지 가짜로 읽힌다 — 모드별로 정직한 라벨만 매핑한다(미지정만 데모 유지).
+  if (diagnostics?.data_mode === "live") return "실시간 데이터";
+  if (diagnostics?.data_mode === "last_good") return "마지막 수집 데이터";
+  if (diagnostics?.data_mode === "unavailable") return "데이터 일시 중단";
+  return "데모 데이터";
 }
 
 export function sanitizedPostgresFailure(err: unknown) {

@@ -10,6 +10,11 @@ import { postgresConfigured } from "./source-context";
 
 type CalendarDestination = NonNullable<CalendarData["destination"]>;
 
+// DATA-20260908-001: 운영 게이트 차단·쿼리 실패 시 mock 페이로드 대신 내리는 빈 live 형태.
+export function emptyCalendarDataForQuery(calendarQuery: CalendarQuery): CalendarData {
+  return buildCalendarDataFromOffers(calendarQuery, null, []);
+}
+
 export async function resolveCalendarDataFromPostgres(
   calendarQuery: CalendarQuery,
   lastBatchAt: string,

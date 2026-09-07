@@ -53,6 +53,8 @@ test("mock fallback diagnostics mark data as demo", hermeticMockEnv(async () => 
 test("dataModeLabel maps only live diagnostics to the live label", () => {
   assert.equal(dataModeLabel({ data_mode: "live" }), "실시간 데이터");
   assert.equal(dataModeLabel({ data_mode: "demo" }), "데모 데이터");
+  assert.equal(dataModeLabel({ data_mode: "last_good" }), "마지막 수집 데이터");
+  assert.equal(dataModeLabel({ data_mode: "unavailable" }), "데이터 일시 중단");
   assert.equal(dataModeLabel(undefined), "데모 데이터");
 });
 
@@ -100,6 +102,58 @@ test("emptyMapDataForQuery returns truthy live-shaped empty data, not null", asy
   assert.deepEqual(empty.summary, { destinations: 0, offers_considered: 0, last_seen_at: null });
   assert.equal(empty.week, query.week);
   assert.equal(empty.stay_bucket, query.stay_bucket);
+});
+
+// DATA-20260908-001 완료 기준: 운영(SERVICE_REQUIRE_POSTGRES)에서 게이트 차단·쿼리 실패 시
+// 데모 페이로드/데모 라벨이 나오는 경로가 존재해선 안 된다 — last-good 조회도 실패하면
+// 빈 live 형태 + 사유로 응답한다. 2026-09-08 프로덕션 사건(26분 빈 지도+데모 라벨) 방어.
+test("production fallback never ships demo payload or demo label", async () => {
+  process.env.SERVICE_REQUIRE_POSTGRES = "1";
+  process.env.DATABASE_READ_URL = "postgresql://contract:nodb@127.0.0.1:1/none"; // postgresConfigured만 참(즉시 실패)
+  try {
+    const response = await resolveMapResponse(mapQuery());
+    assert.equal(response.diagnostics.data_mode, "unavailable");
+    assert.deepEqual(response.data.deals, [], "suppressed fallback must not carry mock deals");
+    assert.deepEqual(response.data.available_airlines, []);
+    assert.notEqual(dataModeLabel(response.diagnostics), "데모 데이터", "unavailable mode must not wear the demo label");
+    assert.ok(
+      response.warning_flags.includes("service_read_model_unavailable"),
+      `warning_flags: ${response.warning_flags.join(",")}`,
+    );
+    assert.ok(response.diagnostics.fallback_reason, "suppressed fallback must name a reason");
+  } finally {
+    delete process.env.SERVICE_REQUIRE_POSTGRES;
+    delete process.env.DATABASE_READ_URL;
+  }
+});
+
+// DATA-20260908-001: 빈 결과·last-good용 엔드포인트별 빈 형태도 live envelope과 같은 모양을 유지한다.
+test("offers and calendar empty builders return live-shaped empty data", async () => {
+  const { emptyOffersDataForQuery } = await import("../lib/read-model/offers-query.ts");
+  const { emptyCalendarDataForQuery } = await import("../lib/read-model/calendar-query.ts");
+
+  const offersQuery = {
+    origin: "ICN",
+    week: availableWeeks(1)[0].code,
+    destination: "TYO",
+    depart: "2026-09-21",
+    return: "2026-09-25",
+    cabin: "ALL",
+    traveler: "adt1",
+    airline: [],
+    stops: "ALL",
+  };
+  const emptyOffers = emptyOffersDataForQuery(offersQuery);
+  assert.ok(emptyOffers);
+  assert.deepEqual(emptyOffers.offers, []);
+  assert.deepEqual(emptyOffers.summary, { count: 0, lowest_total: null, last_seen_at: null });
+
+  const calendarQuery = { ...offersQuery, stay_bucket: "5_7", airlines: [] };
+  const emptyCalendar = emptyCalendarDataForQuery(calendarQuery);
+  assert.ok(emptyCalendar);
+  assert.equal(emptyCalendar.destination, null);
+  assert.deepEqual(emptyCalendar.cells, []);
+  assert.deepEqual(emptyCalendar.departure_dates, []);
 });
 
 // INT-20260908-001: 승인 소스 전부 차단(스테일 연쇄) 시 map/calendar/offers의 소스 게이트가

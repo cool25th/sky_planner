@@ -8,6 +8,29 @@ import { queryOrigins } from "./labels";
 import { mapOfferFromSql, parseOfferJoinRow } from "./row-mappers";
 import { postgresConfigured } from "./source-context";
 
+// DATA-20260908-001: 운영 게이트 차단·쿼리 실패 시 mock 페이로드 대신 내리는 빈 live 형태.
+export function emptyOffersDataForQuery(offersQuery: OffersQuery): OffersData {
+  return {
+    origin: offersQuery.origin,
+    week: offersQuery.week,
+    traveler: offersQuery.traveler,
+    destination: offersQuery.destination,
+    depart: offersQuery.depart,
+    return: offersQuery.return,
+    offers: [],
+    filters: {
+      available_airlines: [],
+      available_cabins: [],
+      available_stops: [],
+    },
+    summary: {
+      count: 0,
+      lowest_total: null,
+      last_seen_at: null,
+    },
+  };
+}
+
 export async function resolveOffersDataFromPostgres(
   offersQuery: OffersQuery,
   lastBatchAt: string,

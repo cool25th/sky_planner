@@ -18,6 +18,29 @@ test("service unavailable diagnostics classify suppressed read model failures", 
   assert.equal(isServiceUnavailableDiagnostics(null), false);
 });
 
+// DATA-20260908-001: live·last_good 응답은 readiness가 not_ready(스테일 게이트 차단)여도
+// 실 데이터를 싣고 있다 — 장애 안내로 덮으면 last-good 폴백이 무의미해진다.
+test("live and last_good responses stay out of the unavailable notice path during stale gates", () => {
+  const staleGate = { status: "not_ready", blocked_source_ids: ["travelpayouts_aviasales"] };
+  assert.equal(isServiceUnavailableDiagnostics({
+    service_requires_postgres: true,
+    read_model: "postgres",
+    source_readiness: staleGate,
+  }), false);
+  assert.equal(isServiceUnavailableDiagnostics({
+    service_requires_postgres: true,
+    read_model: "last_good",
+    data_mode: "last_good",
+    fallback_used: true,
+    source_readiness: staleGate,
+  }), false);
+  // read_model 없이 readiness만 not_ready인 낙진 경로는 여전히 장애로 분류한다.
+  assert.equal(isServiceUnavailableDiagnostics({
+    service_requires_postgres: true,
+    source_readiness: staleGate,
+  }), true);
+});
+
 test("service unavailable notice does not expose backend failure details", () => {
   const notice = serviceUnavailableNotice({
     service_unavailable: true,

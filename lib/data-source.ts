@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   type ApiResponse,
+  buildSearchResult,
   type CalendarData,
   type CalendarQuery,
   DEFAULT_LAST_BATCH_AT,
@@ -21,15 +22,16 @@ import {
 } from "@/lib/mock-market";
 import { getBatchState } from "@/lib/runtime-state";
 import { serviceRequiresPostgres } from "@/lib/service-mode";
-import { resolveCalendarDataFromPostgres } from "./read-model/calendar-query";
+import { enabledSourceFlagsFromEnv } from "@/lib/source-policy";
+import { emptyCalendarDataForQuery, resolveCalendarDataFromPostgres } from "./read-model/calendar-query";
 import {
   addDiagnostics,
   sanitizedPostgresFailure,
   sourceReadinessFallbackReason,
   suppressMockFallback,
 } from "./read-model/diagnostics";
-import { resolveMapDataFromPostgres } from "./read-model/map-query";
-import { resolveOffersDataFromPostgres } from "./read-model/offers-query";
+import { emptyMapDataForQuery, resolveMapDataFromPostgres } from "./read-model/map-query";
+import { emptyOffersDataForQuery, resolveOffersDataFromPostgres } from "./read-model/offers-query";
 import { buildMetaFromSourceFlags } from "./read-model/row-mappers";
 import { resolveSearchDataFromPostgres } from "./read-model/search-query";
 import { postgresConfigured, resolveSourceContext } from "./read-model/source-context";
@@ -55,6 +57,56 @@ interface ResponseResolution<Q, D> {
   postgresWarningFlags?: string[];
   resolveFromPostgres: (query: Q, lastBatchAt: string, sourceFlags: string[]) => Promise<D | null>;
   mockData: (query: Q, lastBatchAt: string, sourceFlags: string[]) => D;
+  // DATA-20260908-001: 운영 폴백은 live → last-good(관측시각 포함) → 빈 결과+사유.
+  // mock 페이로드는 비운영(미설정 환경) 전용으로 남는다.
+  emptyData: (query: Q) => D;
+  liveContentCount: (data: D) => number;
+}
+
+const LAST_GOOD_WARNING_FLAGS = ["stale_last_good_data", "daily_batch_cached", "final_price_check_on_booking_source"];
+
+function unavailableResponse<Q, D>(
+  plan: ResponseResolution<Q, D>,
+  query: Q,
+  batchState: { lastBatchAt: string },
+  sourceContext: Awaited<ReturnType<typeof resolveSourceContext>>,
+  fallbackReason: string | null,
+) {
+  return suppressMockFallback(
+    liveEnvelope(plan.endpoint, plan.queryParams, plan.emptyData(query), batchState.lastBatchAt, sourceContext.sourceFlags),
+    sourceContext,
+    fallbackReason,
+  );
+}
+
+async function resolveLastGoodResponse<Q, D>(
+  query: Q,
+  plan: ResponseResolution<Q, D>,
+  batchState: { lastBatchAt: string },
+  sourceContext: Awaited<ReturnType<typeof resolveSourceContext>>,
+  fallbackReason: string | null,
+) {
+  // 스테일 게이트가 소스 필터를 비우므로, 마지막 정상 플래그(env 킬스위치 기준)로 재조회한다.
+  // 오퍼 72h 숨김 계약(lib/fare-freshness)이 last-good의 신선도 상한을 함께 지킨다.
+  if (!postgresConfigured()) return null;
+  const lastGoodFlags = enabledSourceFlagsFromEnv();
+  if (!lastGoodFlags.length) return null;
+  try {
+    const data = await plan.resolveFromPostgres(query, batchState.lastBatchAt, lastGoodFlags);
+    if (!data || plan.liveContentCount(data) === 0) return null;
+    return addDiagnostics(
+      {
+        ...liveEnvelope(plan.endpoint, plan.queryParams, data, batchState.lastBatchAt, lastGoodFlags),
+        warning_flags: LAST_GOOD_WARNING_FLAGS,
+      },
+      "last_good",
+      sourceContext,
+      fallbackReason,
+    );
+  } catch (err) {
+    console.error("Failed to resolve last-known-good read model data.", err);
+    return null;
+  }
 }
 
 async function resolveReadModelResponse<Q, D>(query: Q, plan: ResponseResolution<Q, D>): Promise<ApiResponse<D>> {
@@ -63,11 +115,11 @@ async function resolveReadModelResponse<Q, D>(query: Q, plan: ResponseResolution
   const sourceFlags = sourceContext.sourceFlags;
   const readinessFallbackReason = sourceReadinessFallbackReason(sourceContext);
   if (readinessFallbackReason) {
-    return suppressMockFallback(
-      liveEnvelope(plan.endpoint, plan.queryParams, plan.mockData(query, batchState.lastBatchAt, []), batchState.lastBatchAt, sourceFlags),
-      sourceContext,
-      readinessFallbackReason,
-    );
+    // DATA-20260908-001: 소스 게이트 차단(스테일 연쇄)은 데모 주입이 아니라
+    // last-good 스냅샷(스탬프·경고 포함) 또는 빈 결과+사유로 응답한다.
+    const lastGood = await resolveLastGoodResponse(query, plan, batchState, sourceContext, readinessFallbackReason);
+    if (lastGood) return lastGood;
+    return unavailableResponse(plan, query, batchState, sourceContext, readinessFallbackReason);
   }
 
   let fallbackReason: string | null = null;
@@ -95,11 +147,9 @@ async function resolveReadModelResponse<Q, D>(query: Q, plan: ResponseResolution
   }
 
   if (serviceRequiresPostgres()) {
-    return suppressMockFallback(
-      liveEnvelope(plan.endpoint, plan.queryParams, plan.mockData(query, batchState.lastBatchAt, []), batchState.lastBatchAt, sourceFlags),
-      sourceContext,
-      fallbackReason,
-    );
+    const lastGood = await resolveLastGoodResponse(query, plan, batchState, sourceContext, fallbackReason);
+    if (lastGood) return lastGood;
+    return unavailableResponse(plan, query, batchState, sourceContext, fallbackReason);
   }
 
   return addDiagnostics(
@@ -138,6 +188,8 @@ export async function resolveMapResponse(mapQuery: MapQuery): Promise<ApiRespons
     postgresWarningFlags: ["daily_batch_cached"],
     resolveFromPostgres: resolveMapDataFromPostgres,
     mockData: getMapData,
+    emptyData: emptyMapDataForQuery,
+    liveContentCount: (data) => data.deals.length,
   });
 }
 
@@ -155,6 +207,8 @@ export async function resolveCalendarResponse(calendarQuery: CalendarQuery): Pro
     },
     resolveFromPostgres: resolveCalendarDataFromPostgres,
     mockData: getCalendarData,
+    emptyData: emptyCalendarDataForQuery,
+    liveContentCount: (data) => data.cells.length,
   });
 }
 
@@ -174,6 +228,8 @@ export async function resolveOffersResponse(offersQuery: OffersQuery): Promise<A
     },
     resolveFromPostgres: resolveOffersDataFromPostgres,
     mockData: getOffersData,
+    emptyData: emptyOffersDataForQuery,
+    liveContentCount: (data) => data.offers.length,
   });
 }
 
@@ -191,6 +247,8 @@ export async function resolveSearchResponse(searchQuery: SearchQuery): Promise<A
     postgresWarningFlags: ["daily_batch_cached", "final_price_check_on_booking_source"],
     resolveFromPostgres: resolveSearchDataFromPostgres,
     mockData: getSearchResults,
+    emptyData: (query) => buildSearchResult(query, null, [], []),
+    liveContentCount: (data) => data.offers.length,
   });
 }
 
