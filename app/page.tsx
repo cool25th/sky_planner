@@ -11,7 +11,7 @@ import { dataModeLabel } from "@/lib/data-source";
 import { stamp } from "@/lib/format";
 import { resolveMapResponseWithBookableWeek } from "@/lib/map-week-fallback";
 import { formatWeekNatural, getMetaData, parseMapQuery } from "@/lib/mock-market";
-import { curateFeaturedDeals } from "@/lib/recommendation";
+import { curateWeeklyPicks, weeklyPickSections } from "@/lib/recommendation";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
 import { selectLowestPriceDeals, toTripCardModel } from "@/lib/trip-card";
 import { href } from "@/lib/url";
@@ -94,17 +94,19 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
   if (serviceUnavailable) noStore();
 
   const internationalDeals = mapResponse.data.deals.filter((deal) => deal.region_code !== "DOMESTIC");
-  // RECO-20260828-002: 노출 순서를 규칙 점수(가격 메리트·시기 근접성·주말 포함)로 큐레이션하고 근거를 칩으로 보여준다.
-  // UX-20260830-002: 후보는 12개를 뽑아 클라이언트 연령대 칩(전체=상위 4)이 재정렬한다.
-  const curatedDeals = curateFeaturedDeals(
+  // 완료정의[4]: 홈 1스크린은 전체 나열이 아니라 이번 주 픽 — 4필드(누구·출발 창·왜 싼지·관측 시각)
+  // 가 데이터로 입증된 딜만 오른다(curateWeeklyPicks 가드). 근거 없는 픽은 만들지 않는다.
+  const weeklyPicks = curateWeeklyPicks(
     internationalDeals.length ? internationalDeals : mapResponse.data.deals,
     new Date().toISOString().slice(0, 10),
     12,
   );
-  const audienceEntries = curatedDeals.map(({ deal, reasons }) => ({
-    destination_code: deal.destination_code,
-    model: toTripCardModel(deal, searchState, reasons),
-  }));
+  const pickSections = weeklyPickSections(weeklyPicks);
+  const toPickEntry = (pick: (typeof weeklyPicks)[number]) => ({
+    destination_code: pick.deal.destination_code,
+    model: toTripCardModel(pick.deal, searchState, pick.reasons, pick),
+  });
+  const audienceEntries = pickSections.featured.map(toPickEntry);
   const mapHref = href("/map", searchState);
   // P0-commerce 2단계: 최저가 스트립 — 그리드(큐레이션순)와 달리 순수 가격 오름차순. 국내선 포함(리전 라벨로 구분).
   const stripDeals = selectLowestPriceDeals(mapResponse.data.deals, 8);
@@ -245,12 +247,12 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
         </section>
       )}
 
-      {/* 2. Featured Deals Section (지금 확인할 수 있는 특가) */}
+      {/* 2. Weekly Picks (완료정의[4]: 근거 있는 주간 픽 — 페르소나 랜딩 섹션) */}
       <section className="home-section">
         <div className="section-header">
           <div>
-            <h2 className="section-title">지금 확인할 수 있는 특가</h2>
-            <p className="section-desc">최근 확인된 주요 취항지 최저가 운임입니다. 연령대 추천으로 순서를 바꿔보세요. 목적지를 선택하면 날짜별 조합을 비교할 수 있습니다.</p>
+            <h2 className="section-title">이번 주 픽</h2>
+            <p className="section-desc">가격 근거(30일 평균 대비)와 관측 시각이 확인된 특가만 골랐습니다. 각 카드의 추천 표와 근거를 확인해 보세요.</p>
           </div>
           <Link href={mapHref} className="section-link">
             지도에서 전체 보기 →
@@ -259,29 +261,67 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
 
         {serviceUnavailable ? (
           <ServiceUnavailableNotice diagnostics={mapResponse.diagnostics} />
-        ) : curatedDeals.length === 0 ? (
+        ) : weeklyPicks.length === 0 ? (
           <div className="map-empty-state">
-            <p>선택한 시기에 예약 가능한 특가가 없습니다.</p>
-            <span className="panel-note">주 후반에는 이번 주 출발 일정이 마감될 수 있어요.</span>
+            <p>이번 주에는 근거를 확인할 수 있는 픽이 아직 없습니다.</p>
+            <span className="panel-note">평균가 대비 절감 근거가 쌓이면 픽이 열립니다. 전체 특가는 지도에서 볼 수 있어요.</span>
             <div style={{ marginTop: "12px" }}>
-              <Link
-                href={href("/map", { ...searchState, week: meta.weeks[1]?.code ?? searchState.week })}
-                className="cta-btn--secondary"
-              >
-                다음 주간으로 검색
+              <Link href={mapHref} className="cta-btn--secondary">
+                지도에서 전체 특가 보기
               </Link>
             </div>
           </div>
         ) : (
-          <AudienceCuration
-            entries={audienceEntries}
-            season={seasonForWeekCode(searchState.week)}
-            origin={searchState.origin}
-            week={searchState.week}
-            stayBucket={searchState.stay_bucket}
-          />
+          <>
+            {pickSections.weekend.length > 0 && (
+              <div className="home-subsection">
+                <h3 className="section-subtitle">주말치기 · 금–월 출발</h3>
+                <ul className="trip-strip">
+                  {pickSections.weekend.map((pick) => (
+                    <li key={`weekend-${pick.deal.destination_code}`}>
+                      <TripCard
+                        variant="strip"
+                        model={toPickEntry(pick).model}
+                        origin={searchState.origin}
+                        week={searchState.week}
+                        stayBucket={searchState.stay_bucket}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {pickSections.earlyBird.length > 0 && (
+              <div className="home-subsection">
+                <h3 className="section-subtitle">얼리버드 · 출발 3~13주</h3>
+                <ul className="trip-strip">
+                  {pickSections.earlyBird.map((pick) => (
+                    <li key={`early-${pick.deal.destination_code}`}>
+                      <TripCard
+                        variant="strip"
+                        model={toPickEntry(pick).model}
+                        origin={searchState.origin}
+                        week={searchState.week}
+                        stayBucket={searchState.stay_bucket}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <AudienceCuration
+              entries={audienceEntries}
+              season={seasonForWeekCode(searchState.week)}
+              origin={searchState.origin}
+              week={searchState.week}
+              stayBucket={searchState.stay_bucket}
+            />
+          </>
         )}
         <div className="section-caption">
+          <span>
+            관측가 · 관측 {stamp(pickSections.featured[0]?.observedAt ?? mapResponse.last_batch_at)} · 예약처에서 달라질 수 있음 · 제휴 링크(예약처 결제)
+          </span>
           <span>가격 확인: {stamp(mapResponse.last_batch_at)} · {dataModeLabel(mapResponse.diagnostics)} · 일 1회 배치 기준 참고 운임이며 최종 가격은 예약처에서 확인해야 합니다.</span>
         </div>
       </section>

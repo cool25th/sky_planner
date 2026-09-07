@@ -54,6 +54,10 @@ export interface TripCardModel {
   reasons: string[];
   href: string;
   ariaLabel: string;
+  // 완료정의[4]: 주간 픽 카드의 4필드 — 근거 없는 픽은 curateWeeklyPicks에서 이미 걸러진다.
+  persona?: { id: string; label: string };
+  whyCheap?: string;
+  observedAt?: string;
   bookmarkDeal: Pick<
     TripCardDeal,
     | "destination_code"
@@ -132,6 +136,7 @@ export function toTripCardModel(
   deal: TripCardDeal,
   query: TripCardQuery,
   reasons: string[] = [],
+  pick?: { persona: { id: string; label: string }; whyCheap: string; observedAt: string },
 ): TripCardModel {
   const cabin = query.cabin ?? "ALL";
   const price = minTotal(deal, cabin);
@@ -160,7 +165,10 @@ export function toTripCardModel(
     badges: buildTripBadges(deal, cabin),
     reasons,
     href: destHref,
-    ariaLabel: `${deal.city} 왕복 ${formatMoney(price)}, ${dateLine}`,
+    ariaLabel: `${deal.city} 왕복 ${formatMoney(price)}, ${dateLine}${pick ? `, ${pick.persona.label} 추천` : ""}`,
+    persona: pick?.persona,
+    whyCheap: pick?.whyCheap,
+    observedAt: pick?.observedAt,
     bookmarkDeal: {
       destination_code: deal.destination_code,
       city: deal.city,

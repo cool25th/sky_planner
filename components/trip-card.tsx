@@ -27,6 +27,7 @@ export function TripCard({
       {variant !== "compact" && <span className="trip-card__region">{model.regionLabel}</span>}
       <h3 className="trip-card__city">{model.city}</h3>
       {variant === "grid" && <p className="trip-card__country">{model.country}</p>}
+      {model.persona && <span className="trip-card__persona">{model.persona.label} 추천</span>}
       <p className="trip-card__dates">{model.dateLine}</p>
       {model.badges.length > 0 && (
         <ul className="trip-card__badges">
@@ -46,6 +47,10 @@ export function TripCard({
       ) : (
         // compact(지도 패널)는 가격 정의를 패널 헤더가 1회 고지 — 카드에는 SEL 출발 힌트만 남긴다.
         model.originHint && <p className="trip-card__definition">{model.originHint}</p>
+      )}
+      {variant === "grid" && model.whyCheap && <p className="trip-card__why">{model.whyCheap}</p>}
+      {variant === "grid" && model.observedAt && (
+        <p className="trip-card__observed">가격 관측 {model.observedAt.slice(5, 16).replace("T", " ")}</p>
       )}
       {variant === "grid" && model.reasons.length > 0 && (
         <ul className="trip-card__reasons">

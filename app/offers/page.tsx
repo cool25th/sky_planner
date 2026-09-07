@@ -4,6 +4,7 @@ import Link from "next/link";
 import { MapFilterSelect } from "@/components/map-filter-select";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { ShareButton } from "@/components/share-button";
+import { withAffiliateTracking } from "@/lib/affiliate-link";
 import { dataModeLabel, resolveOffersResponse } from "@/lib/data-source";
 import { fareFreshness } from "@/lib/fare-freshness";
 import { formatCompactDate, formatMoney, formatTime } from "@/lib/format";
@@ -277,12 +278,24 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
                           가격 갱신 대기 중
                         </span>
                       ) : (
-                        <a className="flight-cta-btn" href={offer.deep_link} target="_blank" rel="noreferrer">
+                        <a
+                          className="flight-cta-btn"
+                          href={withAffiliateTracking(offer.deep_link, {
+                            surface: "offers",
+                            pickId: offer.destination_code,
+                            freshness: freshness.level,
+                          })}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
                           예약처에서 가격 확인 →
                         </a>
                       )}
                       <span className="freshness-status-text">
                         {freshness.level === "fresh" ? "최근 확인 운임" : `업데이트 지연 (${Math.floor(freshness.ageHours)}h 전)`}
+                      </span>
+                      <span className="fare-cta-note">
+                        관측가 · 예약처에서 달라질 수 있음 · 제휴 링크(예약처 결제)
                       </span>
                     </div>
                   </div>
