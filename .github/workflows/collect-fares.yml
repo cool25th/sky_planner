@@ -107,3 +107,13 @@ jobs:
           path: runtime/service-launch-audits
           if-no-files-found: error
           retention-days: 90
+
+      # 완료정의[3]: collect-fares는 5연속 실패 중 — 웹훅 없이는 무인 시간대 인지 불가였다.
+      # 실패 시에만 1회 핑(URL 없으면 조용히 스킵 — readiness의 alert_channel_configured와 무관).
+      - name: Alert ops channel on collect-fares failure
+        if: ${{ failure() && env.READY == 'true' }}
+        env:
+          OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
+        run: >
+          node --experimental-strip-types scripts/ops-failure-alert.mjs
+          --event collect_fares_failed --message "collect-fares workflow failed"

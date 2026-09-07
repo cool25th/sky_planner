@@ -30,16 +30,32 @@ jobs:
         id: freshness
         env:
           SOURCE_HEALTH_URL: https://skyplanner-kappa.vercel.app/api/ops/source-health
+          OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
         run: |
           hours=$(curl -s --max-time 30 "$SOURCE_HEALTH_URL" \
             | jq -r 'if (.last_batch.last_batch_at // null) != null then ((.last_batch.last_batch_at | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) as $t | (now - $t) / 3600) else empty end')
           echo "last_batch_age_hours=${hours:-unknown}"
+          echo "last_batch_age_hours=${hours:-unknown}" >> "$GITHUB_OUTPUT"
           # 판독 불가(응답 이상·last_batch 부재)는 개입으로 판정 — 배치 1회 추가 실행은 멱등이라 안전.
           if [ -z "$hours" ] || awk -v h="$hours" 'BEGIN { exit !(h >= 20) }'; then
             echo "intervene=true" >> "$GITHUB_OUTPUT"
           else
             echo "intervene=false" >> "$GITHUB_OUTPUT"
           fi
+
+      # 완료정의[3]: 개입 자체가 배치 지연 신호다 — 실패-only 웹훅으로 1회 알린다(URL 없으면 스킵).
+      - name: Alert ops channel on watchdog intervention
+        if: steps.freshness.outputs.intervene == 'true'
+        run: |
+          if [ -z "$OPS_ALERT_WEBHOOK_URL" ]; then
+            echo "webhook not configured — alert skipped"
+            exit 0
+          fi
+          age="${{ steps.freshness.outputs.last_batch_age_hours }}"
+          curl -sf --max-time 15 -X POST -H 'content-type: application/json' \
+            -d "{\"service\":\"sky_planner\",\"event\":\"batch_watchdog_intervened\",\"status\":\"degraded\",\"last_batch_age_hours\":\"$age\"}" \
+            "$OPS_ALERT_WEBHOOK_URL" \
+            || echo "::warning::watchdog alert delivery failed — webhook 상태를 확인하세요"
 
   rescue:
     needs: check

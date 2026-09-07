@@ -1,0 +1,64 @@
+name: Synthetic check
+
+# 완료정의[3]: 사용자 높이 합성 체크 — 방문자가 보는 live 딜 수>0을 인프라 축(readiness)과
+# 별도로 6시간마다 직접 관측한다. 실패(도달 불가·503·demo/unavailable 모드·0딸) 시에만
+# OPS_ALERT_WEBHOOK_URL로 1회 핑한다(URL 없으면 조용히 스킵). checkout 없이 curl+jq만 쓴다.
+on:
+  schedule:
+    - cron: "37 */6 * * *" # 6시간마다(무료 분 한도 내 ~20초/회)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: synthetic-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # week 미지정 = 서버가 KST 기준 현재/예약 가능 주간으로 해석(f155f08) — 홈 진입과 동일 경로.
+      MAP_API_URL: https://skyplanner-kappa.vercel.app/api/deals/map?origin=ICN&region=ALL&cabin=ALL&stay_bucket=5_7&traveler=adt1
+      OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
+    steps:
+      - name: Check live deals map
+        id: check
+        run: |
+          body=$(curl -sf --max-time 30 "$MAP_API_URL" || true)
+          if [ -z "$body" ]; then
+            echo "map api unreachable or non-200 (cold-start 503 포함)"
+            echo "mode=unreachable" >> "$GITHUB_OUTPUT"
+            echo "deals=0" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+          mode=$(echo "$body" | jq -r '.diagnostics.data_mode // "missing"')
+          deals=$(echo "$body" | jq -r '.data.deals | length')
+          echo "mode=$mode deals=$deals"
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "deals=$deals" >> "$GITHUB_OUTPUT"
+          # last_good는 [1]의 정상 완화 경로(스테일 라이브) — demo/unavailable만 실패다.
+          if [ "$mode" != "live" ] && [ "$mode" != "last_good" ]; then
+            echo "unexpected data_mode: $mode"
+            exit 1
+          fi
+          if [ "$deals" -lt 1 ]; then
+            echo "no displayable deals"
+            exit 1
+          fi
+
+      - name: Alert ops channel on synthetic check failure
+        if: failure()
+        run: |
+          if [ -z "$OPS_ALERT_WEBHOOK_URL" ]; then
+            echo "webhook not configured — alert skipped"
+            exit 0
+          fi
+          mode="${{ steps.check.outputs.mode }}"
+          deals="${{ steps.check.outputs.deals }}"
+          curl -sf --max-time 15 -X POST -H 'content-type: application/json' \
+            -d "{\"service\":\"sky_planner\",\"event\":\"synthetic_check_failed\",\"status\":\"fail\",\"mode\":\"$mode\",\"deals\":$deals,\"url\":\"$MAP_API_URL\"}" \
+            "$OPS_ALERT_WEBHOOK_URL" \
+            || echo "::warning::synthetic alert delivery failed — webhook 상태를 확인하세요"
