@@ -102,6 +102,38 @@ test("emptyMapDataForQuery returns truthy live-shaped empty data, not null", asy
   assert.equal(empty.stay_bucket, query.stay_bucket);
 });
 
+// INT-20260908-001: 승인 소스 전부 차단(스테일 연쇄) 시 map/calendar/offers의 소스 게이트가
+// 쿼리 실행 없이 null을 반환한다 — 폴백 사유는 "행 없음"(데이터 부재)이 아니라
+// "적격 소스 없음"(배치 스테일)이어야 오퍼레이터가 원인을 구분할 수 있다.
+// 2026-09-08 프로덕션 실측: 배치 24.1h 스테일로 전 소스 차단 → not_ready → 데모 폴백에서
+// fallback_reason이 postgres_no_matching_rows로 오분류된 것이 계기.
+test("source-gate fallback reports no eligible sources, not no matching rows", async () => {
+  const { SOURCE_POLICY_CATALOG } = await import("../lib/source-policy.ts");
+  const saved = { DATABASE_READ_URL: process.env.DATABASE_READ_URL, SERVICE_REQUIRE_POSTGRES: process.env.SERVICE_REQUIRE_POSTGRES };
+  process.env.DATABASE_READ_URL = "postgresql://contract:nodb@127.0.0.1:1/none"; // postgresConfigured만 참으로(접속은 즉시 실패)
+  delete process.env.SERVICE_REQUIRE_POSTGRES;
+  const killSwitches = SOURCE_POLICY_CATALOG.map((source) => source.env_flag);
+  const savedSwitches = {};
+  for (const flag of killSwitches) {
+    savedSwitches[flag] = process.env[flag];
+    process.env[flag] = "false";
+  }
+  try {
+    const response = await resolveMapResponse(mapQuery());
+    assert.equal(response.diagnostics.read_model, "mock");
+    assert.equal(response.diagnostics.fallback_reason, "postgres_no_eligible_sources");
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+    for (const [key, value] of Object.entries(savedSwitches)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});
+
 // UX-20260828-001 잔여: calendar·offers도 0행 시 빈 live 형태로 응답한다(가드 삭제로 자연 처리).
 // 이 계약이 깨지면(빈 입력이 예외 또는 null 반환) resolve*FromPostgres의 가드 삭제가 무너진다.
 test("buildCalendarDataFromOffers renders live-shaped empty calendar for zero offers", async () => {

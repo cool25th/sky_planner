@@ -33,6 +33,7 @@ import { resolveOffersDataFromPostgres } from "./read-model/offers-query";
 import { buildMetaFromSourceFlags } from "./read-model/row-mappers";
 import { resolveSearchDataFromPostgres } from "./read-model/search-query";
 import { postgresConfigured, resolveSourceContext } from "./read-model/source-context";
+import { eligibleReadModelSourceKeys } from "@/lib/read-model-source-filter";
 
 const MOCK_FALLBACK_WARNING_FLAGS = ["mock_data_source", "daily_batch_cached", "final_price_check_on_booking_source"];
 
@@ -82,7 +83,13 @@ async function resolveReadModelResponse<Q, D>(query: Q, plan: ResponseResolution
         sourceContext,
       );
     }
-    fallbackReason = postgresConfigured() ? "postgres_no_matching_rows" : "postgres_not_configured";
+    // INT-20260908-001: 승인 소스가 전부 차단되면 map/calendar/offers의 소스 게이트가 쿼리 실행 없이
+    // null을 반환한다 — "행 없음"과 구분해 기록해야 스테일 연쇄와 데이터 부재를 오퍼레이터가 구분할 수 있다.
+    fallbackReason = !postgresConfigured()
+      ? "postgres_not_configured"
+      : eligibleReadModelSourceKeys(sourceFlags).size
+        ? "postgres_no_matching_rows"
+        : "postgres_no_eligible_sources";
   } catch (err) {
     fallbackReason = sanitizedPostgresFailure(err);
   }
