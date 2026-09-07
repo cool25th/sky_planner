@@ -281,6 +281,8 @@ export async function runCollectorSources(manifest, options = {}) {
   const succeeded = results.filter((result) => ["validated", "committed", "rolled_back"].includes(result.status)).length;
   const failed = results.filter((result) => result.status === "failed").length;
   const skipped = results.filter((result) => result.status === "skipped").length;
+  // 완료정의[2]: 마지막 수집 소스가 측정한 딜–오퍼 조인 비율(전역 건전성)을 배치 상태에 싣는다.
+  const dealJoin = results.map((result) => result.deal_join).filter(Boolean).pop() ?? null;
   const revalidateConfig = revalidateConfigFromOptions(parsed, options);
   const status = failed === 0 ? "success" : succeeded > 0 ? "completed_with_failures" : "failed";
   let revalidation = null;
@@ -337,6 +339,8 @@ export async function runCollectorSources(manifest, options = {}) {
     succeeded,
     failed,
     skipped,
+    deal_join_ratio: dealJoin?.deal_offer_join_ratio ?? null,
+    deal_join_ratio_below_min: dealJoin?.below_threshold ?? null,
     revalidation_status: revalidation?.status ?? null,
   };
   // 0건(전체 소스 실패) 배치는 기존 정상 batch_state를 덮어쓰지 않는다.
@@ -353,6 +357,7 @@ export async function runCollectorSources(manifest, options = {}) {
     succeeded,
     failed,
     skipped,
+    deal_join: dealJoin,
     revalidation,
     batch_state: batchState,
     batch_state_skipped_reason: batchState

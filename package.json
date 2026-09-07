@@ -12,6 +12,7 @@
     "collector:ingest": "node --experimental-strip-types scripts/ingest-collector-batch.mjs",
     "collector:source": "node --experimental-strip-types scripts/run-authorized-feed-collector.mjs",
     "collector:sources": "node --experimental-strip-types scripts/run-collector-sources.mjs",
+    "sweep:stale-deals": "node --experimental-strip-types scripts/sweep-stale-deals.mjs",
     "db:seed": "node --experimental-strip-types scripts/seed-postgres.mjs",
     "db:migrate": "node --experimental-strip-types scripts/migrate-postgres.mjs",
     "smoke:collector": "node --experimental-strip-types scripts/ingest-collector-batch.mjs --input tests/fixtures/collector-batch.sample.json --rollback",

@@ -10,6 +10,10 @@ import {
   enabledSourceFlagsFromEnv,
 } from "../lib/source-policy.ts";
 import { serviceRequiresPostgres } from "../lib/service-mode.ts";
+import {
+  LIVE_OFFER_VISIBILITY_SQL,
+  MIN_DEAL_OFFER_JOIN_RATIO,
+} from "../lib/read-model/live-offer-policy.ts";
 
 const { Client } = pg;
 
@@ -632,12 +636,7 @@ async function fetchMaterializationOffers(client, groups) {
         AND o.week = $3
         AND o.stay_bucket = $4
         AND o.traveler = $5
-        AND o.is_active = true
-        AND o.last_seen_at >= now() - interval '72 hours'
-        AND COALESCE(o.bookability_status, 'available') <> 'sold_out'
-        AND COALESCE(o.price_status, 'active') <> 'sold_out'
-        AND COALESCE(o.price_anomaly_status, 'normal') = 'normal'
-        AND COALESCE(o.quality_bucket, 'preferred') <> 'excluded'
+        AND ${LIVE_OFFER_VISIBILITY_SQL}
         AND (
           LOWER(COALESCE(o.booking_source, '')) = ANY($6::text[])
           OR (
@@ -727,6 +726,38 @@ async function upsertDeals(client, rows) {
       enabled_sources = EXCLUDED.enabled_sources,
       is_active = EXCLUDED.is_active
   `, [JSON.stringify(rows)]);
+}
+
+// 완료정의[2]: 배치 성공 기준 — 소스 N개 수집이 아니라 "활성 딜 중 live offer와 조인되는 비율".
+// 미달(MIN_DEAL_OFFER_JOIN_RATIO)은 부분 성공+경보 플래그로 summary에 드러난다(전체 실패 아님).
+export async function measureDealOfferJoin(client) {
+  const { rows } = await client.query(`
+    WITH live AS (
+      SELECT DISTINCT o.origin_airport, o.destination_city_id, o.week, o.stay_bucket, o.traveler
+      FROM offers o
+      WHERE ${LIVE_OFFER_VISIBILITY_SQL}
+    )
+    SELECT
+      count(*)::int AS active_deals,
+      count(*) FILTER (WHERE live.origin_airport IS NOT NULL)::int AS active_deals_with_live_offers
+    FROM deals_current d
+    LEFT JOIN live ON live.origin_airport = d.origin
+      AND live.destination_city_id = d.destination_city_id
+      AND live.week = d.week
+      AND live.stay_bucket = d.stay_bucket
+      AND live.traveler = d.traveler
+    WHERE d.is_active = true
+  `);
+  const activeDeals = rows[0]?.active_deals ?? 0;
+  const withLive = rows[0]?.active_deals_with_live_offers ?? 0;
+  const ratio = activeDeals > 0 ? withLive / activeDeals : null;
+  return {
+    active_deals: activeDeals,
+    active_deals_with_live_offers: withLive,
+    deal_offer_join_ratio: ratio,
+    min_ratio: MIN_DEAL_OFFER_JOIN_RATIO,
+    below_threshold: ratio !== null && ratio < MIN_DEAL_OFFER_JOIN_RATIO,
+  };
 }
 
 async function upsertSourceAudit(client, batch, changedRows, allRows) {
@@ -878,6 +909,7 @@ export async function ingestCollectorBatch(batch, options = {}) {
     const materializationOffers = await fetchMaterializationOffers(client, groups);
     const dealRows = buildDealRows(materializationOffers);
     await upsertDeals(client, dealRows);
+    const dealJoin = await measureDealOfferJoin(client);
     await upsertSourceAudit(client, batch, changedRows, offerRows);
     await upsertBatchState(client, batch, offerRows, currentManifest);
 
@@ -892,6 +924,7 @@ export async function ingestCollectorBatch(batch, options = {}) {
       snapshots_written: snapshotRows.length,
       deals_recomputed: dealRows.length,
       anomaly_offers: offerRows.filter((row) => row.price_anomaly_status === "anomaly").length,
+      deal_join: dealJoin,
     };
     await client.query(options.rollback ? "ROLLBACK" : "COMMIT");
     return summary;

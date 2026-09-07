@@ -5,6 +5,7 @@ import type { CalendarData, CalendarQuery } from "@/lib/mock-market";
 import { buildCalendarDataFromOffers } from "@/lib/read-model-source-filter";
 import { eligibleBookingSourceKeys } from "@/lib/source-policy";
 import { countryLabel, normalizeRegion, queryOrigins, regionLabel } from "./labels";
+import { LIVE_OFFER_VISIBILITY_SQL } from "./live-offer-policy";
 import { mapOfferFromSql, parseOfferJoinRow } from "./row-mappers";
 import { postgresConfigured } from "./source-context";
 
@@ -72,14 +73,9 @@ export async function resolveCalendarDataFromPostgres(
       AND o.destination_city_id = $2
       AND o.week = $3
       AND o.traveler = $4
-    AND o.stay_bucket = $5
-    AND o.is_active = true
-    AND o.depart_date >= CURRENT_DATE
-    AND COALESCE(o.bookability_status, 'available') <> 'sold_out'
-      AND COALESCE(o.price_status, 'active') <> 'sold_out'
-      AND COALESCE(o.price_anomaly_status, 'normal') = 'normal'
-      AND COALESCE(o.quality_bucket, 'preferred') <> 'excluded'
-      AND (
+	    AND o.stay_bucket = $5
+	    AND ${LIVE_OFFER_VISIBILITY_SQL}
+	    AND (
         LOWER(COALESCE(o.booking_source, '')) = ANY($6::text[])
         OR (
           LOWER(COALESCE(o.source_type, '')) <> 'meta_search'

@@ -13,6 +13,7 @@ import {
 } from "@/lib/mock-market";
 import { eligibleBookingSourceKeys } from "@/lib/source-policy";
 import { countryLabel, normalizeRegion } from "./labels";
+import { LIVE_OFFER_VISIBILITY_SQL } from "./live-offer-policy";
 import { mapOfferFromSql, parseOfferJoinRow } from "./row-mappers";
 import { postgresConfigured } from "./source-context";
 
@@ -106,12 +107,7 @@ export async function resolveSearchDataFromPostgres(
     WHERE o.origin_airport = $1
       AND o.destination_city_id = ANY($2::text[])
       AND o.traveler = $3
-      AND o.is_active = true
-      AND o.depart_date >= CURRENT_DATE
-      AND COALESCE(o.bookability_status, 'available') <> 'sold_out'
-      AND COALESCE(o.price_status, 'active') <> 'sold_out'
-      AND COALESCE(o.price_anomaly_status, 'normal') = 'normal'
-      AND COALESCE(o.quality_bucket, 'preferred') <> 'excluded'
+      AND ${LIVE_OFFER_VISIBILITY_SQL}
       AND o.stay_nights BETWEEN $4 AND $5
       AND (
         LOWER(COALESCE(o.booking_source, '')) = ANY($6::text[])

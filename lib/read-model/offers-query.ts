@@ -6,6 +6,7 @@ import type { OffersData, OffersQuery } from "@/lib/mock-market";
 import { eligibleBookingSourceKeys } from "@/lib/source-policy";
 import { queryOrigins } from "./labels";
 import { mapOfferFromSql, parseOfferJoinRow } from "./row-mappers";
+import { LIVE_OFFER_VISIBILITY_SQL } from "./live-offer-policy";
 import { postgresConfigured } from "./source-context";
 
 // DATA-20260908-001: 운영 게이트 차단·쿼리 실패 시 mock 페이로드 대신 내리는 빈 live 형태.
@@ -56,12 +57,7 @@ export async function resolveOffersDataFromPostgres(
       AND o.depart_date = $3
       AND o.return_date = $4
       AND o.traveler = $5
-      AND o.is_active = true
-      AND o.depart_date >= CURRENT_DATE
-      AND COALESCE(o.bookability_status, 'available') <> 'sold_out'
-      AND COALESCE(o.price_status, 'active') <> 'sold_out'
-      AND COALESCE(o.price_anomaly_status, 'normal') = 'normal'
-      AND COALESCE(o.quality_bucket, 'preferred') <> 'excluded'
+      AND ${LIVE_OFFER_VISIBILITY_SQL}
       AND (
         LOWER(COALESCE(o.booking_source, '')) = ANY($6::text[])
         OR (
