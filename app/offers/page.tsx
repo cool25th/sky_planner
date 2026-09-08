@@ -28,6 +28,10 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
   const rawParams = await props.searchParams;
   const query = parseOffersQuery(rawParams);
   const sortBy = (typeof rawParams?.sort === "string" ? rawParams.sort : "price") as "price" | "duration" | "departure";
+  // H5: 홈 픽 카드가 싣고 온 sub_id(페이지유형_픽ID)를 제휴 CTA로 이어붙인다 — 화이트리스트 문자만.
+  const incomingSubId = typeof rawParams?.sub_id === "string" && /^[a-z0-9_-]{1,64}$/.test(rawParams.sub_id)
+    ? rawParams.sub_id
+    : null;
 
   const offersResponse = await resolveOffersResponse(query);
   const offersData = offersResponse.data;
@@ -282,7 +286,7 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
                           className="flight-cta-btn"
                           href={withAffiliateTracking(offer.deep_link, {
                             surface: "offers",
-                            pickId: offer.destination_code,
+                            pickId: incomingSubId ?? offer.destination_code,
                             freshness: freshness.level,
                           })}
                           target="_blank"

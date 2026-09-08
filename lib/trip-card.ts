@@ -1,3 +1,4 @@
+import { trackingSubId } from "./affiliate-link.ts";
 import { formatCompactDate, formatMoney } from "./format.ts";
 import type { CabinCode, StayBucket } from "./mock-market.ts";
 import { PRICE_DEFINITION_SHORT } from "./price-definition.ts";
@@ -141,6 +142,7 @@ export function toTripCardModel(
   const cabin = query.cabin ?? "ALL";
   const price = minTotal(deal, cabin);
   const dateLine = buildDateLine(deal, query.stay_bucket);
+  // H5: 픽 카드의 내부 링크에 sub_id를 싣는다 — /offers CTA가 이어받아 제휴 딥링크로 흘려보낸다.
   const destHref = href(`/destination/${deal.destination_code}`, {
     origin: query.origin,
     week: query.week,
@@ -150,6 +152,7 @@ export function toTripCardModel(
     budget: query.budget ?? undefined,
     region: query.region,
     airlines: query.airlines?.length ? query.airlines.join(",") : undefined,
+    sub_id: pick ? trackingSubId({ surface: "home-pick", pickId: deal.destination_code }) : undefined,
   });
 
   return {
