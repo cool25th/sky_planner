@@ -18,6 +18,7 @@ function passingInput(overrides = {}) {
     dealOfferJoinRatio: 0.93, // 스테일 7%
     weeklyPickableDeals: 6,
     failureDetectionReady: true,
+    demoObserved: false, // H6: 런타임 관측에서 demo가 아님
     ...overrides,
   };
 }
@@ -29,6 +30,26 @@ test("launch gate passes only when every P0 axis holds", () => {
   assert.equal(evaluateLaunchGate(passingInput({ dealOfferJoinRatio: null })).passed, false, "조인 비율 미측정도 게이트 실패");
   assert.equal(evaluateLaunchGate(passingInput({ weeklyPickableDeals: 0 })).passed, false, "주간 픽 없음은 게이트 실패");
   assert.equal(evaluateLaunchGate(passingInput({ failureDetectionReady: false })).passed, false, "실패 감지 부재는 게이트 실패");
+});
+
+// H6: 데모 축은 고무도장이 아니라 런타임 관측이다 — demo 관측·관측 실패 모두 게이트를 닫는다.
+test("demo axis fails on observed demo mode and on failed observation", () => {
+  assert.equal(evaluateLaunchGate(passingInput({ demoObserved: true })).passed, false, "map API가 demo로 관측되면 게이트 실패");
+  const closed = evaluateLaunchGate(passingInput({ demoObserved: null }));
+  assert.equal(closed.passed, false, "관측 실패는 fail-closed");
+  assert.match(
+    closed.checks.find((check) => check.id === "demo_fallback_absent").detail,
+    /fail-closed/,
+  );
+});
+
+test("page meta noindex is wired to the gate, not robots.txt alone", () => {
+  const layout = readFileSync(join(repoRoot, "app/layout.tsx"), "utf8");
+  assert.ok(layout.includes("generateMetadata"), "레이아웃 메타가 게이트를 읽지 않는다");
+  assert.ok(layout.includes("index: false"), "게이트 실패 시 noindex 메타가 없다");
+  const gateSource = readFileSync(join(repoRoot, "lib/launch-gate.ts"), "utf8");
+  assert.ok(gateSource.includes("probeMapDataMode"), "데모 축의 런타임 관측(probe)이 없다");
+  assert.ok(gateSource.includes('mode === "demo"'));
 });
 
 test("stale percentage derives from the deal-offer join ratio", () => {
