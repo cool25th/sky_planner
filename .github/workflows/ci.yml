@@ -33,6 +33,10 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # 완료정의[9]/[12]: 시크릿 스캔(커밋 메시지·소스 트리) — 의존성 0, 매 push/PR 실행.
+      - name: Secret scan
+        run: npm run lint:secrets
+
       - name: Node contract tests
         run: npm test
 
