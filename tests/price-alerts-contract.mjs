@@ -20,6 +20,11 @@ const baseAlert = {
   targetPrice: 150000,
 };
 
+const libModule = await import("../lib/price-alerts.ts");
+function awaitImport() {
+  return libModule;
+}
+
 test("parseStoredPriceAlerts accepts valid records and filters malformed ones", () => {
   const raw = JSON.stringify([
     baseAlert,
@@ -154,4 +159,44 @@ test("dealPriceLookup picks the deal matching the alert origin across merged res
 
 test("storage key stays stable across visits", () => {
   assert.equal(priceAlertsStorageKey(), "sky_planner_price_alerts");
+});
+
+// 백로그[6]: 재방문 비교는 목표가뿐 아니라 "그때(저장 시점 관측가)보다 ±N원"을 말한다.
+test("evaluatePriceAlerts reports the delta against the saved baseline price", () => {
+  const lookup = () => ({ price: 146960, deal: null });
+  const { reached, pending } = evaluatePriceAlerts([
+    { ...baseAlert, id: "cheaper", targetPrice: 200000, baselinePriceTotal: 163450 },
+    { ...baseAlert, id: "higher", targetPrice: 100000, baselinePriceTotal: 120000 },
+    { ...baseAlert, id: "no-baseline", targetPrice: 100000 },
+  ], lookup);
+
+  assert.deepEqual(reached[0].baselineDelta, { delta: 146960 - 163450, direction: "cheaper" });
+  assert.deepEqual(pending[0].baselineDelta, { delta: 146960 - 120000, direction: "higher" });
+  // 기준가 없는 구형 저장은 ±N원을 주장하지 않는다(null) — 목표가 비교만.
+  assert.deepEqual(pending[1].baselineDelta, { delta: null, direction: "same" });
+});
+
+test("priceDelta classifies direction and refuses missing sides", () => {
+  const { priceDelta } = awaitImport();
+  assert.deepEqual(priceDelta(100, 150), { delta: -50, direction: "cheaper" });
+  assert.deepEqual(priceDelta(150, 100), { delta: 50, direction: "higher" });
+  assert.deepEqual(priceDelta(100, 100), { delta: 0, direction: "same" });
+  assert.deepEqual(priceDelta(null, 100), { delta: null, direction: "same" });
+  assert.deepEqual(priceDelta(100, null), { delta: null, direction: "same" });
+  assert.deepEqual(priceDelta(100, undefined), { delta: null, direction: "same" });
+});
+
+// 백로그[6]: "알림 의향" 1st-party 카운트 — localStorage만, 서버 전송 없음.
+test("alert intent store parses records and filters malformed ones", async () => {
+  const lib = awaitImport();
+  assert.deepEqual(lib.parsePriceAlertIntent(null), []);
+  assert.deepEqual(
+    lib.parsePriceAlertIntent(JSON.stringify([
+      { destinationCode: "FUK", at: 1 },
+      { destinationCode: 42, at: 2 },
+      "junk",
+    ])),
+    [{ destinationCode: "FUK", at: 1 }],
+  );
+  assert.equal(lib.priceAlertIntentStorageKey(), "sky_planner_price_alert_intent");
 });

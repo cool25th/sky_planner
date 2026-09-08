@@ -10,6 +10,63 @@ export interface StoredPriceAlert {
   cabin?: string;
   email?: string;
   createdAt?: number;
+  // 백로그[6]: 저장 시점 최저가(관측가) — 재방문 비교의 "그때" 기준. 없으면 ±N원 대신 목표가 비교만.
+  baselinePriceTotal?: number | null;
+}
+
+export interface PriceDelta {
+  delta: number | null;
+  direction: "cheaper" | "higher" | "same";
+}
+
+// 백로그[6]: "그때보다 ±N원" — 저장 시점 관측가와 현재 관측가의 차. 기준·현재 중 하나라도 없으면 null.
+export function priceDelta(currentPrice: number | null, baselinePrice: number | null | undefined): PriceDelta {
+  if (currentPrice === null || baselinePrice === null || baselinePrice === undefined) {
+    return { delta: null, direction: "same" };
+  }
+  const delta = currentPrice - baselinePrice;
+  return { delta, direction: delta < 0 ? "cheaper" : delta > 0 ? "higher" : "same" };
+}
+
+const ALERT_INTENT_STORAGE_KEY = "sky_planner_price_alert_intent";
+
+export function priceAlertIntentStorageKey(): string {
+  return ALERT_INTENT_STORAGE_KEY;
+}
+
+export interface StoredAlertIntent {
+  destinationCode: string;
+  at: number;
+}
+
+// 백로그[6]: "알림 의향" 1st-party 카운트 — localStorage에만 남는다(서버 전송 없음, 개인정보 아님).
+// A3(이메일 발송) 승격 시 이 신호가 수요 근거가 된다.
+export function parsePriceAlertIntent(raw: string | null): StoredAlertIntent[] {
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item): item is StoredAlertIntent =>
+        typeof item === "object" && item !== null &&
+        typeof (item as StoredAlertIntent).destinationCode === "string" &&
+        typeof (item as StoredAlertIntent).at === "number",
+    );
+  } catch {
+    return [];
+  }
+}
+
+export function recordPriceAlertIntent(destinationCode: string, now = Date.now()): StoredAlertIntent[] {
+  const key = priceAlertIntentStorageKey();
+  try {
+    const entries = parsePriceAlertIntent(localStorage.getItem(key));
+    const next = [...entries, { destinationCode, at: now }];
+    localStorage.setItem(key, JSON.stringify(next));
+    return next;
+  } catch {
+    return [];
+  }
 }
 
 export interface DealPriceRow {
@@ -35,6 +92,8 @@ export interface AlertEvaluation {
   currentPrice: number | null;
   reached: boolean;
   deal: DealPriceRow | null;
+  // 백로그[6]: 저장 시점 관측가 대비 현재 관측가 차(±N원) — 기준가가 없으면 delta null.
+  baselineDelta: PriceDelta;
 }
 
 const ALERTS_STORAGE_KEY = "sky_planner_price_alerts";
@@ -108,7 +167,13 @@ export function evaluatePriceAlerts(
 ): { reached: AlertEvaluation[]; pending: AlertEvaluation[] } {
   const evaluations = alerts.map((alert) => {
     const { price, deal } = lookup(alert);
-    return { alert, currentPrice: price, deal, reached: price !== null && price <= alert.targetPrice };
+    return {
+      alert,
+      currentPrice: price,
+      deal,
+      reached: price !== null && price <= alert.targetPrice,
+      baselineDelta: priceDelta(price, alert.baselinePriceTotal),
+    };
   });
   return {
     reached: evaluations.filter((item) => item.reached),
