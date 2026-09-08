@@ -25,6 +25,9 @@ jobs:
       FIRESTORE_MAX_DAILY_WRITES: "12000"
       FIRESTORE_MAX_DAILY_READS: "30000"
       FIRESTORE_MAX_STORAGE_MB: "600"
+      # H3(2026-09-08): 아래 "24"는 service-launch-audit의 required_env가 presence를 검사해 제거하면
+      # 새 하드 실패가 생긴다 — 값 자체는 승인 큐 #2(SOURCE_MAX_STALE_HOURS=48, Vercel env와 함께)
+      # 에서 48로 함께 바꾼다. 지금 48을 넣으면 env 승인을 우회하는 것이므로 하지 않는다.
       SOURCE_MAX_STALE_HOURS: "24"
       SOURCE_SKYSCANNER_ENABLED: "true"
       SOURCE_KOREAN_AIR_ENABLED: "true"

@@ -61,9 +61,14 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npm run db:seed
 
+      # H3(2026-09-08 핫픽스): continue-on-error+outcome 조건으로 "첫 실패→재시도 성공=잡 성공"을 만든다.
+      # run: | 안에서 인자를 다음 줄로 내려쓰면 별도 명령이 돼 인자가 유실된다 — 한 논리 명령한 줄로.
+      # SOURCE_MAX_STALE_HOURS 하드코딩("24") 제거: 이 스텝 커맨드는 값을 읽지 않았고(죽은 env),
+      # 남겨두면 48h 승인(Vercel env)과 해석이 갈라진다. 값 적용은 승인 큐 #2.
       - name: Run collector sources (ingest + audit failures)
         id: collect
         if: ${{ env.READY == 'true' }}
+        continue-on-error: true
         shell: bash
         env:
           COLLECTOR_SOURCE_MANIFEST_JSON: ${{ secrets.COLLECTOR_SOURCE_MANIFEST_JSON }}
@@ -77,18 +82,16 @@ jobs:
           SOURCE_GOOGLE_FLIGHTS_ENABLED: "false"
           SOURCE_KAYAK_ENABLED: "false"
           SOURCE_PROMO_PAGES_ENABLED: "false"
-          SOURCE_MAX_STALE_HOURS: "24"
         run: |
           mkdir -p runtime
           set -o pipefail
-          npm run collector:sources --
-            --manifest-env COLLECTOR_SOURCE_MANIFEST_JSON
-            --ingest --audit-failure --allow-partial | tee runtime/collector-summary.json
+          npm run collector:sources -- --manifest-env COLLECTOR_SOURCE_MANIFEST_JSON --ingest --audit-failure --allow-partial | tee runtime/collector-summary.json
 
       # DATA-20260908-001: 야간 배치 첫 전멸(09-08, 슬롯 2회 모두 미생성) 대응 — 일시 실패 1회 재시도.
-      # 5분 백오프 후 동일 커맨드 재실행(배치는 멱등). 재시도까지 실패하면 잡이 실패로 종료된다.
+      # 5분 백오프 후 동일 커맨드 재실행(배치는 멱등). 재시도 성공 시 잡은 성공, 재시도 실패 시 잡 실패.
       - name: Retry collector sources once after transient failure
-        if: ${{ failure() && env.READY == 'true' }}
+        id: retry
+        if: ${{ steps.collect.outcome == 'failure' && env.READY == 'true' }}
         shell: bash
         env:
           COLLECTOR_SOURCE_MANIFEST_JSON: ${{ secrets.COLLECTOR_SOURCE_MANIFEST_JSON }}
@@ -102,20 +105,16 @@ jobs:
           SOURCE_GOOGLE_FLIGHTS_ENABLED: "false"
           SOURCE_KAYAK_ENABLED: "false"
           SOURCE_PROMO_PAGES_ENABLED: "false"
-          SOURCE_MAX_STALE_HOURS: "24"
         run: |
           sleep 300
           mkdir -p runtime
           set -o pipefail
-          npm run collector:sources --
-            --manifest-env COLLECTOR_SOURCE_MANIFEST_JSON
-            --ingest --audit-failure --allow-partial | tee runtime/collector-summary.json
+          npm run collector:sources -- --manifest-env COLLECTOR_SOURCE_MANIFEST_JSON --ingest --audit-failure --allow-partial | tee runtime/collector-summary.json
 
       # RECO-20260828-001: 노선별 일별 최저가 히스토리 축적 + 30일 평균 대비 절감률 갱신.
-      # 표본 3일부터 discount_pct가 채워지며 destination UI 라벨(≥5%/≥15%)이 자동 활성화된다.
-      # !cancelled(): 재시도로 복구된 경우에도 baseline·프로브는 계속 실행한다.
+      # H3: 수집(또는 재시도)이 성공한 뒤에만 — 쌍실패 시 스테일 캐시가 30일 평균에 오염된다.
       - name: Update price baselines and deal discounts
-        if: ${{ !cancelled() && env.READY == 'true' }}
+        if: ${{ env.READY == 'true' && (steps.collect.outcome == 'success' || steps.retry.outcome == 'success') }}
         env:
           DATABASE_INGEST_URL: ${{ secrets.DATABASE_INGEST_URL }}
         run: npm run baseline:update
@@ -126,25 +125,26 @@ jobs:
 
       # INT-20260823-001: 배치 직후 배포 사이트 프로브 — batch_state 갱신 후에도 사이트가
       # not_ready면 run을 실패로 만들어 무인 시간대 장애 인지 창을 ~24h에서 즉시로 줄인다.
+      # H3: 수집 성공 후에만. READY가 아니면 스톱갑 경로(기존 semantics 유지).
       - name: Probe deployed source health after batch
-        if: ${{ !cancelled() && (env.READY == 'true' || env.SEED_DB != '') }}
+        if: ${{ (env.READY == 'true' && (steps.collect.outcome == 'success' || steps.retry.outcome == 'success')) || (env.READY != 'true' && env.SEED_DB != '') }}
         run: |
           body=$(curl -s --max-time 30 https://skyplanner-kappa.vercel.app/api/ops/source-health)
           echo "$body" | head -c 200
           echo "$body" | grep -q '"status":"ready"'
 
       # 완료정의[3]: 실패-only 알림. URL 미설정 시 스크립트가 조용히 스킵한다.
+      # H3: collect 실패 AND 재시도 실패(또는 미실행)일 때만 — 재시도 복구 성공은 알림 없음.
       - name: Alert ops channel on batch failure
-        if: ${{ failure() && env.READY == 'true' }}
+        if: ${{ env.READY == 'true' && steps.collect.outcome == 'failure' && steps.retry.outcome != 'success' }}
         env:
           OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
-        run: >
-          node --experimental-strip-types scripts/ops-failure-alert.mjs
-          --event daily_batch_failed --summary-file runtime/collector-summary.json
+        run: node --experimental-strip-types scripts/ops-failure-alert.mjs --event daily_batch_failed --summary-file runtime/collector-summary.json
 
       # 완료정의[2]: 배치 성공의 정의는 딜–오퍼 조인 노출 가능 비율 — 미달은 부분 성공+경보.
+      # H3: 성공한 요약(재시도가 덮어쓴 tee 출력 포함)만 입력으로.
       - name: Alert ops channel when deal-offer join ratio is below minimum
-        if: ${{ !cancelled() && env.READY == 'true' && steps.collect.outcome != 'skipped' }}
+        if: ${{ env.READY == 'true' && (steps.collect.outcome == 'success' || steps.retry.outcome == 'success') }}
         env:
           OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
         run: |
