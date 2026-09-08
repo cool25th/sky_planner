@@ -1,7 +1,11 @@
 import "server-only";
 
 import { query } from "@/lib/db";
-import { enabledSourceFlagsFromEnv } from "@/lib/source-policy";
+import {
+  enabledSourceFlagsFromEnv,
+  sourceHealthBlockReason,
+  sourceMaxStaleHoursFromEnv,
+} from "@/lib/source-policy";
 import { buildSourceReadinessSnapshot } from "@/lib/source-readiness";
 
 export function postgresConfigured() {
@@ -16,6 +20,10 @@ export interface SourceContext {
     blocked_source_ids: string[];
   } | null;
   sourceHealthError: string | null;
+  // H2(2026-09-08 핫픽스): env 활성 소스별 차단 사유(sourceHealthBlockReason 결과).
+  // last-good은 "stale" 차단만 완화하고 paused/circuit_breaker_open/consecutive_failures 등으로
+  // 차단된 소스의 데이터를 부활시키지 않는다.
+  sourceBlockReasons: Record<string, string | null>;
 }
 
 export async function resolveSourceContext(batchState: { lastBatchAt: string }): Promise<SourceContext> {
@@ -25,6 +33,7 @@ export async function resolveSourceContext(batchState: { lastBatchAt: string }):
       sourceFlags: envFlags,
       readiness: null,
       sourceHealthError: null,
+      sourceBlockReasons: Object.fromEntries(envFlags.map((flag) => [flag, null])),
     };
   }
 
@@ -44,6 +53,9 @@ export async function resolveSourceContext(batchState: { lastBatchAt: string }):
         last_batch_at: batchState.lastBatchAt,
       },
     });
+    const healthBySource = new Map(healthResult.rows.map((row) => [String(row.source_id ?? ""), row]));
+    const maxStaleHours = sourceMaxStaleHoursFromEnv();
+    const now = new Date();
     return {
       sourceFlags: readiness.source_flags,
       readiness: {
@@ -52,6 +64,9 @@ export async function resolveSourceContext(batchState: { lastBatchAt: string }):
         blocked_source_ids: readiness.blocked_source_ids,
       },
       sourceHealthError: null,
+      sourceBlockReasons: Object.fromEntries(
+        envFlags.map((flag) => [flag, sourceHealthBlockReason(healthBySource.get(flag), now, maxStaleHours)]),
+      ),
     };
   } catch (err) {
     console.error("Failed to fetch source health from PostgreSQL, using env source flags.", err);
@@ -59,6 +74,7 @@ export async function resolveSourceContext(batchState: { lastBatchAt: string }):
       sourceFlags: envFlags,
       readiness: null,
       sourceHealthError: "postgres_source_health_query_failed",
+      sourceBlockReasons: Object.fromEntries(envFlags.map((flag) => [flag, null])),
     };
   }
 }

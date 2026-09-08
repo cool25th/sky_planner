@@ -34,7 +34,7 @@ import { emptyMapDataForQuery, resolveMapDataFromPostgres } from "./read-model/m
 import { emptyOffersDataForQuery, resolveOffersDataFromPostgres } from "./read-model/offers-query";
 import { buildMetaFromSourceFlags } from "./read-model/row-mappers";
 import { resolveSearchDataFromPostgres } from "./read-model/search-query";
-import { postgresConfigured, resolveSourceContext } from "./read-model/source-context";
+import { postgresConfigured, resolveSourceContext, type SourceContext } from "./read-model/source-context";
 import { eligibleReadModelSourceKeys } from "@/lib/read-model-source-filter";
 
 const MOCK_FALLBACK_WARNING_FLAGS = ["mock_data_source", "daily_batch_cached", "final_price_check_on_booking_source"];
@@ -65,6 +65,30 @@ interface ResponseResolution<Q, D> {
 
 const LAST_GOOD_WARNING_FLAGS = ["stale_last_good_data", "daily_batch_cached", "final_price_check_on_booking_source"];
 
+// H2(2026-09-08 핫픽스): last-good으로 되살리면 안 되는 차단 사유 — 운영자가 명시적으로 끈 소스
+// (paused·kill switch)와 신뢰 붕괴(circuit breaker·반복 실패·성공 이력 부재·health 행 부재).
+// "stale"(신선도 마감)만 관측시각 스탬프와 함께 마지막 정상 데이터로 완화한다.
+const NON_REVIVABLE_BLOCK_REASONS = new Set([
+  "paused",
+  "disabled_by_health",
+  "circuit_breaker_open",
+  "consecutive_failures",
+  "never_successful",
+  "missing_source_health",
+]);
+
+export function lastGoodSourceFlags(sourceContext: SourceContext): string[] {
+  const blockReasons = sourceContext.sourceBlockReasons ?? {};
+  return enabledSourceFlagsFromEnv().filter((sourceId) => {
+    const reason = blockReasons[sourceId];
+    return reason === null || reason === undefined || !NON_REVIVABLE_BLOCK_REASONS.has(reason);
+  });
+}
+
+function staleGateBlocked(sourceContext: SourceContext): boolean {
+  return Object.values(sourceContext.sourceBlockReasons ?? {}).includes("stale");
+}
+
 function unavailableResponse<Q, D>(
   plan: ResponseResolution<Q, D>,
   query: Q,
@@ -86,11 +110,12 @@ async function resolveLastGoodResponse<Q, D>(
   sourceContext: Awaited<ReturnType<typeof resolveSourceContext>>,
   fallbackReason: string | null,
 ) {
-  // 스테일 게이트가 소스 필터를 비우므로, 마지막 정상 플래그(env 킬스위치 기준)로 재조회한다.
-  // 오퍼 72h 숨김 계약(lib/fare-freshness)이 last-good의 신선도 상한을 함께 지킨다.
-  if (!postgresConfigured()) return null;
-  const lastGoodFlags = enabledSourceFlagsFromEnv();
-  if (!lastGoodFlags.length) return null;
+  // H2: last-good은 스테일 게이트(소스 신선도 마감, readiness not_ready + stale 차단 존재)에서만.
+  // 쿼리 실패·health 조회 실패 등 그 외 차단은 빈 결과+사유로 응답한다.
+  if (fallbackReason !== "source_readiness_not_ready" || !staleGateBlocked(sourceContext)) return null;
+  // 차단 목록(비신선 사유)을 뺀 플래그로만 재조회 — env 킬스위치 전체를 다시 켜지 않는다.
+  const lastGoodFlags = lastGoodSourceFlags(sourceContext);
+  if (!lastGoodFlags.length || !postgresConfigured()) return null;
   try {
     const data = await plan.resolveFromPostgres(query, batchState.lastBatchAt, lastGoodFlags);
     if (!data || plan.liveContentCount(data) === 0) return null;
@@ -146,9 +171,11 @@ async function resolveReadModelResponse<Q, D>(query: Q, plan: ResponseResolution
     fallbackReason = sanitizedPostgresFailure(err);
   }
 
-  if (serviceRequiresPostgres()) {
-    const lastGood = await resolveLastGoodResponse(query, plan, batchState, sourceContext, fallbackReason);
-    if (lastGood) return lastGood;
+  // H1(2026-09-08 핫픽스): postgres가 구성된 환경에서는 SERVICE_REQUIRE_POSTGRES와 무관하게
+  // mock 페이로드를 조립하지 않는다 — 프로덕션 실측 service_requires_postgres=false인 채로
+  // 쿼리 실패(콜드스타트 등)가 데모 가격으로 떨어지던 구멍. 쿼리 실패는 last-good 대상이
+  // 아니므로([H2] 스테일 게이트 전용) 빈 결과+사유로 응답한다. mock은 미구성 로컬/테스트만.
+  if (postgresConfigured() || serviceRequiresPostgres()) {
     return unavailableResponse(plan, query, batchState, sourceContext, fallbackReason);
   }
 

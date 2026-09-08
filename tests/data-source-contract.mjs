@@ -127,6 +127,53 @@ test("production fallback never ships demo payload or demo label", async () => {
   }
 });
 
+// H1(2026-09-08 핫픽스): 프로덕션 실측 service_requires_postgres=false — REQUIRE 플래그 없이
+// postgres만 구성돼도(운영 조건) 쿼리 실패는 mock이 아니라 빈 결과로 떨어져야 한다.
+test("configured postgres rejects mock payload even without SERVICE_REQUIRE_POSTGRES", async () => {
+  if ("SERVICE_REQUIRE_POSTGRES" in process.env) delete process.env.SERVICE_REQUIRE_POSTGRES;
+  process.env.DATABASE_READ_URL = "postgresql://contract:nodb@127.0.0.1:1/none";
+  try {
+    const response = await resolveMapResponse(mapQuery());
+    assert.equal(response.diagnostics.postgres_configured, true);
+    assert.notEqual(response.diagnostics.service_requires_postgres, true);
+    assert.notEqual(response.diagnostics.data_mode, "demo", "운영 조건(postgres 구성)에서 쿼리 실패가 데모로 떨어지면 H1 구멍");
+    assert.notEqual(response.diagnostics.read_model, "mock");
+    assert.deepEqual(response.data.deals, []);
+    assert.equal(response.diagnostics.fallback_reason, "postgres_connection_failed");
+  } finally {
+    delete process.env.DATABASE_READ_URL;
+  }
+});
+
+// H2(2026-09-08 핫픽스): last-good은 스테일(신선도 마감) 차단만 완화한다 — 일시정지·서킷브레이커·
+// 반복 실패로 차단된 소스의 데이터가 last-good 응답의 source_flags/오퍼로 되살아나면 실패.
+test("last-good flags never revive paused, circuit-broken or failing sources", async () => {
+  const { lastGoodSourceFlags } = await import("../lib/data-source.ts");
+  const flags = lastGoodSourceFlags({
+    sourceFlags: [],
+    readiness: null,
+    sourceHealthError: null,
+    sourceBlockReasons: {
+      travelpayouts_aviasales: "stale",
+      skyscanner_affiliate: "paused",
+      korean_air_official: "circuit_breaker_open",
+      asiana_official: "consecutive_failures",
+    },
+  });
+  assert.ok(flags.includes("travelpayouts_aviasales"), "스테일 차단은 last-good 완화 대상");
+  assert.ok(!flags.includes("skyscanner_affiliate"), "일시정지 소스 부활 금지");
+  assert.ok(!flags.includes("korean_air_official"), "서킷브레이커 소스 부활 금지");
+  assert.ok(!flags.includes("asiana_official"), "반복 실패 소스 부활 금지");
+
+  const allRevivableBlocked = lastGoodSourceFlags({
+    sourceFlags: [],
+    readiness: null,
+    sourceHealthError: null,
+    sourceBlockReasons: { skyscanner_affiliate: "paused", asiana_official: "circuit_breaker_open" },
+  });
+  assert.equal(allRevivableBlocked.filter((flag) => flag !== "korean_air_official" && flag !== "travelpayouts_aviasales").length, 0);
+});
+
 // DATA-20260908-001: 빈 결과·last-good용 엔드포인트별 빈 형태도 live envelope과 같은 모양을 유지한다.
 test("offers and calendar empty builders return live-shaped empty data", async () => {
   const { emptyOffersDataForQuery } = await import("../lib/read-model/offers-query.ts");
@@ -161,6 +208,7 @@ test("offers and calendar empty builders return live-shaped empty data", async (
 // "적격 소스 없음"(배치 스테일)이어야 오퍼레이터가 원인을 구분할 수 있다.
 // 2026-09-08 프로덕션 실측: 배치 24.1h 스테일로 전 소스 차단 → not_ready → 데모 폴백에서
 // fallback_reason이 postgres_no_matching_rows로 오분류된 것이 계기.
+// H1 핫픽스로 postgres 구성 환경의 mock 폴백는 제거 — 이 경로도 unavailable+빈 결과로 응답한다.
 test("source-gate fallback reports no eligible sources, not no matching rows", async () => {
   const { SOURCE_POLICY_CATALOG } = await import("../lib/source-policy.ts");
   const saved = { DATABASE_READ_URL: process.env.DATABASE_READ_URL, SERVICE_REQUIRE_POSTGRES: process.env.SERVICE_REQUIRE_POSTGRES };
@@ -174,8 +222,9 @@ test("source-gate fallback reports no eligible sources, not no matching rows", a
   }
   try {
     const response = await resolveMapResponse(mapQuery());
-    assert.equal(response.diagnostics.read_model, "mock");
+    assert.equal(response.diagnostics.read_model, "unavailable");
     assert.equal(response.diagnostics.fallback_reason, "postgres_no_eligible_sources");
+    assert.deepEqual(response.data.deals, [], "적격 소스 0개일 때 데모 딜이 실리면 안 된다");
   } finally {
     for (const [key, value] of Object.entries(saved)) {
       if (value === undefined) delete process.env[key];
