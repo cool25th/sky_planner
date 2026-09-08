@@ -18,4 +18,7 @@ export const LIVE_OFFER_VISIBILITY_SQL = `
 
 // 배치 성공의 정의(완료정의[2]): "소스 N개 수집"이 아니라 딜–오퍼 조인 후 노출 가능 비율.
 // 스윕 이후 정상 상태는 ~1.0이며 0.80은 피드 일부 공백 여유 — 미달은 부분 성공+경보(전체 실패 아님).
+// H4: 이 0.80(배치 경보 하한)과 출시 게이트의 스테일 <15%(= ratio ≥0.85, lib/launch-gate
+// LAUNCH_GATE_THRESHOLDS.maxStaleLowestPricePct)의 이중 간격은 의도다 — 경보가 먼저 울리고
+// 게이트는 더 보수적으로 연다. 한쪽만 바꾸지 말 것.
 export const MIN_DEAL_OFFER_JOIN_RATIO = 0.8;

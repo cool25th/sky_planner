@@ -16,7 +16,7 @@ import { pathToFileURL } from "node:url";
 
 import pg from "pg";
 
-import { collectorDatabaseUrl } from "./ingest-collector-batch.mjs";
+import { collectorDatabaseUrl, measureDealOfferJoin } from "./ingest-collector-batch.mjs";
 import { LIVE_OFFER_VISIBILITY_SQL, MIN_DEAL_OFFER_JOIN_RATIO } from "../lib/read-model/live-offer-policy.ts";
 
 const { Client } = pg;
@@ -223,6 +223,30 @@ export async function sweepStaleDeals(options = {}) {
       if (apply) await applyChunk(client, planRows);
     }
 
+    // H4(2026-09-08 핫픽스): apply 후 게이트와 동일 소스로 재측정해 batch_state.last_batch의
+    // deal_join_ratio 키에 병합 기록한다 — 스윕만 하고 ratio가 없으면 게이트가 영구 503이다.
+    // 기존 필드(status·last_batch_at 등)는 보존한다(워치독·source-health가 함께 읽는다).
+    let ratioRecorded = null;
+    if (apply) {
+      const dealJoin = await measureDealOfferJoin(client);
+      const { rows } = await client.query("SELECT data FROM batch_state WHERE key = 'last_batch' LIMIT 1");
+      const merged = {
+        ...(rows[0]?.data ?? {}),
+        deal_join_ratio: dealJoin.deal_offer_join_ratio,
+        deal_join_ratio_active_deals: dealJoin.active_deals,
+        deal_join_ratio_with_live_offers: dealJoin.active_deals_with_live_offers,
+        deal_join_ratio_below_min: dealJoin.below_threshold,
+        deal_join_ratio_measured_at: new Date().toISOString(),
+        deal_join_ratio_source: "sweep",
+      };
+      await client.query(`
+        INSERT INTO batch_state (key, data)
+        VALUES ('last_batch', $1::jsonb)
+        ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data
+      `, [JSON.stringify(merged)]);
+      ratioRecorded = dealJoin;
+    }
+
     const activeAfter = totals.groups_with_live_offers;
     return {
       mode: apply ? "apply" : "dry_run",
@@ -230,11 +254,13 @@ export async function sweepStaleDeals(options = {}) {
       join_ratio_before: totals.groups_scanned > 0
         ? Number((totals.groups_with_live_offers / totals.groups_scanned).toFixed(4))
         : null,
+      join_ratio_after: ratioRecorded ? ratioRecorded.deal_offer_join_ratio : null,
       join_ratio_after_projection: activeAfter > 0 ? 1 : null,
       remaining_stale_pct_after_projection: 0,
       min_batch_ratio: MIN_DEAL_OFFER_JOIN_RATIO,
+      ratio_key: "batch_state.last_batch.deal_join_ratio",
       note: apply
-        ? "캐시 최저가·is_active가 live offers 값으로 재기록되었다"
+        ? "캐시 최저가·is_active가 live offers 값으로 재기록되고 조인 비율이 batch_state에 기록되었다"
         : "dry-run — 수치만 보고, 데이터 변경 없음. 실행은 --apply (운영 전량 갱신, 사람 승인 대상)",
     };
   } finally {

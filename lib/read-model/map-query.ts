@@ -81,7 +81,9 @@ export async function resolveMapDataFromPostgres(mapQuery: MapQuery, lastBatchAt
       d.latitude,
       d.longitude,
       eco.min_total_krw AS economy_min_total_krw,
-      d.economy_discount_pct AS economy_discount_pct,
+      -- H4(2026-09-08 핫픽스): 할인률(deals_current 캐시)은 캐시 최저가와 live 최저가가 같은
+      -- 세대일 때만 노출한다 — 캐시 할인 + live 가격의 혼합 표시는 거짓 근거가 된다.
+      CASE WHEN d.economy_min_total_krw = eco.min_total_krw THEN d.economy_discount_pct END AS economy_discount_pct,
       d.economy_badge_type,
       CASE WHEN eco.min_total_krw IS NOT NULL THEN 'active' END AS economy_price_status,
       eco.best_depart_date AS economy_best_depart_date,
@@ -92,7 +94,7 @@ export async function resolveMapDataFromPostgres(mapQuery: MapQuery, lastBatchAt
       eco.last_seen_at AS economy_last_seen_at,
       eco.last_batch_at AS economy_last_batch_at,
       biz.min_total_krw AS business_min_total_krw,
-      d.business_discount_pct AS business_discount_pct,
+      CASE WHEN d.business_min_total_krw = biz.min_total_krw THEN d.business_discount_pct END AS business_discount_pct,
       d.business_badge_type,
       CASE WHEN biz.min_total_krw IS NOT NULL THEN 'active' END AS business_price_status,
       biz.best_depart_date AS business_best_depart_date,

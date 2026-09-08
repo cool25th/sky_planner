@@ -32,8 +32,8 @@ test("map query prices come from live offers, not the deals_current cache", () =
     "business 최저가가 live 오퍼 최저가로 선택되지 않는다",
   );
   assert.ok(
-    !source.includes("d.economy_min_total_krw") && !source.includes("d.business_min_total_krw"),
-    "deals_current 캐시 최저가 열이 SELECT에 남아 있다 — 정렬 힌트로만 쓸 열이다",
+    !source.includes("d.economy_min_total_krw AS") && !source.includes("d.business_min_total_krw AS"),
+    "deals_current 캐시 최저가가 그대로 SELECT 투영되고 있다 — 정렬 힌트로만 쓸 열이다(H4 세대 비교 CASE의 참조는 허용)",
   );
   assert.ok(
     source.includes(".filter(isDealDisplayable)"),
@@ -58,4 +58,30 @@ test("map deal observation stamps come from the live representative offer", () =
     source.includes("eco.last_seen_at AS economy_last_seen_at"),
     "관측시각(economy_last_seen_at)이 live 오퍼에서 오지 않는다 — 캐시 스탬프로 오래된 관측을 최근인 것처럼 보인다",
   );
+});
+
+// H4(2026-09-08 핫픽스): 할인률은 캐시 최저가와 live 최저가가 같은 세대일 때만 노출 —
+// 캐시 할인(구 가격 기준) + live 가격의 혼합 표시는 거짓 근거("평균 대비 N%")가 된다.
+test("map query hides discount unless cache and live prices are the same generation", () => {
+  const source = readFileSync(join(repoRoot, "lib/read-model/map-query.ts"), "utf8");
+  assert.ok(
+    source.includes("CASE WHEN d.economy_min_total_krw = eco.min_total_krw THEN d.economy_discount_pct END"),
+    "economy 할인에 세대 가드(캐시가=live가)가 없다",
+  );
+  assert.ok(
+    source.includes("CASE WHEN d.business_min_total_krw = biz.min_total_krw THEN d.business_discount_pct END"),
+    "business 할인에 세대 가드(캐시가=live가)가 없다",
+  );
+  assert.ok(
+    !source.includes("d.economy_discount_pct AS economy_discount_pct") && !source.includes("d.business_discount_pct AS business_discount_pct"),
+    "가드 없는 캐시 할인 직접 노출이 남아 있다",
+  );
+});
+
+// H4: 스윕 apply는 게이트가 읽는 키(batch_state.last_batch.deal_join_ratio)에 비율을 기록한다.
+test("sweep apply records the join ratio under the gate-visible key", () => {
+  const sweep = readFileSync(join(repoRoot, "scripts/sweep-stale-deals.mjs"), "utf8");
+  assert.ok(sweep.includes("measureDealOfferJoin"), "apply 후 재측정이 없다");
+  assert.ok(sweep.includes("deal_join_ratio: dealJoin.deal_offer_join_ratio"), "batch_state.last_batch.deal_join_ratio 기록이 없다");
+  assert.ok(sweep.includes('ratio_key: "batch_state.last_batch.deal_join_ratio"'), "리포트에 ratio 키 이름이 없다");
 });
