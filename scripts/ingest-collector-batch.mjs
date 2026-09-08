@@ -760,35 +760,41 @@ export async function measureDealOfferJoin(client) {
   };
 }
 
-async function upsertSourceAudit(client, batch, changedRows, allRows) {
-  const anomalyCount = allRows.filter((row) => row.price_anomaly_status === "anomaly").length;
-  const stats = {
-    total_jobs: 1,
-    success_count: 1,
-    failure_count: 0,
-    avg_latency_ms: batch.stats.avg_latency_ms ?? 0,
-    block_count: batch.stats.block_count ?? 0,
-    schema_validation_failure_count: batch.stats.schema_validation_failed_count ?? 0,
-    price_anomaly_count: batch.stats.price_anomaly_count ?? anomalyCount,
-    write_amplification_ratio: allRows.length ? changedRows.length / allRows.length : 0,
+// INT-20260909-001: stats_24h는 이름 그대로 최근 24시간 창 집계다. TP 전환 후 30개 설정이 하나의
+// source_id를 공유하며 각 잡이 health 행을 통째로 덮어써서 마지막 잡의 단일 값만 남았다
+// (2026-09-09 실측: 28잡 성공 배치에 total_jobs=1 — 창 내 실패가 뒤늦은 성공에 덮여 숨는 구멍).
+// 호출부는 현재 잡의 source_jobs 행을 먼저 쓴 뒤 이 함수를 불러야 창에 포함된다(같은 트랜잭션).
+export async function sourceHealthStats24h(client, sourceId, now = new Date()) {
+  const { rows } = await client.query(`
+    SELECT
+      count(*)::int AS total_jobs,
+      count(*) FILTER (WHERE status = 'success')::int AS success_count,
+      count(*) FILTER (WHERE status <> 'success')::int AS failure_count,
+      count(*) FILTER (WHERE failure_code = 'rate_limited')::int AS block_count,
+      COALESCE(sum(schema_validation_failed_count), 0)::int AS schema_validation_failure_count,
+      COALESCE(sum(price_anomaly_count), 0)::int AS price_anomaly_count,
+      COALESCE(round(avg(EXTRACT(EPOCH FROM (completed_at - started_at)) * 1000)), 0)::int AS avg_latency_ms,
+      CASE WHEN COALESCE(sum(offers_found), 0) > 0
+        THEN round(sum(offers_changed)::numeric / sum(offers_found), 4)
+        ELSE 0 END AS write_amplification_ratio
+    FROM source_jobs
+    WHERE source_id = $1 AND created_at > $2
+  `, [sourceId, new Date(new Date(now).getTime() - 24 * 60 * 60 * 1000).toISOString()]);
+  const row = rows[0] ?? {};
+  return {
+    total_jobs: row.total_jobs ?? 0,
+    success_count: row.success_count ?? 0,
+    failure_count: row.failure_count ?? 0,
+    avg_latency_ms: row.avg_latency_ms ?? 0,
+    block_count: row.block_count ?? 0,
+    schema_validation_failure_count: row.schema_validation_failure_count ?? 0,
+    price_anomaly_count: row.price_anomaly_count ?? 0,
+    write_amplification_ratio: Number(row.write_amplification_ratio ?? 0),
   };
-  await client.query(`
-    INSERT INTO source_health (
-      source_id, enabled_by_flag, is_paused, circuit_breaker_open, consecutive_failures,
-      stats_24h, last_success_at, last_checked_at, last_artifact_prefix
-    )
-    VALUES ($1, true, false, false, 0, $2::jsonb, $3, $3, $4)
-    ON CONFLICT (source_id) DO UPDATE SET
-      enabled_by_flag = true,
-      is_paused = false,
-      circuit_breaker_open = false,
-      consecutive_failures = 0,
-      stats_24h = EXCLUDED.stats_24h,
-      last_success_at = EXCLUDED.last_success_at,
-      last_checked_at = EXCLUDED.last_checked_at,
-      last_artifact_prefix = EXCLUDED.last_artifact_prefix
-  `, [batch.source_id, JSON.stringify(stats), utcTimestamp(batch.collected_at), batch.artifact_prefix ?? null]);
+}
 
+export async function upsertSourceAudit(client, batch, changedRows, allRows) {
+  const anomalyCount = allRows.filter((row) => row.price_anomaly_status === "anomaly").length;
   await client.query(`
     INSERT INTO source_jobs (
       execution_id, source_id, status, parser_version, offers_found, offers_changed,
@@ -808,6 +814,24 @@ async function upsertSourceAudit(client, batch, changedRows, allRows) {
     utcTimestamp(batch.stats.started_at ?? batch.collected_at),
     utcTimestamp(batch.stats.completed_at ?? batch.collected_at),
   ]);
+
+  const stats = await sourceHealthStats24h(client, batch.source_id, batch.collected_at);
+  await client.query(`
+    INSERT INTO source_health (
+      source_id, enabled_by_flag, is_paused, circuit_breaker_open, consecutive_failures,
+      stats_24h, last_success_at, last_checked_at, last_artifact_prefix
+    )
+    VALUES ($1, true, false, false, 0, $2::jsonb, $3, $3, $4)
+    ON CONFLICT (source_id) DO UPDATE SET
+      enabled_by_flag = true,
+      is_paused = false,
+      circuit_breaker_open = false,
+      consecutive_failures = 0,
+      stats_24h = EXCLUDED.stats_24h,
+      last_success_at = EXCLUDED.last_success_at,
+      last_checked_at = EXCLUDED.last_checked_at,
+      last_artifact_prefix = EXCLUDED.last_artifact_prefix
+  `, [batch.source_id, JSON.stringify(stats), utcTimestamp(batch.collected_at), batch.artifact_prefix ?? null]);
 }
 
 async function upsertBatchState(client, batch, allRows, currentManifest) {

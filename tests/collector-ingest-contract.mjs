@@ -7,8 +7,10 @@ import {
   collectorDatabaseUrl,
   parseCollectorBatch,
   partitionOfferRows,
+  sourceHealthStats24h,
   summarizeCollectorBatch,
   touchUnchangedOffers,
+  upsertSourceAudit,
 } from "../scripts/ingest-collector-batch.mjs";
 
 const fixturePath = new URL("./fixtures/collector-batch.sample.json", import.meta.url);
@@ -134,4 +136,81 @@ test("buildSnapshotRows stamps expire_at at collected_at + 90 days", () => {
   assert.equal(rows[1].expire_at, "2026-12-02T18:53:00.000Z", "오프셋 시각은 절대시각 기준 +90일");
   assert.equal(rows[1].collected_at, "2026-09-04T03:53:00+09:00", "collected_at은 원본 표기 유지");
   assert.equal(rows[2].expire_at, null, "결측 captured_at은 추정 만료를 만들지 않고 null 유지");
+});
+
+// INT-20260909-001: stats_24h는 source_jobs의 실제 24시간 창 집계다 — TP 전환 후 30개 설정이
+// 하나의 source_id를 공유하며 마지막 잡의 단일 값(total_jobs:1)로 덮어쓰던 결함(2026-09-09 실측:
+// 28잡 성공 배치에 total_jobs=1, 창 내 실패가 뒤늦은 성공에 덮여 숨음)의 재발 방지 계약.
+test("sourceHealthStats24h aggregates the real 24h window from source_jobs", async () => {
+  const queries = [];
+  const client = {
+    query: async (sql, params) => {
+      queries.push({ sql, params });
+      return {
+        rows: [{
+          total_jobs: 28,
+          success_count: 26,
+          failure_count: 2,
+          block_count: 1,
+          schema_validation_failure_count: 0,
+          price_anomaly_count: 3,
+          avg_latency_ms: 139,
+          write_amplification_ratio: "0.5909",
+        }],
+      };
+    },
+  };
+
+  const stats = await sourceHealthStats24h(client, "travelpayouts_aviasales", "2026-09-08T18:57:00Z");
+  assert.match(queries[0].sql, /FROM source_jobs/i);
+  assert.match(queries[0].sql, /created_at > \$2/);
+  assert.equal(queries[0].params[0], "travelpayouts_aviasales");
+  assert.equal(queries[0].params[1], "2026-09-07T18:57:00.000Z", "창 하한은 기준시각-24h");
+  assert.equal(stats.total_jobs, 28);
+  assert.equal(stats.failure_count, 2, "창 내 실패가 집계에 남는다 — 뒤늦은 성공이 덮지 않는다");
+  assert.equal(stats.write_amplification_ratio, 0.5909);
+});
+
+test("upsertSourceAudit writes the job row before aggregating window stats", async () => {
+  const queries = [];
+  const client = {
+    query: async (sql, params) => {
+      queries.push({ sql, params });
+      if (/FROM source_jobs/i.test(sql)) {
+        return {
+          rows: [{
+            total_jobs: 28,
+            success_count: 28,
+            failure_count: 0,
+            block_count: 0,
+            schema_validation_failure_count: 0,
+            price_anomaly_count: 0,
+            avg_latency_ms: 139,
+            write_amplification_ratio: "0.5909",
+          }],
+        };
+      }
+      return { rows: [] };
+    },
+  };
+  const batch = {
+    execution_id: "exec1",
+    source_id: "travelpayouts_aviasales",
+    parser_version: "authorized-json-feed-v1",
+    collected_at: "2026-09-08T18:57:00Z",
+    artifact_prefix: "runtime/collector-artifacts/x",
+    stats: {},
+  };
+
+  await upsertSourceAudit(client, batch, [{ offer_id: "a" }], [{ offer_id: "a" }, { offer_id: "b" }]);
+
+  const jobsIndex = queries.findIndex((q) => /INSERT INTO source_jobs/i.test(q.sql));
+  const aggIndex = queries.findIndex((q) => /FROM source_jobs/i.test(q.sql));
+  const healthIndex = queries.findIndex((q) => /INSERT INTO source_health/i.test(q.sql));
+  assert.ok(jobsIndex !== -1 && aggIndex !== -1 && healthIndex !== -1);
+  assert.ok(jobsIndex < aggIndex, "현재 잡을 창에 포함시키려면 잡 삽입이 집계보다 먼저다");
+  assert.ok(aggIndex < healthIndex, "health upsert는 집계 결과를 싣는다");
+  const stats = JSON.parse(queries[healthIndex].params[1]);
+  assert.equal(stats.total_jobs, 28, "health의 stats_24h는 창 집계값 — 마지막 잡 단일 값(total_jobs:1)이 아니다");
+  assert.equal(stats.success_count, 28);
 });

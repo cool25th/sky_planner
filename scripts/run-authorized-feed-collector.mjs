@@ -10,6 +10,7 @@ import {
   collectorDatabaseUrl,
   ingestCollectorBatch,
   parseCollectorBatch,
+  sourceHealthStats24h,
   summarizeCollectorBatch,
 } from "./ingest-collector-batch.mjs";
 
@@ -712,16 +713,6 @@ export async function recordCollectorFailure(inputConfig, error, options = {}) {
   const completedAt = utcTimestamp(options.completedAt ?? now.toISOString());
   const failureCode = options.failureCode ?? classifyCollectorFailure(error);
   const execution = options.executionId ?? executionId(config.source_id, now);
-  const stats = {
-    total_jobs: 1,
-    success_count: 0,
-    failure_count: 1,
-    avg_latency_ms: Math.max(0, Number(options.latencyMs ?? 0)),
-    block_count: failureCode === "rate_limited" ? 1 : 0,
-    schema_validation_failure_count: failureCode === "schema_validation_failed" ? 1 : 0,
-    price_anomaly_count: 0,
-    write_amplification_ratio: 0,
-  };
   const client = new Client({ connectionString });
   await client.connect();
   try {
@@ -754,6 +745,8 @@ export async function recordCollectorFailure(inputConfig, error, options = {}) {
     `, [config.source_id]);
     const recentFailureCodes = recentRows.map((row) => String(row.failure_code ?? "")).filter(Boolean);
 
+    // INT-20260909-001: 성공 경로와 동일하게 source_jobs 창 집계 — 실패 잡도 직전 24h 통계에 합산된다.
+    const stats = await sourceHealthStats24h(client, config.source_id, completedAt);
     const { rows } = await client.query(`
       INSERT INTO source_health (
         source_id, enabled_by_flag, stats_24h, last_failure_at, last_failure_code,
