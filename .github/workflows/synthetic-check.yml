@@ -1,8 +1,10 @@
 name: Synthetic check
 
-# 완료정의[3]: 사용자 높이 합성 체크 — 방문자가 보는 live 딜 수>0을 인프라 축(readiness)과
-# 별도로 6시간마다 직접 관측한다. 실패(도달 불가·503·demo/unavailable 모드·0딸) 시에만
-# OPS_ALERT_WEBHOOK_URL로 1회 핑한다(URL 없으면 조용히 스킵). checkout 없이 curl+jq만 쓴다.
+# 완료정의[3]/H7 역할 분리:
+#   - 합성 체크(이 워크플로) = "방문자가 지금 가짜/빈 화면을 보는가" — 6시간 주기 사용자 높이 관측.
+#     last_good은 정상 완화 경로(성공), demo/unavailable/unreachable/딜 0만 실패.
+#   - 배치 전멸 감지(26분급 공백) = daily-batch.yml의 실패 알림 몫이다 — 주기를 줄여 분을 태우지 않는다.
+# 실패 시에만 OPS_ALERT_WEBHOOK_URL로 1회 핑(URL 없으면 조용히 스킵). checkout 없이 curl+jq만 쓴다.
 on:
   schedule:
     - cron: "37 */6 * * *" # 6시간마다(무료 분 한도 내 ~20초/회)

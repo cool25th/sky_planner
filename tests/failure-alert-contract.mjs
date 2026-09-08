@@ -68,6 +68,8 @@ test("failure alert posts a one-line summary payload when configured", async () 
 });
 
 // 합성 체크: 방문자 높이에서 live 딜 수>0을 6시간 주기로 관측하고 실패 시에만 웹훅.
+// H7: 역할 분리 — 합성=사용자 높이(demo/unavailable/unreachable/0딸 실패, last_good 성공),
+// 배치 전멸 감지는 daily-batch 알림 몫(주기 단축으로 Actions 분을 태우지 않는다).
 test("synthetic check observes the deployed map and alerts only on failure", async () => {
   const yaml = await workflow("synthetic-check.yml");
   assert.match(yaml, /cron: "37 \*\/6 \* \* \*"/);
@@ -79,6 +81,9 @@ test("synthetic check observes the deployed map and alerts only on failure", asy
   assert.match(yaml, /if: failure\(\)/);
   assert.match(yaml, /webhook not configured — alert skipped/);
   assert.match(yaml, /synthetic_check_failed/);
+  // 역할 분리가 주석과 계약에 명시돼 있다.
+  assert.match(yaml, /방문자가 지금 가짜\/빈 화면을 보는가/, "합성 체크의 역할 정의가 사라졌다");
+  assert.match(yaml, /배치 전멸 감지.*daily-batch/, "전멸 감지가 배치 알림 몫이라는 분리 명시가 없다");
 });
 
 // 배치 알림: 잡 실패(daily_batch_failed)와 조인 비율 미달(deal_join_ratio_below_min) 2축.
