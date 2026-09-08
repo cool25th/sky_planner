@@ -306,6 +306,14 @@ select {
   color: var(--color-text-primary);
 }
 
+/* UX-20260907-003: 터치 타깃 — 푸터 링크를 44px 최소 높이로 누르기 쉽게 한다. */
+.site-footer__links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
+}
+
 .site-footer__copy {
   margin: 0;
   font-size: 0.78rem;
@@ -836,6 +844,19 @@ select {
   gap: 16px;
 }
 
+.map-page-heading {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0 0 8px;
+}
+
+.map-coverage-note {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+
 .map-filter-bar {
   display: flex;
   align-items: center;
@@ -878,6 +899,14 @@ select {
   color: var(--color-text-primary);
   outline: none;
   cursor: pointer;
+}
+
+/* UX-20260908-003(2.4.7): 포커스 표시 — outline:none이 키보드 포커스를 지우지 않게 한다. */
+.filter-select:focus-visible,
+.capsule-select:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .map-split-layout {
@@ -3061,4 +3090,25 @@ select {
   height: 100%;
   min-height: 320px;
   background: var(--color-surface-subtle);
+}
+
+/* 백로그[6]: 알림 의향 버튼(1st-party 카운트) */
+.price-alert-intent-btn {
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.price-alert-intent-btn:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-text-secondary);
+}
+
+.price-alert-intent-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }

@@ -12,6 +12,7 @@ import { ServiceUnavailableNotice } from "@/components/service-unavailable-notic
 import { ShareButton } from "@/components/share-button";
 import { dataModeLabel, resolveCalendarResponse, resolveMapResponse } from "@/lib/data-source";
 import { formatDate, formatMoney, isPastWeek, stamp } from "@/lib/format";
+import { liveOfferDestinationIds } from "@/lib/launch-gate";
 import { availableWeeks, formatWeekNatural, getDestinationList, parseCalendarQuery, parseMapQuery, TRIP_BUCKETS } from "@/lib/mock-market";
 import { PAX_CHILD_NOTE, PRICE_DEFINITION_SHORT } from "@/lib/price-definition";
 import { isServiceUnavailableDiagnostics } from "@/lib/service-unavailable";
@@ -42,9 +43,15 @@ export async function generateMetadata(props: { params: Params; searchParams: Se
   const title = `${cityName}(${placeId}) 항공 특가 & 저렴한 날짜 매트릭스 | Sky Planner Atlas`;
   const description = `${query.origin} 출발 ${cityName}(${countryName}) 왕복 항공권 최저가와 저렴한 출발/귀국 날짜 조합을 2D 가격 매트릭스로 확인하세요.`;
 
+  // 백로그[7]: live 오퍼가 0장인 목적지 허브는 색인하지 않는다 — 빈 허브가 검색에 남으면
+  // 커버리지가 사기가 된다(사이트맵 제외와 같은 규칙). 조회 실패는 색인 유지(과차단 방지).
+  const liveDestinations = new Set(await liveOfferDestinationIds());
+  const hubIndexable = liveDestinations.size === 0 || liveDestinations.has(placeId) || liveDestinations.has(placeId.toUpperCase());
+
   return {
     title,
     description,
+    ...(hubIndexable ? {} : { robots: { index: false, follow: false } }),
     alternates: {
       canonical: `${siteUrl}/destination/${placeId}`,
     },

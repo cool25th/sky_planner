@@ -60,3 +60,8 @@ export function isPastWeek(code: string): boolean {
   monday.setUTCDate(monday.getUTCDate() - (now.getUTCDay() || 7) + 1);
   return start.getTime() < monday.getTime();
 }
+
+// 백로그[6]: 통화 기호 없는 천단위 숫자(±N원 표기 등) — 컴포넌트 직접 Intl 사용 금지 계약(format-contract).
+export function formatNumber(value: number): string {
+  return new Intl.NumberFormat("ko-KR").format(value);
+}
