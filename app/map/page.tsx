@@ -45,6 +45,9 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
 
   return (
     <main className="map-page-shell">
+      {/* UX-20260908-002: 지도 페이지 헤딩 0 수정 — 페이지 주제 h1 + 수집 커버리지 한 줄(백로그[7]). */}
+      <h1 className="map-page-heading">특가 지도</h1>
+
       {/* 1. Compact Top Filter Bar */}
       <header className="map-filter-bar">
         <div className="filter-bar-group">
@@ -121,6 +124,9 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
           dataMode={dataModeLabel(mapResponse.diagnostics)}
         />
       )}
+
+      {/* 백로그[7]: 지도는 수집 중인 노선만 그린다 — 빈 지역은 미수집이지 "특가 없음"이 아니다(한 줄만). */}
+      <p className="map-coverage-note">지도와 목록은 현재 수집 중인 노선만 표시합니다.</p>
     </main>
   );
 }

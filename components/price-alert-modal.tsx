@@ -44,6 +44,8 @@ export function PriceAlertModal({
         email,
         cabin,
         createdAt: Date.now(),
+        // 백로그[6]: 저장 시점 관측가 — 재방문 비교의 "그때" 기준(±N원).
+        baselinePriceTotal: currentLowestPrice ?? null,
       });
       localStorage.setItem("sky_planner_price_alerts", JSON.stringify(existing));
       setSubmitted(true);
