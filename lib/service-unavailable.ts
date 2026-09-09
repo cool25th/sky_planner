@@ -35,15 +35,16 @@ export function serviceUnavailableNotice(diagnostics: unknown): ServiceUnavailab
   const sourceReadiness = asRecord(record?.source_readiness);
   const sourceReadinessUnavailable = sourceReadiness !== null && sourceReadiness.status !== "ready";
 
+  // H5(승인 대기 카피): 사용자 톤 — "특가 갱신 지연, 재시도 중". 엔지니어 용어(Read model 등)는 노출하지 않는다.
   return {
-    kicker: "Service unavailable",
+    kicker: "특가 갱신 지연",
     title: "운임 데이터를 표시할 수 없습니다",
-    body: "운영 read model이 응답하지 않아 임시 데이터 표시를 중단했습니다. 데이터가 복구되면 검색 결과가 다시 표시됩니다.",
-    statusLabel: "Read model unavailable",
+    body: "특가 갱신이 지연되고 있어요. 잠시 후 다시 확인해 주세요. 데이터가 복구되면 특가가 다시 표시됩니다.",
+    statusLabel: "재시도 중",
     detailLabel: sourceHealthUnavailable
-      ? "Source health 점검 필요"
+      ? "수집 연결 점검 중"
       : sourceReadinessUnavailable
-        ? "Source readiness 점검 필요"
-        : "Mock fallback 차단됨",
+        ? "데이터 수집 점검 중"
+        : "데이터 대기 중",
   };
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { MapFilterSelect } from "@/components/map-filter-select";
 import { ServiceUnavailableNotice } from "@/components/service-unavailable-notice";
 import { ShareButton } from "@/components/share-button";
+import { withAffiliateTracking } from "@/lib/affiliate-link";
 import { dataModeLabel, resolveOffersResponse } from "@/lib/data-source";
 import { fareFreshness } from "@/lib/fare-freshness";
 import { formatCompactDate, formatMoney, formatTime } from "@/lib/format";
@@ -27,6 +28,10 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
   const rawParams = await props.searchParams;
   const query = parseOffersQuery(rawParams);
   const sortBy = (typeof rawParams?.sort === "string" ? rawParams.sort : "price") as "price" | "duration" | "departure";
+  // H5: 홈 픽 카드가 싣고 온 sub_id(페이지유형_픽ID)를 제휴 CTA로 이어붙인다 — 화이트리스트 문자만.
+  const incomingSubId = typeof rawParams?.sub_id === "string" && /^[a-z0-9_-]{1,64}$/.test(rawParams.sub_id)
+    ? rawParams.sub_id
+    : null;
 
   const offersResponse = await resolveOffersResponse(query);
   const offersData = offersResponse.data;
@@ -277,12 +282,24 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
                           가격 갱신 대기 중
                         </span>
                       ) : (
-                        <a className="flight-cta-btn" href={offer.deep_link} target="_blank" rel="noreferrer">
+                        <a
+                          className="flight-cta-btn"
+                          href={withAffiliateTracking(offer.deep_link, {
+                            surface: "offers",
+                            pickId: incomingSubId ?? offer.destination_code,
+                            freshness: freshness.level,
+                          })}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
                           예약처에서 가격 확인 →
                         </a>
                       )}
                       <span className="freshness-status-text">
                         {freshness.level === "fresh" ? "최근 확인 운임" : `업데이트 지연 (${Math.floor(freshness.ageHours)}h 전)`}
+                      </span>
+                      <span className="fare-cta-note">
+                        관측가 · 예약처에서 달라질 수 있음 · 제휴 링크(예약처 결제)
                       </span>
                     </div>
                   </div>

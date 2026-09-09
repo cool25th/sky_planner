@@ -559,6 +559,20 @@ select {
   font-size: 0.78rem;
   color: var(--color-text-tertiary);
   margin-top: 4px;
+  display: grid;
+  gap: 2px;
+}
+
+/* 완료정의[4]: 주간 픽 페르소나 랜딩 섹션 */
+.home-subsection {
+  margin-top: 18px;
+}
+
+.section-subtitle {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin-bottom: 8px;
 }
 
 /* Deals Grid (4 Columns) */
@@ -643,6 +657,32 @@ select {
 
 .trip-card__country {
   font-size: 0.8rem;
+  color: var(--color-text-tertiary);
+}
+
+/* 완료정의[4]: 주간 픽 카드 — 페르소나 표·왜 싼지·관측 시각 */
+.trip-card__persona {
+  display: inline-block;
+  width: fit-content;
+  margin-top: 2px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.trip-card__why {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.trip-card__observed {
+  margin-top: 2px;
+  font-size: 0.72rem;
   color: var(--color-text-tertiary);
 }
 
@@ -1676,6 +1716,12 @@ select {
   font-size: 0.7rem;
   color: var(--color-best);
   font-weight: 600;
+}
+
+/* 완료정의[4]: CTA 위 고정 한 줄 — 관측가·변동 가능성·제휴 고지를 이 블록 하나로 수렴 */
+.fare-cta-note {
+  font-size: 0.68rem;
+  color: var(--color-text-tertiary);
 }
 
 /* ==========================================================================

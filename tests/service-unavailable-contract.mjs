@@ -50,7 +50,8 @@ test("service unavailable notice does not expose backend failure details", () =>
   const payload = JSON.stringify(notice);
 
   assert.match(notice.title, /운임 데이터를 표시할 수 없습니다/);
-  assert.match(notice.detailLabel, /Source health/);
+  assert.match(notice.detailLabel, /수집 연결 점검 중/);
+  assert.match(notice.statusLabel, /재시도 중/);
   assert.doesNotMatch(payload, /password/i);
   assert.doesNotMatch(payload, /authentication/i);
   assert.doesNotMatch(payload, /sky_planner/i);
@@ -67,7 +68,7 @@ test("service unavailable notice names source readiness without exposing interna
   });
   const payload = JSON.stringify(notice);
 
-  assert.match(notice.detailLabel, /Source readiness/);
+  assert.match(notice.detailLabel, /데이터 수집 점검 중/);
   assert.doesNotMatch(payload, /skyscanner_affiliate/);
   assert.doesNotMatch(payload, /last_batch_completed_with_failures/);
 });
