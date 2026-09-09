@@ -8,34 +8,44 @@ import { CurrencyToggle } from "@/components/currency-toggle";
 import { SavedDealsDrawer } from "@/components/saved-deals-drawer";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { resolveSupportContact } from "@/lib/service-contact";
+import { readLaunchGate } from "@/lib/launch-gate";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "Sky Planner Atlas | 지도 기반 항공 특가 & 저렴한 날짜 탐색",
-  description: "한국 출발 여행자를 위해 예산과 기간에 맞는 목적지와 저렴한 출발/귀국 날짜 조합을 지도에서 찾아주는 항공권 탐색 서비스",
-  openGraph: {
-    title: "Sky Planner Atlas | 지도 기반 항공 특가 탐색",
-    description: "어디로 갈지 정하지 않아도 괜찮아요. 출발지, 일정, 예산만 선택하면 저렴한 목적지와 날짜를 지도에서 찾아드립니다.",
-    siteName: "Sky Planner Atlas",
-    locale: "ko_KR",
-    type: "website",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "Sky Planner Atlas – 지도 기반 항공 특가 탐색",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Sky Planner Atlas | 지도 기반 항공 특가 탐색",
-    description: "한국 출발 항공 특가를 지도와 날짜 축으로 탐색하는 스마트 항공 플래너",
-    images: ["/og-image.png"],
-  },
-  manifest: "/manifest.json",
-};
+// H6: 품질 게이트(스테일 최저가·데모 폴백 런타임 관측·주간 픽·실패 감지) 실패 시 문서 메타로
+// noindex,nofollow — robots.txt Disallow만 믿으면 이미 색인된 URL이 그대로 기색인된다.
+export async function generateMetadata(): Promise<Metadata> {
+  const gate = await readLaunchGate();
+  const base: Metadata = {
+    title: "Sky Planner Atlas | 지도 기반 항공 특가 & 저렴한 날짜 탐색",
+    description: "한국 출발 여행자를 위해 예산과 기간에 맞는 목적지와 저렴한 출발/귀국 날짜 조합을 지도에서 찾아주는 항공권 탐색 서비스",
+    openGraph: {
+      title: "Sky Planner Atlas | 지도 기반 항공 특가 탐색",
+      description: "어디로 갈지 정하지 않아도 괜찮아요. 출발지, 일정, 예산만 선택하면 저렴한 목적지와 날짜를 지도에서 찾아드립니다.",
+      siteName: "Sky Planner Atlas",
+      locale: "ko_KR",
+      type: "website",
+      images: [
+        {
+          url: "/og-image.png",
+          width: 1200,
+          height: 630,
+          alt: "Sky Planner Atlas – 지도 기반 항공 특가 탐색",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "Sky Planner Atlas | 지도 기반 항공 특가 탐색",
+      description: "한국 출발 항공 특가를 지도와 날짜 축으로 탐색하는 스마트 항공 플래너",
+      images: ["/og-image.png"],
+    },
+    manifest: "/manifest.json",
+  };
+  if (!gate.passed) {
+    return { ...base, robots: { index: false, follow: false } };
+  }
+  return base;
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const supportContact = resolveSupportContact();

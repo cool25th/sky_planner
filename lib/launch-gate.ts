@@ -3,6 +3,7 @@
 // 축: ① 스테일 최저가 <15% ② 프로덕션 데모 폴백 0(계약 테스트가 보증 — data-source-contract)
 // ③ 주간 픽 존재 ④ 실패 감지 가능(웹훅 설정 등). 계산은 순수 함수라 계약 테스트로 고정한다.
 import { LIVE_OFFER_VISIBILITY_SQL } from "./read-model/live-offer-policy";
+import { siteUrl } from "./url";
 
 export const LAUNCH_GATE_THRESHOLDS = {
   maxStaleLowestPricePct: 15,
@@ -16,6 +17,8 @@ export interface LaunchGateInput {
   weeklyPickableDeals: number | null;
   // 웹훅 설정 등 no-op이 아닌 실패 감지 수단 유무.
   failureDetectionReady: boolean;
+  // H6: 배포된 map API의 data_mode가 'demo'로 런타임 관측됐는가. null = 관측 실패(fail-closed).
+  demoObserved: boolean | null;
 }
 
 export interface LaunchGateCheck {
@@ -45,10 +48,13 @@ export function evaluateLaunchGate(input: LaunchGateInput): LaunchGateResult {
     {
       id: "demo_fallback_absent",
       label: "프로덕션 데모 폴백 0",
-      // data-source-contract "production fallback never ships demo payload"가 보증한다.
-      // 여기 실패가 나오면 그 계약이 깨진 것이므로 게이트도 닫힌다.
-      passed: true,
-      detail: "운영 폴백은 last-good/빈 결과만(계약 테스트 보증)",
+      // H6: 고무도장 대신 런타임 관측 — map API data_mode가 'demo'면 실패, 관측 실패는 fail-closed.
+      passed: input.demoObserved === false,
+      detail: input.demoObserved === null
+        ? "map API 관측 실패(fail-closed)"
+        : input.demoObserved
+          ? "map API가 demo 모드로 관측됨"
+          : "map API data_mode가 demo가 아님(런타임 관측)",
     },
     {
       id: "weekly_picks_present",
@@ -110,15 +116,35 @@ async function readWeeklyPickableDeals(): Promise<number | null> {
   }
 }
 
+// H6: 배포된 자신의 map API를 관측해 data_mode가 'demo'인지 본다 — 문서가 아닌 사용자가 보는 상태.
+// 도달 실패·비정상 응답은 null(fail-closed). unavailable(503 포함)은 데모가 아니지만 관측 실패로 닫는다.
+async function probeMapDataMode(): Promise<boolean | null> {
+  try {
+    const response = await fetch(`${siteUrl}/api/deals/map?origin=ICN&region=ALL&cabin=ALL&stay_bucket=5_7&traveler=adt1`, {
+      signal: AbortSignal.timeout(8000),
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json()) as { diagnostics?: { data_mode?: string } };
+    const mode = payload?.diagnostics?.data_mode;
+    if (mode !== "live" && mode !== "last_good" && mode !== "demo") return null;
+    return mode === "demo";
+  } catch {
+    return null;
+  }
+}
+
 export async function readLaunchGate(env: Record<string, string | undefined> = process.env): Promise<LaunchGateResult> {
-  const [dealOfferJoinRatio, weeklyPickableDeals] = await Promise.all([
+  const [dealOfferJoinRatio, weeklyPickableDeals, demoObserved] = await Promise.all([
     readDealOfferJoinRatio(),
     readWeeklyPickableDeals(),
+    probeMapDataMode(),
   ]);
   return evaluateLaunchGate({
     dealOfferJoinRatio,
     weeklyPickableDeals,
     failureDetectionReady: Boolean(String(env.OPS_ALERT_WEBHOOK_URL ?? "").trim()),
+    demoObserved,
   });
 }
 
