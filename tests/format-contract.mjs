@@ -10,6 +10,7 @@ import {
   formatTime,
   formatWeekNatural,
   isPastWeek,
+  parseTimestamp,
   stamp,
   weekStartDate,
 } from "../lib/format.ts";
@@ -23,6 +24,16 @@ test("formatMoney renders KRW currency or dash for null", () => {
 test("stamp renders short datetime or dash for invalid input", () => {
   assert.equal(stamp("not-a-date"), "-");
   assert.match(stamp("2026-08-17T11:30"), /8월 17일/);
+});
+
+test("stamp parses naive ISO wall-time as UTC for SSR/client parity", () => {
+  // UX-20260907-002(#418 근원): last_seen_at은 타임존 마커 없는 UTC 벽시각 — 마커 부재 시
+  // 로컬 파싱이 서버(TZ=UTC)와 브라우저(KST)를 9시간 어긋나게 해 map-split-view 스탬프의
+  // 하이드레이션 텍스트 불일치(React #418)를 냈다. naive=Z 형태와 동일 렌더로 고정한다.
+  assert.equal(stamp("2026-09-09T18:45:30"), stamp("2026-09-09T18:45:30Z"));
+  assert.match(stamp("2026-09-09T18:45:30"), /9월 10일/);
+  assert.match(stamp("2026-09-09T18:45:30"), /03:45/);
+  assert.equal(parseTimestamp("2026-09-09T18:45:30").getTime(), new Date("2026-09-09T18:45:30Z").getTime());
 });
 
 test("stamp and formatTime render timestamps in KST regardless of runtime timezone", () => {

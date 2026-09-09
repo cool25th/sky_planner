@@ -5,10 +5,17 @@ export function formatMoney(value: number | null): string {
   return new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(value);
 }
 
+// last_seen_at 계열은 타임존 마커 없는 UTC 벽시각(ISO slice)이다. 마커 부재 시 UTC로 해석하지
+// 않으면 로컬 파싱이 서버(TZ=UTC)와 브라우저(KST)에서 9시간 어긋나 클라이언트 스탬프
+// 렌더의 하이드레이션 텍스트 불일치(React #418)를 낸다 — fare-freshness와 같은 계약의 단일 파서.
+export function parseTimestamp(value: string): Date {
+  return new Date(/Z$|[+-]\d{2}:?\d{2}$/.test(value) ? value : `${value}Z`);
+}
+
 // 타임스탬프 표기는 KST 고정 — SSR 런타임(TZ=UTC)에서 last_batch_at·출발 시각이
 // 9시간 어긋난(심지어 전날 날짜) 값으로 렌더되는 것을 방지한다.
 export function stamp(value: string): string {
-  const date = new Date(value);
+  const date = parseTimestamp(value);
   if (Number.isNaN(date.getTime())) return "-";
   return new Intl.DateTimeFormat("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Seoul" }).format(date);
 }
