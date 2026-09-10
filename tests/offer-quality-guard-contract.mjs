@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import test from "node:test";
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 // UX-20260905-001: 오퍼 품질 가드(매진·가격이상·품질제외)는 live offer SQL 6개 지점이
 // 같은 계약을 적용해야 한다. DATA-20260906-001 2층부터 가드 문은 공유 모듈

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolveOffersDataFromPostgres } from "../lib/read-model/offers-query.ts";
 import { resolveCalendarDataFromPostgres } from "../lib/read-model/calendar-query.ts";
+import { resolveOffersDataFromPostgres } from "../lib/read-model/offers-query.ts";
 import { resolveSearchDataFromPostgres } from "../lib/read-model/search-query.ts";
 
 // TEST-20260905-001: read-model 조회 파라미터 게이트 계약 고정.

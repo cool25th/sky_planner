@@ -1,7 +1,7 @@
 import "server-only";
 
-import type { ApiResponse } from "@/lib/mock-market";
 import { isRetryableConnectionError } from "@/lib/db";
+import type { ApiResponse } from "@/lib/mock-market";
 import { serviceApiReadinessBlockReason } from "@/lib/service-api-readiness";
 import { serviceRequiresPostgres } from "@/lib/service-mode";
 import type { SourceContext } from "./source-context";

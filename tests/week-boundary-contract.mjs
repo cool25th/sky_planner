@@ -1,5 +1,5 @@
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import { availableWeeks, currentWeekStart, isoWeekCode } from "../lib/mock-market.ts";
 
 // UX-20260907-001: 기본 주간은 KST(UTC+9) '오늘' 기준이어야 한다.

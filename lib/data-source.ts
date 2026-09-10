@@ -20,6 +20,7 @@ import {
   type SearchQuery,
   type SearchResult,
 } from "@/lib/mock-market";
+import { eligibleReadModelSourceKeys } from "@/lib/read-model-source-filter";
 import { getBatchState } from "@/lib/runtime-state";
 import { serviceRequiresPostgres } from "@/lib/service-mode";
 import { enabledSourceFlagsFromEnv } from "@/lib/source-policy";
@@ -35,7 +36,6 @@ import { emptyOffersDataForQuery, resolveOffersDataFromPostgres } from "./read-m
 import { buildMetaFromSourceFlags } from "./read-model/row-mappers";
 import { resolveSearchDataFromPostgres } from "./read-model/search-query";
 import { postgresConfigured, resolveSourceContext, type SourceContext } from "./read-model/source-context";
-import { eligibleReadModelSourceKeys } from "@/lib/read-model-source-filter";
 
 const MOCK_FALLBACK_WARNING_FLAGS = ["mock_data_source", "daily_batch_cached", "final_price_check_on_booking_source"];
 

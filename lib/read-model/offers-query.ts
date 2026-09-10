@@ -5,8 +5,8 @@ import { isHiddenFare } from "@/lib/fare-freshness";
 import type { OffersData, OffersQuery } from "@/lib/mock-market";
 import { eligibleBookingSourceKeys } from "@/lib/source-policy";
 import { queryOrigins } from "./labels";
-import { mapOfferFromSql, parseOfferJoinRow } from "./row-mappers";
 import { LIVE_OFFER_VISIBILITY_SQL } from "./live-offer-policy";
+import { mapOfferFromSql, parseOfferJoinRow } from "./row-mappers";
 import { postgresConfigured } from "./source-context";
 
 // DATA-20260908-001: 운영 게이트 차단·쿼리 실패 시 mock 페이로드 대신 내리는 빈 live 형태.

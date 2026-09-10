@@ -7,8 +7,8 @@ import { CommandPalette } from "@/components/command-palette";
 import { CurrencyToggle } from "@/components/currency-toggle";
 import { SavedDealsDrawer } from "@/components/saved-deals-drawer";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { resolveSupportContact } from "@/lib/service-contact";
 import { readLaunchGate } from "@/lib/launch-gate";
+import { resolveSupportContact } from "@/lib/service-contact";
 import "./globals.css";
 
 // H6: 품질 게이트(스테일 최저가·데모 폴백 런타임 관측·주간 픽·실패 감지) 실패 시 문서 메타로

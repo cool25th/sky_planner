@@ -47,7 +47,7 @@
     "test:service-readiness": "node --experimental-strip-types --test tests/service-readiness-contract.mjs",
     "test:source-health": "node --experimental-strip-types --test tests/source-readiness-contract.mjs",
     "test:search": "node --experimental-strip-types --test tests/search-contract.mjs",
-    "lint": "biome lint lib app components tests",
+    "lint": "biome check lib app components tests",
     "lint:secrets": "node scripts/scan-secrets.mjs"
   },
   "dependencies": {
