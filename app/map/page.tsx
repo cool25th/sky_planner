@@ -122,6 +122,7 @@ export default async function MapPage(props: { searchParams: SearchParams }) {
           lastBatchAt={lastBatchAt}
           lastSeenAt={map.summary.last_seen_at}
           dataMode={dataModeLabel(mapResponse.diagnostics)}
+          alternatives={map.alternatives}
         />
       )}
 

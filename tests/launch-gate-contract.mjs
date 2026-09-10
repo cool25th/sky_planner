@@ -19,6 +19,7 @@ function passingInput(overrides = {}) {
     weeklyPickableDeals: 6,
     failureDetectionReady: true,
     demoObserved: false, // H6: 런타임 관측에서 demo가 아님
+    defaultViewCities: 21, // UX-20260910-004: 기본 뷰 도시 하한 충족
     ...overrides,
   };
 }
@@ -66,4 +67,22 @@ test("ops launch-gate route stays thin and delegates to the lib gate", () => {
   const route = readFileSync(join(repoRoot, "app/api/ops/launch-gate/route.ts"), "utf8");
   assert.ok(route.includes("readLaunchGate"));
   assert.ok(route.includes("503"), "게이트 실패는 503으로 관측된다");
+});
+
+test("default view city floor is a fail-closed axis", () => {
+  // UX-20260910-004: 기본 뷰(ICN·현재 주차·5_7)의 live 도시 수 하한 — 죽어가는 주차에 지도가
+  // 퇴화하면 첫인상이 고착된다(기존 4축과 같은 맥락의 fail-closed 색인 축).
+  const thin = evaluateLaunchGate(passingInput({ defaultViewCities: 2 }));
+  assert.equal(thin.passed, false, "기본 뷰 2개 도시는 게이트 실패");
+  assert.equal(thin.checks.find((check) => check.id === "default_view_city_floor").passed, false);
+
+  const floor = evaluateLaunchGate(passingInput({ defaultViewCities: LAUNCH_GATE_THRESHOLDS.minDefaultViewCities }));
+  assert.equal(floor.checks.find((check) => check.id === "default_view_city_floor").passed, true, "하안(5) 이상이면 통과");
+
+  const unmeasured = evaluateLaunchGate(passingInput({ defaultViewCities: null }));
+  assert.equal(unmeasured.checks.find((check) => check.id === "default_view_city_floor").passed, false, "측정 불가는 fail-closed");
+
+  const gateSource = readFileSync(join(repoRoot, "lib/launch-gate.ts"), "utf8");
+  assert.match(gateSource, /readDefaultViewCities/, "기본 뷰 도시 수는 게이트가 직접 측정한다");
+  assert.match(gateSource, /minDefaultViewCities: 5/);
 });

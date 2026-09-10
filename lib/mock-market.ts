@@ -175,6 +175,17 @@ export interface MapData {
     offers_considered: number;
     last_seen_at: string | null;
   };
+  // UX-20260910-004: 현재 조건의 도시 수가 하한 미만일 때만 계산되는 인접 조건 제안 —
+  // 빈 상태+사유 정책을 대체하지 않고 보완한다(탐색 계속). mock 경로는 생략 가능.
+  alternatives?: MapViewAlternative[];
+}
+
+export interface MapViewAlternative {
+  kind: "week" | "stay";
+  week?: string;
+  stay_bucket?: StayBucket;
+  label: string;
+  cities: number;
 }
 
 export interface CalendarCell {

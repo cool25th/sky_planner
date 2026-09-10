@@ -470,6 +470,9 @@ export default async function DestinationPage(props: { params: Params; searchPar
           </section>
 
           {/* 3. Simplified 2D Heatmap Fare Matrix */}
+          {/* UX-20260910-004: 유효 셀(가격 보유) 4미만은 퇴화 매트릭스(1×1 등)다 — 렌더하지 않고
+              상단 "Top 3 날짜 조합"만 노출한다(빈 상태가 아니라 정보 밀도 미달의 정직한 생략). */}
+          {validCells.length >= 4 && (
           <section className="dest-section">
             <details className="matrix-details" open>
               <summary className="matrix-summary-head">
@@ -560,6 +563,7 @@ export default async function DestinationPage(props: { params: Params; searchPar
               </div>
             </details>
           </section>
+          )}
         </>
       ) : (
         <div className="empty-state">목적지 정보를 불러올 수 없습니다.</div>

@@ -140,7 +140,7 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
           <>
             {pickSections.weekend.length > 0 && (
               <div className="home-subsection">
-                <h3 className="section-subtitle">주말치기 · 금–월 출발</h3>
+                <h3 className="section-subtitle">주말치기 · 금–월 출발 · 1~3박</h3>
                 <ul className="deals-grid">
                   {pickSections.weekend.map((pick) => (
                     <li key={`weekend-${pick.deal.destination_code}`}>

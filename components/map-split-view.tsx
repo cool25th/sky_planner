@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { saveRecentSearch } from "@/components/recent-searches";
 import { TripCard } from "@/components/trip-card";
 import { stamp } from "@/lib/format";
-import type { MapDeal, MapQuery } from "@/lib/mock-market";
+import type { MapDeal, MapQuery, MapViewAlternative } from "@/lib/mock-market";
 import { PRICE_DEFINITION_SHORT } from "@/lib/price-definition";
 import { toTripCardModel } from "@/lib/trip-card";
 import { href } from "@/lib/url";
@@ -25,9 +25,29 @@ interface MapSplitViewProps {
   lastBatchAt: string;
   lastSeenAt: string | null;
   dataMode: string;
+  alternatives?: MapViewAlternative[];
 }
 
-export function MapSplitView({ deals, query, lastBatchAt, lastSeenAt, dataMode }: MapSplitViewProps) {
+// UX-20260910-004: 결과가 얇을 때(하한 미만) 인접 조건 제안 — 빈 상태+사유의 보완(탐색 계속).
+function AlternativeChips({ query, alternatives }: { query: MapQuery; alternatives?: MapViewAlternative[] }) {
+  if (!alternatives?.length) return null;
+  return (
+    <div className="map-alternatives" style={{ margin: "10px 0 0", display: "flex", flexWrap: "wrap", gap: "6px" }}>
+      <span className="panel-note">조건을 바꾸면 더 많은 도시:</span>
+      {alternatives.slice(0, 4).map((alt) => (
+        <Link
+          key={`${alt.kind}-${alt.week ?? alt.stay_bucket}`}
+          href={href("/map", { ...query, week: alt.week ?? query.week, stay_bucket: alt.stay_bucket ?? query.stay_bucket })}
+          className="filter-chip"
+        >
+          {alt.label} {alt.cities}개 도시 →
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+export function MapSplitView({ deals, query, lastBatchAt, lastSeenAt, dataMode, alternatives }: MapSplitViewProps) {
   const [selectedCode, setSelectedCode] = useState<string | null>(deals[0]?.destination_code ?? null);
   const listContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -81,9 +101,11 @@ export function MapSplitView({ deals, query, lastBatchAt, lastSeenAt, dataMode }
                 5~7일로 늘리기
               </Link>
             </div>
+            <AlternativeChips query={query} alternatives={alternatives} />
           </div>
         ) : (
           <div ref={listContainerRef} className="destination-items-scroll">
+            {deals.length < 5 ? <AlternativeChips query={query} alternatives={alternatives} /> : null}
             {deals.map((deal) => (
               <TripCard
                 key={deal.destination_code}

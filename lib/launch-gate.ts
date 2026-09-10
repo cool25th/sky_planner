@@ -8,6 +8,9 @@ import { siteUrl } from "./url";
 export const LAUNCH_GATE_THRESHOLDS = {
   maxStaleLowestPricePct: 15,
   minWeeklyPicks: 1,
+  // UX-20260910-004: 기본 뷰(현재 주차·5_7·ICN 메트로)의 live 도시 수 하한 — 죽어가는 주차에
+  // 지도가 퇴화하면 첫인상이 고착된다(다른 4축과 같은 맥락). fail-closed 색인 축에 포함한다.
+  minDefaultViewCities: 5,
 };
 
 export interface LaunchGateInput {
@@ -19,6 +22,8 @@ export interface LaunchGateInput {
   failureDetectionReady: boolean;
   // H6: 배포된 map API의 data_mode가 'demo'로 런타임 관측됐는가. null = 관측 실패(fail-closed).
   demoObserved: boolean | null;
+  // 기본 뷰(ICN·현재 주차·5_7·adt1)의 live 도시 수. null = 측정 불가(fail-closed).
+  defaultViewCities: number | null;
 }
 
 export interface LaunchGateCheck {
@@ -67,6 +72,14 @@ export function evaluateLaunchGate(input: LaunchGateInput): LaunchGateResult {
       label: "실패 감지 가능(웹훅 등)",
       passed: input.failureDetectionReady,
       detail: input.failureDetectionReady ? "실패-only 알림 채널 구성됨" : "OPS_ALERT_WEBHOOK_URL 미설정",
+    },
+    {
+      id: "default_view_city_floor",
+      label: `기본 뷰 도시 ≥ ${LAUNCH_GATE_THRESHOLDS.minDefaultViewCities}`,
+      passed: input.defaultViewCities !== null && input.defaultViewCities >= LAUNCH_GATE_THRESHOLDS.minDefaultViewCities,
+      detail: input.defaultViewCities === null
+        ? "기본 뷰 도시 수 미측정"
+        : `기본 뷰 ${input.defaultViewCities}개 도시`,
     },
   ];
   return { passed: checks.every((check) => check.passed), stale_lowest_price_pct: stalePct, checks };
@@ -135,17 +148,62 @@ async function probeMapDataMode(): Promise<boolean | null> {
 }
 
 export async function readLaunchGate(env: Record<string, string | undefined> = process.env): Promise<LaunchGateResult> {
-  const [dealOfferJoinRatio, weeklyPickableDeals, demoObserved] = await Promise.all([
+  const [dealOfferJoinRatio, weeklyPickableDeals, demoObserved, defaultViewCities] = await Promise.all([
     readDealOfferJoinRatio(),
     readWeeklyPickableDeals(),
     probeMapDataMode(),
+    readDefaultViewCities(),
   ]);
   return evaluateLaunchGate({
     dealOfferJoinRatio,
     weeklyPickableDeals,
     failureDetectionReady: Boolean(String(env.OPS_ALERT_WEBHOOK_URL ?? "").trim()),
     demoObserved,
+    defaultViewCities,
   });
+}
+
+// 기본 뷰 도시 수 — /map 기본 조회(현재 주차·5_7·ICN 메트로·live 조인)와 동일 의미론.
+// 주간 자동 진행(UX-20260830-003: 0딸 → 다음 주간)을 미러링해 현재 주차 0개면 다음 주차로 잰다.
+async function readDefaultViewCities(): Promise<number | null> {
+  if (!postgresConfigured()) return null;
+  try {
+    const { query } = await import("./db");
+    const { currentWeekStart, isoWeekCode } = await import("./mock-market");
+    const { queryOrigins } = await import("./read-model/labels");
+    const nextMonday = new Date(currentWeekStart().getTime() + 7 * 86_400_000);
+    const countFor = async (week: string) => {
+      const { rows } = await query(`
+        WITH live AS (
+          SELECT DISTINCT o.origin_airport, o.destination_city_id, o.week, o.stay_bucket
+          FROM offers o
+          WHERE o.origin_airport = ANY($1::text[])
+            AND o.traveler = 'adt1'
+            AND o.week = $2
+            AND o.stay_bucket = '5_7'
+            AND ${LIVE_OFFER_VISIBILITY_SQL}
+        )
+        SELECT count(DISTINCT d.destination_city_id)::int AS cities
+        FROM deals_current d
+        JOIN live l ON l.origin_airport = d.origin
+          AND l.destination_city_id = d.destination_city_id
+          AND l.week = d.week
+          AND l.stay_bucket = d.stay_bucket
+          AND l.traveler = d.traveler
+        WHERE d.is_active = true
+          AND d.origin = ANY($1::text[])
+          AND d.week = $2
+          AND d.traveler = 'adt1'
+          AND d.stay_bucket = '5_7'
+          AND GREATEST(COALESCE(d.economy_best_depart_date, '1970-01-01'), COALESCE(d.business_best_depart_date, '1970-01-01')) >= to_char(CURRENT_DATE, 'YYYY-MM-DD')
+      `, [queryOrigins("ICN"), week]);
+      return rows[0]?.cities ?? 0;
+    };
+    const current = await countFor(isoWeekCode(currentWeekStart()));
+    return current > 0 ? current : await countFor(isoWeekCode(nextMonday));
+  } catch {
+    return null;
+  }
 }
 
 // 오퍼 0장 목적지는 허브/사이트맵에 올리지 않는다(완료정의[4]/[7]).

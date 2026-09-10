@@ -7,7 +7,9 @@ import {
   filterMapDealForSourceFlags,
   mapDealMatchesCabin,
 } from "@/lib/read-model-source-filter";
-import { AIRLINE_NAME_BY_CODE, queryOrigins } from "./labels";
+import { weekStartDate } from "../format";
+import { isoWeekCode, TRIP_BUCKETS } from "../mock-market";
+import { AIRLINE_NAME_BY_CODE, queryOrigins, TRIP_BUCKET_LABEL_BY_CODE } from "./labels";
 import { LIVE_OFFER_VISIBILITY_SQL } from "./live-offer-policy";
 import { mapDealFromSql, mergeMapDeals, parseDealCurrentRow, passesAirlineFilter, sortDeals } from "./row-mappers";
 import { postgresConfigured } from "./source-context";
@@ -32,6 +34,81 @@ export function emptyMapDataForQuery(mapQuery: MapQuery): MapData {
 // live offer가 0개인 딜(스테일 캐시 최저가·BKI형 오퍼 공백)은 비노출이 기본.
 export function isDealDisplayable(deal: Pick<MapDeal, "economy_min_total" | "business_min_total">) {
   return deal.economy_min_total != null || deal.business_min_total != null;
+}
+
+
+// UX-20260910-004(진단 (b)(c)): 기본 뷰가 현재 주차에 고정돼 주 후반으로 갈수록 live 도시가
+// 얇아진다(실측 W37=7 vs W38=12·W39=14). 결과가 하한 미만일 때 인접 조건의 도시 수를 함께
+// 계산해 "조건을 바꾸면 N개 도시" 제안으로 탐색을 이어준다 — 빈 상태+사유 정책의 보완일 뿐 대체가 아니다.
+export const MIN_CITIES_FOR_SUGGESTION = 5;
+
+const STAY_BUCKET_CODES: string[] = TRIP_BUCKETS.map((bucket) => bucket.code);
+
+function adjacentWeekCode(week: string, offsetWeeks: number): string | null {
+  const monday = weekStartDate(week);
+  if (!monday) return null;
+  monday.setUTCDate(monday.getUTCDate() + offsetWeeks * 7);
+  return isoWeekCode(monday);
+}
+
+// 표시와 동일한 live-조인 의미론으로 인접 조건(±1주·다른 체류 버킷)의 도시 수를 잰다.
+export async function countAdjacentMapCities(
+  mapQuery: Pick<MapQuery, "origin" | "week" | "stay_bucket" | "traveler" | "region">,
+  eligibleSourceKeys: Set<string>,
+): Promise<import("../mock-market").MapViewAlternative[]> {
+  const prevWeek = adjacentWeekCode(mapQuery.week, -1);
+  const nextWeek = adjacentWeekCode(mapQuery.week, 1);
+  const weeks = [...new Set([prevWeek, mapQuery.week, nextWeek].filter((week): week is string => Boolean(week)))];
+  const { rows } = await pgQuery(`
+    WITH live AS (
+      SELECT DISTINCT o.origin_airport, o.destination_city_id, o.week, o.stay_bucket
+      FROM offers o
+      WHERE o.origin_airport = ANY($1::text[])
+        AND o.traveler = $2
+        AND o.week = ANY($3::text[])
+        AND o.stay_bucket = ANY($4::text[])
+        AND ${LIVE_OFFER_VISIBILITY_SQL}
+        AND (
+          LOWER(COALESCE(o.booking_source, '')) = ANY($5::text[])
+          OR (
+            LOWER(COALESCE(o.source_type, '')) <> 'meta_search'
+            AND LOWER(COALESCE(o.airline_code, '')) = ANY($5::text[])
+          )
+        )
+    )
+    SELECT d.week, d.stay_bucket, count(DISTINCT d.destination_city_id)::int AS cities
+    FROM deals_current d
+    JOIN live l ON l.origin_airport = d.origin
+      AND l.destination_city_id = d.destination_city_id
+      AND l.week = d.week
+      AND l.stay_bucket = d.stay_bucket
+    WHERE d.is_active = true
+      AND d.origin = ANY($1::text[])
+      AND d.traveler = $2
+      AND GREATEST(COALESCE(d.economy_best_depart_date, '1970-01-01'), COALESCE(d.business_best_depart_date, '1970-01-01')) >= to_char(CURRENT_DATE, 'YYYY-MM-DD')
+    GROUP BY 1, 2
+  `, [queryOrigins(mapQuery.origin), mapQuery.traveler, weeks, STAY_BUCKET_CODES, [...eligibleSourceKeys]]);
+
+  const countFor = (week: string, bucket: string) =>
+    rows.find((row) => row.week === week && row.stay_bucket === bucket)?.cities ?? 0;
+  const bucketLabel = (bucket: string) => (TRIP_BUCKET_LABEL_BY_CODE as Map<string, string>).get(bucket) ?? bucket;
+
+  const alternatives: import("../mock-market").MapViewAlternative[] = [];
+  for (const [week, label] of [[prevWeek, "지난 주간"], [nextWeek, "다음 주간"]] as const) {
+    if (week && week !== mapQuery.week) {
+      const cities = countFor(week, mapQuery.stay_bucket);
+      if (cities >= MIN_CITIES_FOR_SUGGESTION) alternatives.push({ kind: "week", week, label, cities });
+    }
+  }
+  for (const bucket of STAY_BUCKET_CODES) {
+    if (bucket !== mapQuery.stay_bucket) {
+      const cities = countFor(mapQuery.week, bucket);
+      if (cities >= MIN_CITIES_FOR_SUGGESTION) {
+        alternatives.push({ kind: "stay", stay_bucket: bucket as MapQuery["stay_bucket"], label: bucketLabel(bucket), cities });
+      }
+    }
+  }
+  return alternatives.sort((left, right) => right.cities - left.cities);
 }
 
 export async function resolveMapDataFromPostgres(mapQuery: MapQuery, lastBatchAt: string, sourceFlags: string[]): Promise<MapData | null> {
@@ -134,7 +211,11 @@ export async function resolveMapDataFromPostgres(mapQuery: MapQuery, lastBatchAt
   }
 
   const { rows } = await pgQuery(sql, params);
-  if (!rows.length) return emptyMapDataForQuery(mapQuery);
+  if (!rows.length) {
+    // 0행도 제안은 계산한다(명시 주간 선택의 정직 빈 상태를 유지한 채 탐색을 이어준다).
+    const alternatives = await countAdjacentMapCities(mapQuery, eligibleSourceKeys).catch(() => []);
+    return { ...emptyMapDataForQuery(mapQuery), alternatives };
+  }
 
   const rowsByDestination = new Map<string, unknown[]>();
   for (const row of rows) {
@@ -185,6 +266,11 @@ export async function resolveMapDataFromPostgres(mapQuery: MapQuery, lastBatchAt
     }
   }
 
+  // 도시 수 하한 미만(퇴화 뷰)일 때만 인접 조건 제안을 붙인다 — 추가 쿼리 비용도 이 경우에만 발생.
+  const alternatives = deals.length > 0 && deals.length < MIN_CITIES_FOR_SUGGESTION
+    ? await countAdjacentMapCities(mapQuery, eligibleSourceKeys).catch(() => [])
+    : undefined;
+
   return {
     origin: mapQuery.origin,
     week: mapQuery.week,
@@ -199,5 +285,6 @@ export async function resolveMapDataFromPostgres(mapQuery: MapQuery, lastBatchAt
       offers_considered: deals.length,
       last_seen_at: deals[0]?.last_seen_at ?? null,
     },
+    alternatives,
   };
 }

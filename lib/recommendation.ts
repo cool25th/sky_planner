@@ -110,20 +110,45 @@ export interface WeeklyPick<T extends WeeklyPickDeal> {
   observedAt: string;
 }
 
-const DEAL_HUNTER_MIN_PCT = 15;
-const EARLY_BIRD_DAY_RANGE: [number, number] = [21, 90];
+// 각 버킷의 선정 규칙(상수) — 라벨 문구와 규칙이 어긋나면 버킷이 거짓말을 한다(2026-09-10 실측:
+// 일요일 출발 7박 상품이 "주말치기"에 들어 있었다 — 출발 요일만 검사하고 체류 범위가 없었다).
+// 주말치기 = 금–월 출발 + 1~3박(연차 0~1일 주말 여행). 얼리버드 = 출발 D+21~90. 딜헌터 = 30일 평균 대비 15%+.
+export const WEEKLY_PICK_BUCKET_RULES = {
+  weekend_warrior: { departWeekdays: [5, 6, 0, 1], stayNights: [1, 3] },
+  early_bird: { daysUntilDeparture: [21, 90] },
+  deal_hunter: { minDiscountPct: 15 },
+} as const;
+
+const DEAL_HUNTER_MIN_PCT = WEEKLY_PICK_BUCKET_RULES.deal_hunter.minDiscountPct;
+const EARLY_BIRD_DAY_RANGE = WEEKLY_PICK_BUCKET_RULES.early_bird.daysUntilDeparture;
 
 function departWeekday(departDate: string): number | null {
   const ms = Date.parse(`${departDate.slice(0, 10)}T00:00:00Z`);
   return Number.isFinite(ms) ? new Date(ms).getUTCDay() : null;
 }
 
-// 주말치기 = 금–월 출발 && 체류에 주말 포함. 나머지는 절감률(30일 평균 대비)·출발 D+로 판정.
+function stayNights(departDate: string, returnDate: string | null | undefined): number | null {
+  const start = Date.parse(`${departDate.slice(0, 10)}T00:00:00Z`);
+  const end = returnDate ? Date.parse(`${String(returnDate).slice(0, 10)}T00:00:00Z`) : Number.NaN;
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return null;
+  return Math.round((end - start) / DAY_MS);
+}
+
+// 주말치기 = 금–월 출발 && 1~3박 && 체류에 주말 포함(WEEKLY_PICK_BUCKET_RULES). 나머지는 절감률·출발 D+로 판정.
 export function weeklyPickPersona(deal: WeeklyPickDeal, todayIso: string): WeeklyPickPersonaId | null {
   const depart = deal.economy_best_depart_date;
   if (!depart) return null;
   const weekday = departWeekday(depart);
-  if (weekday !== null && [5, 6, 0, 1].includes(weekday) && stayIncludesWeekend(depart, deal.economy_best_return_date)) {
+  const nights = stayNights(depart, deal.economy_best_return_date);
+  const { departWeekdays, stayNights: stayRange } = WEEKLY_PICK_BUCKET_RULES.weekend_warrior;
+  if (
+    weekday !== null &&
+    (departWeekdays as readonly number[]).includes(weekday) &&
+    nights !== null &&
+    nights >= stayRange[0] &&
+    nights <= stayRange[1] &&
+    stayIncludesWeekend(depart, deal.economy_best_return_date)
+  ) {
     return "weekend_warrior";
   }
   const days = daysUntilDeparture(depart, todayIso);
