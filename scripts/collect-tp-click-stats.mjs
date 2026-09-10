@@ -1,15 +1,19 @@
 #!/usr/bin/env node
 // UX-20260910-005: 제휴 클릭 회수 잡 — Travelpayouts 통계 API(기존 보유 토큰, 추가 계정 불필요).
 //
-// API(지표 문서화 — 2026-09-10 리서치):
-//   GET https://api.travelpayouts.com/v2/statistics/sales
-//     ?group_by=date_marker&month=<YYYY-MM-DD(해당 월 아무 날짜)>&currency=krw&token=<API_TOKEN>
-//   응답: data.sales = { [날짜]: { [sub_id]: { flights: {visitors, searches, clicks,
-//     paid_clicks, paid_clicks_profit, bookings, paid_bookings, paid_bookings_profit,
-//     pending_bookings_profit}, hotels: {…동일…} } } }
-//   → 클릭 외 지표(예약·수익)도 함께 제공되므로 전부 적재한다(스키마 참조).
-//   참고: 이 엔드포인트는 TP 문서상 deprecated 표기이나 (date×sub_id) 클릭+예약+수익을
-//   한 번에 주는 유일 경로다 — 신규 bookings 전용 API로 이관은 월 리서치가 감시한다.
+// API(2026-09-11 마이그레이션 — 구 v2 statistics sales 엔드포인트는 404로 폐기됨, 첫 스케줄 실행 실측):
+//   GET  https://api.travelpayouts.com/statistics/v1/get_fields_list?data_type=aggregated
+//   POST https://api.travelpayouts.com/statistics/v1/execute_query
+//     headers: { X-Access-Token: <API_TOKEN> }
+//     body: { fields: [...aggregated 지표], filters: [{field:"date",op:"ge/le",value}],
+//             group: ["sub_id"], offset: 0, limit: 10000 }
+//   응답: data = [{ group: { sub_id }, redirects_count, inits_count, searches_count,
+//     paid_actions_count, processing_actions_count, cancelled_actions_count,
+//     paid_profit_krw_sum, processing_profit_krw_sum }, ...]
+//   필드 이름은 문서 예시가 표기를 달리하는 경우가 있어(get_fields_list로 확인 후 쿼리 구성이
+//   공식 권장) 후보 우선순위로 발견한다 — 문서만으로 확정하지 않는 자기기술 설계.
+//   출처: support.travelpayouts.com "API of affiliate programs booking statistics"
+//   (구 엔드포인트 폐기 공지: "API of affiliate booking, balance and payment (deprecated)").
 //
 // 동작: 전일(기본) 날짜의 sub_id별 지표를 affiliate_click_stats에 upsert.
 //   --dry-run     응답 파싱·집계만 출력(적재 없음)
@@ -21,7 +25,8 @@ import { pathToFileURL } from "node:url";
 import pg from "pg";
 
 const { Client } = pg;
-const TP_STATS_URL = "https://api.travelpayouts.com/v2/statistics/sales";
+const TP_FIELDS_URL = "https://api.travelpayouts.com/statistics/v1/get_fields_list?data_type=aggregated";
+const TP_QUERY_URL = "https://api.travelpayouts.com/statistics/v1/execute_query";
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 function kstDateOnly(date = new Date()) {
@@ -33,45 +38,102 @@ export function targetStatDate(now = new Date(), explicitDate) {
   return kstDateOnly(new Date(now.getTime() - 24 * 60 * 60 * 1000));
 }
 
-export function parseTpSalesResponse(payload, statDate) {
-  // data.sales[날짜][sub_id] → 지표 합계(flights+hotels). 스키마 이탈은 빈 배열(soft-fail).
-  const sales = payload?.data?.sales;
-  if (!sales || typeof sales !== "object") return [];
-  const bySubId = sales[statDate] ?? {};
-  const rows = [];
-  for (const [subId, markers] of Object.entries(bySubId)) {
-    const sum = (field) =>
-      Number(markets(markers).reduce((acc, m) => acc + Number(m?.[field] ?? 0), 0));
-    const profit = (field) =>
-      Number(markets(markers).reduce((acc, m) => acc + Number(m?.[field] ?? 0), 0));
-    rows.push({
-      stat_date: statDate,
-      sub_id: subId,
-      visitors: sum("visitors"),
-      searches: sum("searches"),
-      clicks: sum("clicks"),
-      paid_clicks: sum("paid_clicks"),
-      bookings: sum("bookings"),
-      paid_bookings: sum("paid_bookings"),
-      profit_krw: profit("paid_clicks_profit") + profit("paid_bookings_profit") + profit("pending_bookings_profit"),
-    });
-  }
-  return rows;
+// 지표별 필드 후보(우선순위) — 발견된 필드 목록과 교집합으로 확정한다.
+export const TP_METRIC_CANDIDATES = {
+  clicks: ["redirects_count", "clicks_count", "clicks"],
+  visitors: ["inits_count", "init_count", "visitors_count", "visitors"],
+  searches: ["searches_count", "searches"],
+  paidBookings: ["paid_actions_count"],
+  bookingsComponents: ["processing_actions_count", "cancelled_actions_count"],
+  profitKrw: ["paid_profit_krw_sum", "processing_profit_krw_sum"],
+};
+
+// available 이 비면(필드 목록 파식 실패) 문서 표준 이름(각 후보 첫째)을 그대로 시도한다.
+export function buildTpFieldSelection(availableFieldNames) {
+  const available = new Set(availableFieldNames ?? []);
+  const has = (field) => available.size === 0 || available.has(field);
+  // 단일 지표는 우선순위 첫 적중, 합산 지표(예약·수익 성분)는 가용 전부를 쓴다.
+  const pickOne = (candidates) => candidates.find((field) => has(field)) ?? null;
+  const pickAll = (candidates) => candidates.filter((field) => has(field));
+  const picked = {
+    clicks: pickOne(TP_METRIC_CANDIDATES.clicks),
+    visitors: pickOne(TP_METRIC_CANDIDATES.visitors),
+    searches: pickOne(TP_METRIC_CANDIDATES.searches),
+    paidBookings: pickOne(TP_METRIC_CANDIDATES.paidBookings),
+    bookingsComponents: pickAll(TP_METRIC_CANDIDATES.bookingsComponents),
+    profitFields: pickAll(TP_METRIC_CANDIDATES.profitKrw),
+  };
+  return {
+    queryFields: [...new Set([
+      picked.clicks, picked.visitors, picked.searches, picked.paidBookings,
+      ...picked.bookingsComponents, ...picked.profitFields,
+    ].filter(Boolean))],
+    profitLimited: picked.profitFields.length === 0,
+    picked,
+  };
 }
 
-function markets(markers) {
-  if (!markers || typeof markers !== "object") return [];
-  return ["flights", "hotels"].map((key) => markers[key]).filter(Boolean);
+export function extractTpFieldNames(payload) {
+  const rows = payload?.data ?? payload ?? [];
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((row) => (typeof row === "string" ? row : row?.field_name ?? row?.name ?? null))
+    .filter(Boolean);
 }
 
-async function fetchTpSales({ token, month, statDate, fetchImpl }) {
+export function parseTpStatsRows(payload, statDate, selection) {
+  const rows = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+  const { picked } = selection;
+  const num = (row, field) => (field ? Math.max(0, Number(row?.[field]) || 0) : 0);
+  return rows.map((row) => ({
+    stat_date: statDate,
+    sub_id: row?.group?.sub_id ?? row?.sub_id ?? "",
+    // 신규 API의 aggregated 세트에 유료클릭 구분 지표가 없다(0 적재) — 필요 시
+    // action_type=paid_click 원시 쿼리가 업그레이드 경로다.
+    paid_clicks: 0,
+    visitors: num(row, picked.visitors),
+    searches: num(row, picked.searches),
+    clicks: num(row, picked.clicks),
+    paid_bookings: num(row, picked.paidBookings),
+    bookings: num(row, picked.paidBookings)
+      + picked.bookingsComponents.reduce((acc, field) => acc + num(row, field), 0),
+    profit_krw: picked.profitFields.reduce((acc, field) => acc + num(row, field), 0),
+  }));
+}
+
+async function fetchTpStats({ token, statDate, fetchImpl }) {
   const doFetch = fetchImpl ?? ((url, init) => fetch(url, init));
-  const url = `${TP_STATS_URL}?group_by=date_marker&month=${month}&currency=krw&token=${encodeURIComponent(token)}`;
-  const response = await doFetch(url, { signal: AbortSignal.timeout(20000) });
-  if (!response.ok) throw new Error(`TP statistics API ${response.status}`);
-  const payload = await response.json();
-  if (payload?.success === false) throw new Error(`TP statistics API error: ${JSON.stringify(payload?.error ?? payload).slice(0, 200)}`);
-  return parseTpSalesResponse(payload, statDate);
+  const headers = { "X-Access-Token": token, Accept: "application/json" };
+
+  const fieldsRes = await doFetch(TP_FIELDS_URL, { headers, signal: AbortSignal.timeout(20000) });
+  if (!fieldsRes.ok) throw new Error(`TP statistics fields API ${fieldsRes.status}`);
+  const selection = buildTpFieldSelection(extractTpFieldNames(await fieldsRes.json()));
+
+  const queryRes = await doFetch(TP_QUERY_URL, {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fields: selection.queryFields,
+      filters: [
+        { field: "date", op: "ge", value: statDate },
+        { field: "date", op: "le", value: statDate },
+      ],
+      group: ["sub_id"],
+      offset: 0,
+      limit: 10000,
+    }),
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!queryRes.ok) throw new Error(`TP statistics query API ${queryRes.status}`);
+  if (queryRes.json && typeof queryRes.json === "function") {
+    const payload = await queryRes.json();
+    return {
+      rows: parseTpStatsRows(payload, statDate, selection),
+      fieldsUsed: selection.queryFields,
+      profitCurrencyLimited: selection.profitLimited,
+    };
+  }
+  return { rows: [], fieldsUsed: selection.queryFields, profitCurrencyLimited: selection.profitLimited };
 }
 
 export async function collectTpClickStats(options = {}) {
@@ -82,20 +144,20 @@ export async function collectTpClickStats(options = {}) {
     console.warn(`[collect-tp-click-stats] TRAVELPAYOUTS_API_KEY 미설정 — 스킵(allow_empty 준용). 대상 날짜 ${statDate}`);
     return { status: "skipped_no_token", stat_date: statDate, rows: 0 };
   }
-  const month = `${statDate.slice(0, 7)}-01`;
-  let rows;
+  let fetched;
   try {
-    rows = await fetchTpSales({ token, month, statDate, fetchImpl: options.fetchImpl });
+    fetched = await fetchTpStats({ token, statDate, fetchImpl: options.fetchImpl });
   } catch (error) {
     console.warn(`[collect-tp-click-stats] API 실패 — 배치를 실패시키지 않는다: ${error?.message ?? error}`);
     return { status: "api_failed", stat_date: statDate, rows: 0, error: String(error?.message ?? error) };
   }
+  const rows = fetched.rows;
   if (!rows.length) {
     console.warn(`[collect-tp-click-stats] ${statDate} 지표 0건(제휴 트래픽 없음 또는 미집계) — 정상 빈 결과.`);
-    return { status: "empty", stat_date: statDate, rows: 0 };
+    return { status: "empty", stat_date: statDate, rows: 0, fields_used: fetched.fieldsUsed };
   }
   if (options.dryRun) {
-    return { status: "dry_run", stat_date: statDate, rows: rows.length, sample: rows.slice(0, 5) };
+    return { status: "dry_run", stat_date: statDate, rows: rows.length, sample: rows.slice(0, 5), fields_used: fetched.fieldsUsed, profit_currency_limited: fetched.profitCurrencyLimited };
   }
   const client = new Client({ connectionString: options.connectionString ?? process.env.DATABASE_INGEST_URL ?? process.env.DATABASE_URL });
   await client.connect();
@@ -114,7 +176,7 @@ export async function collectTpClickStats(options = {}) {
   } finally {
     await client.end();
   }
-  return { status: "stored", stat_date: statDate, rows: rows.length };
+  return { status: "stored", stat_date: statDate, rows: rows.length, fields_used: fetched.fieldsUsed, profit_currency_limited: fetched.profitCurrencyLimited };
 }
 
 function parseArgs(argv) {

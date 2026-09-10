@@ -9,51 +9,106 @@ import {
   STALE_HARD_CAP_HOURS,
   STALE_SAFETY_BUFFER_HOURS,
 } from "../lib/source-policy.ts";
-import { collectTpClickStats, parseTpSalesResponse, targetStatDate } from "../scripts/collect-tp-click-stats.mjs";
+import {
+  buildTpFieldSelection,
+  collectTpClickStats,
+  extractTpFieldNames,
+  parseTpStatsRows,
+  targetStatDate,
+} from "../scripts/collect-tp-click-stats.mjs";
 import { countDedupViolations, runSyntheticCheck, SYNTHETIC_PRODUCT_THRESHOLDS } from "../scripts/ops-synthetic-check.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 // UX-20260910-005/006/007: 계정 없는 계측·자동화 — 클릭 회수 잡·동적 가시 창·관측 증거 게이트.
+// 2026-09-11: 구 /v2/statistics/sales 폐기(404)로 statistics v1 execute_query로 마이그레이션.
 
-const tpSalesFixture = {
+const tpFieldsFixture = {
   success: true,
-  data: {
-    sales: {
-      "2026-09-09": {
-        "home-pick_weekend_1": {
-          flights: { visitors: 3, searches: 5, clicks: 2, paid_clicks: 1, paid_clicks_profit: 120, bookings: 0, paid_bookings: 0, paid_bookings_profit: 0, pending_bookings_profit: 30 },
-          hotels: { visitors: 1, searches: 1, clicks: 1, paid_clicks: 0, paid_clicks_profit: 0, bookings: 1, paid_bookings: 1, paid_bookings_profit: 800, pending_bookings_profit: 0 },
-        },
-        "offers_BKI_fresh": {
-          flights: { visitors: 1, searches: 1, clicks: 1, paid_clicks: 0, paid_clicks_profit: 0, bookings: 0, paid_bookings: 0, paid_bookings_profit: 0, pending_bookings_profit: 0 },
-        },
-      },
-    },
-  },
+  data: [
+    "date", "sub_id", "redirects_count", "inits_count", "searches_count",
+    "paid_actions_count", "processing_actions_count", "cancelled_actions_count",
+    "paid_profit_krw_sum", "processing_profit_krw_sum",
+  ],
 };
 
-test("TP sales response parses into (date, sub_id, metrics) rows summing flights+hotels", () => {
-  const rows = parseTpSalesResponse(tpSalesFixture, "2026-09-09");
-  assert.equal(rows.length, 2);
-  const pick = rows.find((row) => row.sub_id === "home-pick_weekend_1");
-  assert.equal(pick.clicks, 3, "flights 2 + hotels 1");
-  assert.equal(pick.bookings, 1);
-  assert.equal(pick.paid_bookings, 1);
-  assert.equal(pick.profit_krw, 950, "유료클릭 120 + 유료예약 800 + 확정 대기 30");
-  assert.equal(pick.visitors, 4);
-  const offers = rows.find((row) => row.sub_id === "offers_BKI_fresh");
-  assert.equal(offers.clicks, 1);
-  assert.deepEqual(parseTpSalesResponse(tpSalesFixture, "2026-09-08"), [], "대상 날짜 외는 공집합");
-  assert.deepEqual(parseTpSalesResponse({ data: {} }, "2026-09-09"), [], "스키마 이탈은 soft-fail");
+const tpQueryFixture = {
+  success: true,
+  data: [
+    {
+      group: { sub_id: "home-pick_weekend_1" },
+      redirects_count: 3, inits_count: 4, searches_count: 6,
+      paid_actions_count: 1, processing_actions_count: 0, cancelled_actions_count: 0,
+      paid_profit_krw_sum: 920, processing_profit_krw_sum: 30,
+    },
+    {
+      group: { sub_id: "offers_BKI_fresh" },
+      redirects_count: 1, inits_count: 1, searches_count: 1,
+      paid_actions_count: 0, processing_actions_count: 0, cancelled_actions_count: 0,
+      paid_profit_krw_sum: 0, processing_profit_krw_sum: 0,
+    },
+  ],
+};
+
+function tpFetchImpl(captured = [], { fieldsPayload = tpFieldsFixture, queryPayload = tpQueryFixture } = {}) {
+  return async (url, init) => {
+    captured.push([url, init]);
+    if (url.includes("get_fields_list")) {
+      return { ok: true, status: 200, json: async () => fieldsPayload };
+    }
+    return { ok: true, status: 200, json: async () => queryPayload };
+  };
+}
+
+test("TP statistics v1 field discovery maps candidates and flags missing currency", () => {
+  assert.deepEqual(extractTpFieldNames(tpFieldsFixture), tpFieldsFixture.data);
+  assert.deepEqual(extractTpFieldNames({ data: [{ field_name: "date" }, { field_name: "sub_id" }] }), ["date", "sub_id"]);
+  assert.deepEqual(extractTpFieldNames({ data: {} }), [], "스키마 이탈은 soft-fail");
+
+  const selection = buildTpFieldSelection(tpFieldsFixture.data);
+  assert.equal(selection.picked.clicks, "redirects_count");
+  assert.ok(selection.queryFields.includes("paid_profit_krw_sum"));
+  assert.ok(selection.queryFields.includes("processing_profit_krw_sum"), "수익 성분은 가용 전부");
+  assert.equal(selection.profitLimited, false);
+
+  // krw 수익 필드가 없으면 profit 0 + 플래그(통화 추측 적재 금지).
+  const limited = buildTpFieldSelection(["date", "sub_id", "redirects_count", "paid_actions_count"]);
+  assert.equal(limited.profitLimited, true);
+  assert.ok(!limited.queryFields.includes("paid_profit_krw_sum"));
+
+  // 필드 목록 파식(빈 배열)은 문서 표준 이름으로 시도한다.
+  const fallback = buildTpFieldSelection([]);
+  assert.equal(fallback.picked.clicks, "redirects_count");
 });
 
-test("click collector targets yesterday KST and skips softly without a token", async () => {
+test("TP statistics v1 rows map to the schema (clicks=redirects, bookings 합산, paid_clicks 0)", () => {
+  const selection = buildTpFieldSelection(tpFieldsFixture.data);
+  const rows = parseTpStatsRows(tpQueryFixture, "2026-09-09", selection);
+  assert.equal(rows.length, 2);
+  const pick = rows.find((row) => row.sub_id === "home-pick_weekend_1");
+  assert.equal(pick.clicks, 3, "클릭 = redirects_count");
+  assert.equal(pick.visitors, 4);
+  assert.equal(pick.searches, 6);
+  assert.equal(pick.paid_bookings, 1);
+  assert.equal(pick.bookings, 1, "유료+진행+취소 합산");
+  assert.equal(pick.profit_krw, 950, "유료 920 + 진행 30");
+  assert.equal(pick.paid_clicks, 0, "v1 aggregated에 유료클릭 구분 없음 — 0 적재 계약");
+  assert.equal(pick.stat_date, "2026-09-09");
+  const offers = rows.find((row) => row.sub_id === "offers_BKI_fresh");
+  assert.equal(offers.clicks, 1);
+  assert.deepEqual(parseTpStatsRows({ data: {} }, "2026-09-09", selection), [], "스키마 이탈은 공집합");
+  // sub_id 미표기 그룹(null)도 놓치지 않는다 — 빈 문자열로 집계.
+  const untagged = parseTpStatsRows({ data: [{ redirects_count: 2 }] }, "2026-09-09", selection);
+  assert.equal(untagged[0].sub_id, "");
+});
+
+test("click collector targets yesterday KST, queries v1 with token header, and skips softly", async () => {
   const now = new Date("2026-09-10T05:00:00Z"); // KST 09-10 14:00
   assert.equal(targetStatDate(now), "2026-09-09");
   assert.equal(targetStatDate(now, "2026-09-01"), "2026-09-01");
   const report = await collectTpClickStats({ now, token: "", dryRun: true });
   assert.equal(report.status, "skipped_no_token", "토큰 미설정은 배치를 실패시키지 않는다");
+
   const apiFail = await collectTpClickStats({
     now,
     token: "t",
@@ -61,16 +116,32 @@ test("click collector targets yesterday KST and skips softly without a token", a
     fetchImpl: async () => ({ ok: false, status: 502 }),
   });
   assert.equal(apiFail.status, "api_failed");
-  // dry-run(실응답 파싱만, 적재 없음) 경로가 스키마를 그대로 통과하는지도 고정.
-  const dry = await collectTpClickStats({
-    now,
-    token: "t",
-    dryRun: true,
-    fetchImpl: async () => ({ ok: true, status: 200, json: async () => tpSalesFixture }),
-  });
+
+  const captured = [];
+  const dry = await collectTpClickStats({ now, token: "tok", dryRun: true, fetchImpl: tpFetchImpl(captured) });
   assert.equal(dry.status, "dry_run");
   assert.equal(dry.rows, 2);
   assert.equal(dry.sample[0].sub_id, "home-pick_weekend_1");
+  assert.equal(dry.profit_currency_limited, false);
+
+  // 요청 계약: v1 execute_query · X-Access-Token 헤더 · date 범위 필터 · sub_id 그룹.
+  const [fieldsUrl] = captured[0];
+  assert.ok(fieldsUrl.includes("/statistics/v1/get_fields_list"));
+  const [queryUrl, queryInit] = captured[1];
+  assert.ok(queryUrl.includes("/statistics/v1/execute_query"));
+  assert.equal(queryInit.method, "POST");
+  assert.equal(queryInit.headers["X-Access-Token"], "tok");
+  const body = JSON.parse(queryInit.body);
+  assert.deepEqual(body.group, ["sub_id"]);
+  assert.deepEqual(body.filters, [
+    { field: "date", op: "ge", value: "2026-09-09" },
+    { field: "date", op: "le", value: "2026-09-09" },
+  ]);
+  assert.ok(Array.isArray(body.fields) && body.fields.length > 0);
+
+  // 폐기된 구 엔드포인트로의 회귀 금지.
+  const script = readFileSync(join(repoRoot, "scripts/collect-tp-click-stats.mjs"), "utf8");
+  assert.doesNotMatch(script, /\/v2\/statistics\/sales/);
 });
 
 test("visibility window covers delayed batches and caps at 14 days", () => {

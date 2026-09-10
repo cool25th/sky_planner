@@ -1,7 +1,8 @@
 -- ============================================================
--- UX-20260910-005: 제휴 클릭 통계 — Travelpayouts /v2/statistics/sales
--- (group_by=date_marker) 일일 적재. 최소 형태 (date, sub_id, clicks)에
--- API가 함께 제공하는 지표(방문·검색·유료클릭·예약·수익)를 포함한다.
+-- UX-20260910-005: 제휴 클릭 통계 — Travelpayouts statistics v1
+-- (execute_query, group=sub_id, date 필터) 일일 적재. 최소 형태
+-- (date, sub_id, clicks)에 API가 함께 제공하는 지표(방문·검색·예약·수익)를
+-- 포함한다(유료클릭 구분은 v1 aggregated 세트에 없어 0 — 업그레이드 경로 주석 참조).
 -- 회수는 scripts/collect-tp-click-stats.mjs(일일 배치 잡, allow_empty 준용).
 -- ============================================================
 CREATE TABLE IF NOT EXISTS affiliate_click_stats (
