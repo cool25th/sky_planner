@@ -6,6 +6,7 @@ import type { OffersData, OffersQuery } from "@/lib/mock-market";
 import { eligibleBookingSourceKeys } from "@/lib/source-policy";
 import { queryOrigins } from "./labels";
 import { LIVE_OFFER_VISIBILITY_SQL } from "./live-offer-policy";
+import { normalizeOffersForDisplay } from "./offers-display";
 import { mapOfferFromSql, parseOfferJoinRow } from "./row-mappers";
 import { postgresConfigured } from "./source-context";
 
@@ -78,15 +79,17 @@ export async function resolveOffersDataFromPostgres(
   const allOffers = rows.map((row) => mapOfferFromSql(parseOfferJoinRow(row), lastBatchAt));
 
   // UX-20260828-001 잔여: 0행(과거 출발일 등)은 null(데모 폴백) 대신 빈 live 목록으로 응답한다.
-  const offers = allOffers
-    .filter((offer) => {
+  // UX-20260910-003: 표시 정규화(SEL↔ICN dedup·딥링크 강제·결측 과반 제외·격하)를 거쳐 응답한다.
+  const offers = normalizeOffersForDisplay(
+    allOffers.filter((offer) => {
       if (isHiddenFare(offer.last_seen_at || offer.last_batch_at)) return false;
       if (offersQuery.cabin !== "ALL" && offer.cabin_group !== offersQuery.cabin) return false;
       if (offersQuery.airline.length && !offersQuery.airline.includes(offer.airline_code)) return false;
       if (offersQuery.stops !== "ALL" && String(offer.stops) !== offersQuery.stops) return false;
       return true;
-    })
-    .sort((left, right) => left.price_total - right.price_total);
+    }),
+    offersQuery.origin,
+  );
 
   const airlineMap = new Map<string, string>();
   const cabinMap = new Map<string, string>();

@@ -1,0 +1,176 @@
+{
+ "captured_at": "2026-09-10",
+ "source": "GET /api/offers?origin=ICN&destination=BKI&depart=2026-09-13&return=2026-09-18 (production)",
+ "note": "수리 전 프로덕션 응답 — SEL↔ICN 동일 상품 이중 노출·float duration·SEL행 시각/시간 결측을 담은 그대로의 고정 샘플",
+ "query": {
+  "origin": "ICN",
+  "destination": "BKI",
+  "depart": "2026-09-13",
+  "return": "2026-09-18"
+ },
+ "response": {
+  "request_id": "offers-745fa06a5d4e",
+  "generated_at": "2026-09-10T05:28:22.653Z",
+  "last_batch_at": "2026-09-10T00:42:17.665Z",
+  "warning_flags": [
+   "daily_batch_cached",
+   "final_price_check_on_booking_source"
+  ],
+  "source_flags": [
+   "travelpayouts_aviasales"
+  ],
+  "data": {
+   "origin": "ICN",
+   "week": "2026-W37",
+   "traveler": "adt1",
+   "destination": "BKI",
+   "depart": "2026-09-13",
+   "return": "2026-09-18",
+   "offers": [
+    {
+     "offer_id": "collector-039e21a2a0a847788db4",
+     "origin": "ICN",
+     "origin_label": "ICN",
+     "traveler": "adt1",
+     "destination_code": "BKI",
+     "destination_city": "코타키나발루",
+     "destination_country": "말레이시아",
+     "region_code": "SEA",
+     "region_label": "동남아",
+     "lat": 5.9804,
+     "lon": 116.0735,
+     "depart_date": "2026-09-13",
+     "return_date": "2026-09-18",
+     "stay_nights": 5,
+     "trip_bucket": "5_7",
+     "trip_bucket_label": "5-7일",
+     "airline_code": "AK",
+     "airline_name": "AK",
+     "cabin_group": "ECONOMY",
+     "cabin_label_raw": "economy",
+     "fare_family": "Standard",
+     "price_total": 213431,
+     "average_30_total": 213431,
+     "average_90_total": 213431,
+     "discount_pct_30": 0,
+     "discount_pct_90": 0,
+     "price_status": "active",
+     "is_price_changed": false,
+     "source_name": "travelpayouts_aviasales",
+     "source_id": "travelpayouts_aviasales",
+     "source_type": "meta_search",
+     "stops": 0,
+     "is_direct": true,
+     "last_seen_at": "2026-09-10T00:36",
+     "last_batch_at": "2026-09-10T00:36",
+     "deep_link": "https://www.aviasales.com/search/ICNBKI130918091?marker=771170",
+     "official_promotion": false,
+     "warning_flags": [],
+     "badges": [],
+     "outbound_departure_at": "2026-09-13T09:20:00+09:00",
+     "outbound_arrival_at": "2026-09-13T05:30:00.000Z",
+     "inbound_departure_at": "2026-09-18T01:40:00+08:00",
+     "inbound_arrival_at": "2026-09-17T23:20:00.000Z",
+     "duration_hours": 5.166666666666667
+    },
+    {
+     "offer_id": "collector-ef98d1e581cb66e68853",
+     "origin": "SEL",
+     "origin_label": "SEL",
+     "traveler": "adt1",
+     "destination_code": "BKI",
+     "destination_city": "코타키나발루",
+     "destination_country": "말레이시아",
+     "region_code": "SEA",
+     "region_label": "동남아",
+     "lat": 5.9804,
+     "lon": 116.0735,
+     "depart_date": "2026-09-13",
+     "return_date": "2026-09-18",
+     "stay_nights": 5,
+     "trip_bucket": "5_7",
+     "trip_bucket_label": "5-7일",
+     "airline_code": "AK",
+     "airline_name": "AK",
+     "cabin_group": "ECONOMY",
+     "cabin_label_raw": "economy",
+     "fare_family": "Standard",
+     "price_total": 213431,
+     "average_30_total": 213431,
+     "average_90_total": 213431,
+     "discount_pct_30": 0,
+     "discount_pct_90": 0,
+     "price_status": "active",
+     "is_price_changed": false,
+     "source_name": "travelpayouts_aviasales",
+     "source_id": "travelpayouts_aviasales",
+     "source_type": "meta_search",
+     "stops": 0,
+     "is_direct": true,
+     "last_seen_at": "2026-09-10T00:37",
+     "last_batch_at": "2026-09-10T00:37",
+     "deep_link": "https://www.aviasales.com/search/SELBKI130918091?marker=771170",
+     "official_promotion": false,
+     "warning_flags": [],
+     "badges": [],
+     "outbound_departure_at": "2026-09-13T09:20:00+09:00",
+     "outbound_arrival_at": "",
+     "inbound_departure_at": "2026-09-18T01:40:00+08:00",
+     "inbound_arrival_at": "",
+     "duration_hours": 0
+    }
+   ],
+   "filters": {
+    "available_airlines": [
+     {
+      "code": "AK",
+      "name": "AK"
+     }
+    ],
+    "available_cabins": [
+     {
+      "code": "ECONOMY",
+      "label": "이코노미"
+     }
+    ],
+    "available_stops": [
+     0
+    ]
+   },
+   "summary": {
+    "count": 2,
+    "lowest_total": 213431,
+    "last_seen_at": "2026-09-10T00:36"
+   }
+  },
+  "diagnostics": {
+   "read_model": "postgres",
+   "data_mode": "live",
+   "postgres_configured": true,
+   "fallback_used": false,
+   "fallback_suppressed": false,
+   "fallback_reason": null,
+   "service_requires_postgres": false,
+   "service_unavailable": false,
+   "source_flags": [
+    "travelpayouts_aviasales"
+   ],
+   "source_readiness": {
+    "status": "ready",
+    "counts": {
+     "policy_sources": 7,
+     "env_enabled_sources": 4,
+     "search_eligible_sources": 1,
+     "minimum_search_eligible_sources": 1,
+     "blocked_sources": 3
+    },
+    "blocked_source_ids": [
+     "skyscanner_affiliate",
+     "korean_air_official",
+     "asiana_official"
+    ]
+   },
+   "source_health_error": null
+  }
+ }
+}

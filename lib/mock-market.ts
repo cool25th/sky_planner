@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { isHiddenFare } from "./fare-freshness.ts";
-import { formatWeekNatural } from "./format.ts";
+import { formatDurationMinutes, formatWeekNatural } from "./format.ts";
 import {
   DEFAULT_ENABLED_SOURCE_FLAGS,
   isOfferSourceEligible,
@@ -122,6 +122,10 @@ export interface Offer {
   inbound_departure_at: string;
   inbound_arrival_at: string;
   duration_hours: number;
+  // UX-20260910-003: 표시 전용 파생 필드 — 원시 float(duration_hours)를 화면이 직접 삽입하지
+  // 않도록 포맷된 라벨을 응답에 싣는다. info_partial은 시간정보 일부 결측(격하+배지 대상).
+  duration_label: string;
+  info_partial: boolean;
 }
 
 export interface MapDeal {
@@ -979,7 +983,15 @@ export function buildMarket(week: string, lastBatchAt = DEFAULT_LAST_BATCH_AT) {
                   official_promotion: badges.includes("공식 특가"),
                   warning_flags: ["tax_included_total", "baggage_unknown"],
                   badges,
-                  ...buildTimes(destination, departIso, returnIso, `${key}:${candidate.sourceId}`, stops),
+                  ...(() => {
+                    const times = buildTimes(destination, departIso, returnIso, `${key}:${candidate.sourceId}`, stops);
+                    return {
+                      ...times,
+                      // UX-20260910-003: 표시 전용 파생 필드 — mock은 시각·시간이 항상 완전하다.
+                      duration_label: formatDurationMinutes(Math.round(times.duration_hours * 60)),
+                      info_partial: false,
+                    };
+                  })(),
                 });
               }
             }

@@ -717,3 +717,32 @@ test("stay_nights_filter without field names falls back to departure_at/return_a
   assert.equal(result.offers.length, 1, "1박(버킷 밖) 행은 기본 필드명 필터로 버려야 한다");
   assert.equal(result.offers[0].id, "tpcalpus_FUK_2026-09-08_2026-09-11");
 });
+
+test("feed rows returning the SEL metro code are stored as the queried real airport", async () => {
+  // UX-20260910-003 수집측 이중 방어: Aviasales cheap 응답은 실제 공항(ICN)을 도시 코드 SEL로
+  // 정규화해 돌려준다 — 조회에 사용한 공항으로 되돌려 저장한다(읽기 dedup와 이중 방어).
+  const payload = JSON.parse(await readFile(mappedFixturePath, "utf8"));
+  payload.data.quotes = payload.data.quotes.map((quote, index) => ({
+    ...quote,
+    from: index === 0 ? "SEL" : quote.from,
+  }));
+  const config = { ...mappedConfig("http://127.0.0.1:1/fares"), query: { origin: "ICN" } };
+
+  const batch = normalizeAuthorizedFeedPayload(payload, config, { executionId: "sel_metro_normalize_test" });
+
+  assert.equal(batch.offers[0].origin_airport, "ICN", "SEL 응답은 조회 공항으로 정규화해 저장한다");
+  assert.equal(batch.offers[0].origin_city_id, "ICN");
+  assert.equal(batch.offers[1].origin_airport, "ICN", "실제 공항 코드 응답은 그대로 둔다");
+
+  // query.origin이 없거나(레거시) 공항 코드가 아니면 원본을 보존한다 — 잘못된 치환 방지.
+  const noQuery = normalizeAuthorizedFeedPayload(payload, mappedConfig("http://127.0.0.1:1/fares"), {
+    executionId: "sel_metro_noquery_test",
+  });
+  assert.equal(noQuery.offers[0].origin_airport, "SEL");
+  const numericQuery = normalizeAuthorizedFeedPayload(
+    payload,
+    { ...mappedConfig("http://127.0.0.1:1/fares"), query: { origin: 1 } },
+    { executionId: "sel_metro_numeric_test" },
+  );
+  assert.equal(numericQuery.offers[0].origin_airport, "SEL");
+});

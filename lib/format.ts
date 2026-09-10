@@ -72,3 +72,14 @@ export function isPastWeek(code: string): boolean {
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat("ko-KR").format(value);
 }
+
+// UX-20260910-003: 비행시간 표기 — 분 단위를 "X시간 Y분" 사람 문자로 변환한다. 0/결측은
+// formatTime의 "시간 미정" 관용구와 같은 정직 폴백. duration_hours를 원시 float로 렌더하는
+// 경로(과거 /offers "{duration_hours}시간")를 이 포맷터 경유로 교체한다.
+export function formatDurationMinutes(minutes: number): string {
+  if (!Number.isFinite(minutes) || minutes <= 0) return "시간 미정";
+  const total = Math.round(minutes);
+  const hours = Math.floor(total / 60);
+  const mins = total % 60;
+  return mins ? `${hours}시간 ${mins}분` : `${hours}시간`;
+}

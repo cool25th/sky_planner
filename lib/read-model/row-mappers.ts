@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { formatDurationMinutes } from "@/lib/format";
 import {
   DEFAULT_STAY_BUCKET,
   DEFAULT_TRAVELER,
@@ -268,6 +269,10 @@ export function mapOfferFromSql(row: OfferJoinRow, fallbackBatchAt: string): Off
     inbound_departure_at: String(row.return_departure_time_local ?? ""),
     inbound_arrival_at: String(row.return_arrival_time_local ?? ""),
     duration_hours: Number(row.duration_minutes ? Number(row.duration_minutes) / 60 : row.duration_hours ?? 0),
+    // UX-20260910-003: 원시 float 표시 금지 — 라벨은 공유 포맷터 경유. info_partial 기본값은
+    // false이고 표시 정규화(offers-display)가 시간정보 결측 행에만 true로 설정한다.
+    duration_label: formatDurationMinutes(Number(row.duration_minutes ?? 0)),
+    info_partial: false,
   };
 }
 

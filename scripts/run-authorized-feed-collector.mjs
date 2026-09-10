@@ -857,6 +857,16 @@ export async function fetchAuthorizedFeed(inputConfig, options = {}) {
   }
 }
 
+// UX-20260910-003 수집층 이중 방어: Aviasales가 cheap 응답에서 실제 출발 공항을 도시 코드 SEL로
+// 정규화해 돌려준다(우리는 ICN으로 조회). SEL은 예약 불가능한 가상 코드라 그대로 저장하면 읽기의
+// 메트로 등가가 ICN 조회에 SEL행을 끌어와 동일 상품 이중 노출의 근원이 된다 — 조회에 사용한 실제
+// 공항으로 정규화해 저장한다(읽기측 dedup와 이중 방어).
+function normalizeFeedOriginAirport(feedOrigin, queriedOrigin) {
+  const target = typeof queriedOrigin === "string" ? queriedOrigin : "";
+  if (feedOrigin === "SEL" && /^[A-Z]{3}$/.test(target) && target !== "SEL") return target;
+  return feedOrigin;
+}
+
 export function normalizeAuthorizedFeedPayload(payload, inputConfig, options = {}) {
   const config = parseCollectorSourceConfig(inputConfig);
   const normalizedPayload = mapJsonPathFeedPayload(payload, config, options);
@@ -884,8 +894,8 @@ export function normalizeAuthorizedFeedPayload(payload, inputConfig, options = {
       source_offer_id: offer.id,
       raw_payload_ref: offer.raw_payload_ref ?? `${rawRefBase}#/offers/${index}`,
       capture_channel: offer.capture_channel,
-      origin_airport: offer.origin.airport,
-      origin_city_id: offer.origin.city_id ?? offer.origin.airport,
+      origin_airport: normalizeFeedOriginAirport(offer.origin.airport, config.query?.origin),
+      origin_city_id: normalizeFeedOriginAirport(offer.origin.city_id ?? offer.origin.airport, config.query?.origin),
       destination_airport: offer.destination.airport,
       destination_city_id: offer.destination.city_id,
       destination_display_name: offer.destination.display_name_ko,

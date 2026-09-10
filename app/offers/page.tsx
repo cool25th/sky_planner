@@ -39,13 +39,15 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
   if (serviceUnavailable) noStore();
 
   const sortedOffers = [...offersData.offers].sort((a, b) => {
+    // UX-20260910-003: 시간정보 일부 결측 행은 정렬 기준과 무관하게 목록 하단으로 격하.
+    const partialGap = (a.info_partial ? 1 : 0) - (b.info_partial ? 1 : 0);
     if (sortBy === "duration") {
-      return a.duration_hours - b.duration_hours || a.price_total - b.price_total;
+      return a.duration_hours - b.duration_hours || a.price_total - b.price_total || partialGap;
     }
     if (sortBy === "departure") {
-      return new Date(a.outbound_departure_at).getTime() - new Date(b.outbound_departure_at).getTime() || a.price_total - b.price_total;
+      return new Date(a.outbound_departure_at).getTime() - new Date(b.outbound_departure_at).getTime() || a.price_total - b.price_total || partialGap;
     }
-    return a.price_total - b.price_total;
+    return a.price_total - b.price_total || partialGap;
   });
 
   const cabinLabel = query.cabin === "BUSINESS" ? "비즈니스석" : query.cabin === "ECONOMY" ? "일반석" : "전체 좌석";
@@ -226,7 +228,7 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
                           <span>{offer.origin}</span>
                         </div>
                         <div className="leg-duration-bar">
-                          <span className="duration-text">{offer.is_direct ? "직항" : `${offer.stops}회 경유`} · {offer.duration_hours}시간</span>
+                          <span className="duration-text">{offer.is_direct ? "직항" : `${offer.stops}회 경유`} · {offer.duration_label}</span>
                           <div className="duration-line" />
                         </div>
                         <div className="leg-endpoint">
@@ -246,7 +248,7 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
                           <span>{offer.destination_code}</span>
                         </div>
                         <div className="leg-duration-bar">
-                          <span className="duration-text">{offer.is_direct ? "직항" : `${offer.stops}회 경유`} · {offer.duration_hours}시간</span>
+                          <span className="duration-text">{offer.is_direct ? "직항" : `${offer.stops}회 경유`} · {offer.duration_label}</span>
                           <div className="duration-line" />
                         </div>
                         <div className="leg-endpoint">
@@ -259,6 +261,7 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
 
                     <div className="flight-airline-meta">
                       <strong>{offer.airline_name}</strong>
+                      {offer.info_partial && <span className="next-day-pill">일부 정보 미확인</span>}
                       <span>·</span>
                       <span>{offer.cabin_label_raw || (offer.cabin_group === "ECONOMY" ? "일반석" : "비즈니스석")}</span>
                       <span>·</span>
