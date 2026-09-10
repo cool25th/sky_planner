@@ -233,10 +233,18 @@ export function buildServiceEnvPreflightManifestLoadFailure({
   };
 }
 
+// INT-20260831-002(b): 웹훅 URL은 알림 전달용 선택 값이다 — 색인 게이트는 관측 증거로 판정한다
+// (UX-20260910-007). 미설정은 경고(알림 부재가 잡을 실패시키지 않는다 — ops-failure-alert 정책과
+// 동일), 설정됐는데 잘못됐으면 실패(고장난 알림 채널은 침묵보다 나쁘다).
+function opsAlertWebhookCheck(rawUrl) {
+  if (!rawUrl) return check("ops_alert_webhook_url_configured", "warn", { reason: "missing_optional" });
+  return productionHttpsUrlCheck("ops_alert_webhook_url_configured", rawUrl);
+}
+
 function runtimeEnvChecks(env, options = {}) {
   const checks = [
     databaseUrlCheck(env.DATABASE_URL, { allowLocalDatabase: options.allowLocalDatabase }),
-    productionHttpsUrlCheck("ops_alert_webhook_url_configured", env.OPS_ALERT_WEBHOOK_URL),
+    opsAlertWebhookCheck(env.OPS_ALERT_WEBHOOK_URL),
     supportEmailCheck(env),
     opsReadinessTokenCheck(env),
     mockFallbackDisabledCheck(env),

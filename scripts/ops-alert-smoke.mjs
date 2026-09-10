@@ -115,6 +115,14 @@ async function main() {
     return;
   }
 
+  // INT-20260831-002(b): 미설정 웹훅은 스킵(exit 0) — ops-failure-alert와 같은 정책(알림 부재가
+  // 잡을 실패시키지 않는다). 설정됐는데 잘못됐으면 여전히 exit 1(고장난 채널은 드러낸다).
+  const validation = validateOpsAlertWebhookUrl(process.env.OPS_ALERT_WEBHOOK_URL);
+  if (!validation.ok && validation.reason === "missing") {
+    console.log(JSON.stringify({ sent: false, skipped: true, reason: validation.reason }, null, 2));
+    return;
+  }
+
   const output = await sendOpsAlert({
     event: args.event,
     status: "test",

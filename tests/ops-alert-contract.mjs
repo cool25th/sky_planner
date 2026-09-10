@@ -111,3 +111,17 @@ test("ops alert payload sanitizer preserves non-sensitive service context", () =
     },
   });
 });
+
+test("ops alert smoke main skips (exit 0) when webhook is unconfigured", async () => {
+  // INT-20260831-002(b): 미설정=스킵(exit 0) — 알림 부재가 잡을 실패시키지 않는다(ops-failure-alert 정책).
+  // CLI main은 프로세스 종료 코드로만 관찰 가능하므로 소스+실행 양축으로 고정한다.
+  const { execFileSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const scriptPath = fileURLToPath(new URL("../scripts/ops-alert-smoke.mjs", import.meta.url));
+  const env = { ...process.env, OPS_ALERT_WEBHOOK_URL: "" };
+  const stdout = execFileSync(process.execPath, [scriptPath, "--event", "collector_ops_alert_smoke"], { env, encoding: "utf8" });
+  const payload = JSON.parse(stdout.slice(stdout.indexOf("{")));
+  assert.equal(payload.skipped, true);
+  assert.equal(payload.reason, "missing");
+  assert.equal(payload.sent, false);
+});

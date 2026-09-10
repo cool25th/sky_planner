@@ -300,3 +300,16 @@ test("service environment preflight validates secrets from config_path manifests
     await rm(tempDir, { force: true, recursive: true });
   }
 });
+
+test("missing webhook downgrades to warning, invalid webhook still fails (INT-20260831-002b)", () => {
+  // 웹훅은 알림 전달용 선택 값(색인 게이트는 관측 증거로 판정 — UX-20260910-007).
+  // 미설정=경고(잡을 실패시키지 않음)·설정됐는데 잘못됨=실패(고장난 채널은 드러냄).
+  const missing = buildServiceRuntimeEnvPreflight({ env: env({ OPS_ALERT_WEBHOOK_URL: "" }) });
+  assert.equal(missing.status, "pass");
+  assert.ok(!missing.summary.failed_checks.includes("ops_alert_webhook_url_configured"));
+  assert.ok(missing.summary.warning_checks.includes("ops_alert_webhook_url_configured"));
+
+  const invalid = buildServiceRuntimeEnvPreflight({ env: env({ OPS_ALERT_WEBHOOK_URL: "http://insecure.example.com/hook" }) });
+  assert.equal(invalid.status, "fail");
+  assert.ok(invalid.summary.failed_checks.includes("ops_alert_webhook_url_configured"));
+});
