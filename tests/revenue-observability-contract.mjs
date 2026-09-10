@@ -63,6 +63,11 @@ function tpFetchImpl(captured = [], { fieldsPayload = tpFieldsFixture, queryPayl
 test("TP statistics v1 field discovery maps candidates and flags missing currency", () => {
   assert.deepEqual(extractTpFieldNames(tpFieldsFixture), tpFieldsFixture.data);
   assert.deepEqual(extractTpFieldNames({ data: [{ field_name: "date" }, { field_name: "sub_id" }] }), ["date", "sub_id"]);
+  // 실측 학습(09-11 2차): 응답이 data_type별로 중첩될 수 있다 — 재귀 발견으로 커버.
+  assert.deepEqual(
+    extractTpFieldNames({ data: { aggregated: [{ field_name: "redirects_count" }, { name: "clicks", type: "int" }] } }),
+    ["redirects_count", "clicks"],
+  );
   assert.deepEqual(extractTpFieldNames({ data: {} }), [], "스키마 이탈은 soft-fail");
 
   const selection = buildTpFieldSelection(tpFieldsFixture.data);

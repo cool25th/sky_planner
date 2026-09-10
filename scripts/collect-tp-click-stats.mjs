@@ -73,12 +73,24 @@ export function buildTpFieldSelection(availableFieldNames) {
   };
 }
 
+// get_fields_list 응답의 실제 형태는 문서와 다를 수 있다(1차 실측: 파싱 0건·폴백 이름으로 400).
+// 배열 직계 문자열과 {field_name}|{name,type} 설명자만 수집한다 — 객체 값의 열거 문자열 오염 방지.
 export function extractTpFieldNames(payload) {
-  const rows = payload?.data ?? payload ?? [];
-  if (!Array.isArray(rows)) return [];
-  return rows
-    .map((row) => (typeof row === "string" ? row : row?.field_name ?? row?.name ?? null))
-    .filter(Boolean);
+  const names = new Set();
+  const visit = (node) => {
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        if (typeof item === "string") names.add(item);
+        else visit(item);
+      }
+    } else if (node && typeof node === "object") {
+      if (typeof node.field_name === "string") names.add(node.field_name);
+      else if (typeof node.name === "string" && typeof node.type === "string") names.add(node.name);
+      Object.values(node).forEach(visit);
+    }
+  };
+  visit(payload?.data ?? payload);
+  return [...names];
 }
 
 export function parseTpStatsRows(payload, statDate, selection) {
@@ -111,10 +123,15 @@ async function fetchTpStats({ token, statDate, fetchImpl }) {
 
   const fieldsRes = await doFetch(TP_FIELDS_URL, { headers, signal: AbortSignal.timeout(20000) });
   if (!fieldsRes.ok) throw new Error(`TP statistics fields API ${fieldsRes.status}: ${await errorBody(fieldsRes)}`);
-  const available = extractTpFieldNames(await fieldsRes.json());
+  const fieldsPayload = await fieldsRes.json();
+  const available = extractTpFieldNames(fieldsPayload);
   const selection = buildTpFieldSelection(available);
-  // 진단: 필드 발견 결과를 남긴다(파싱 실패 시 빈 배열 — 다음 반복의 단서).
-  console.warn(`[collect-tp-click-stats] fields_discovered=${available.length} selection=${JSON.stringify(selection.queryFields)}`);
+  // 진단: 필드 발견 결과를 남긴다(0건이면 원형 형태도 — 다음 반복의 단서).
+  if (available.length === 0) {
+    console.warn(`[collect-tp-click-stats] fields_discovered=0 raw=${JSON.stringify(fieldsPayload).slice(0, 400)}`);
+  } else {
+    console.warn(`[collect-tp-click-stats] fields_discovered=${available.length} selection=${JSON.stringify(selection.queryFields)}`);
+  }
 
   const queryRes = await doFetch(TP_QUERY_URL, {
     method: "POST",
