@@ -133,6 +133,7 @@ test("click collector targets yesterday KST, queries v1 with token header, and s
   assert.equal(queryInit.headers["X-Access-Token"], "tok");
   const body = JSON.parse(queryInit.body);
   assert.deepEqual(body.group, ["sub_id"]);
+  assert.ok(body.fields.includes("sub_id"), "그룹 필드는 fields에도 포함(문서 예시 형태)");
   assert.deepEqual(body.filters, [
     { field: "date", op: "ge", value: "2026-09-09" },
     { field: "date", op: "le", value: "2026-09-09" },

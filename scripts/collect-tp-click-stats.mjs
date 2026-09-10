@@ -104,16 +104,24 @@ export function parseTpStatsRows(payload, statDate, selection) {
 async function fetchTpStats({ token, statDate, fetchImpl }) {
   const doFetch = fetchImpl ?? ((url, init) => fetch(url, init));
   const headers = { "X-Access-Token": token, Accept: "application/json" };
+  const errorBody = async (res) => {
+    if (typeof res?.text !== "function") return "";
+    return (await res.text().catch(() => "")).slice(0, 300);
+  };
 
   const fieldsRes = await doFetch(TP_FIELDS_URL, { headers, signal: AbortSignal.timeout(20000) });
-  if (!fieldsRes.ok) throw new Error(`TP statistics fields API ${fieldsRes.status}`);
-  const selection = buildTpFieldSelection(extractTpFieldNames(await fieldsRes.json()));
+  if (!fieldsRes.ok) throw new Error(`TP statistics fields API ${fieldsRes.status}: ${await errorBody(fieldsRes)}`);
+  const available = extractTpFieldNames(await fieldsRes.json());
+  const selection = buildTpFieldSelection(available);
+  // 진단: 필드 발견 결과를 남긴다(파싱 실패 시 빈 배열 — 다음 반복의 단서).
+  console.warn(`[collect-tp-click-stats] fields_discovered=${available.length} selection=${JSON.stringify(selection.queryFields)}`);
 
   const queryRes = await doFetch(TP_QUERY_URL, {
     method: "POST",
     headers: { ...headers, "Content-Type": "application/json" },
     body: JSON.stringify({
-      fields: selection.queryFields,
+      // 문서 예시 형태: 그룹 필드(sub_id)도 fields에 포함한다.
+      fields: ["sub_id", ...selection.queryFields],
       filters: [
         { field: "date", op: "ge", value: statDate },
         { field: "date", op: "le", value: statDate },
@@ -124,16 +132,13 @@ async function fetchTpStats({ token, statDate, fetchImpl }) {
     }),
     signal: AbortSignal.timeout(20000),
   });
-  if (!queryRes.ok) throw new Error(`TP statistics query API ${queryRes.status}`);
-  if (queryRes.json && typeof queryRes.json === "function") {
-    const payload = await queryRes.json();
-    return {
-      rows: parseTpStatsRows(payload, statDate, selection),
-      fieldsUsed: selection.queryFields,
-      profitCurrencyLimited: selection.profitLimited,
-    };
-  }
-  return { rows: [], fieldsUsed: selection.queryFields, profitCurrencyLimited: selection.profitLimited };
+  if (!queryRes.ok) throw new Error(`TP statistics query API ${queryRes.status}: ${await errorBody(queryRes)}`);
+  const payload = await queryRes.json();
+  return {
+    rows: parseTpStatsRows(payload, statDate, selection),
+    fieldsUsed: selection.queryFields,
+    profitCurrencyLimited: selection.profitLimited,
+  };
 }
 
 export async function collectTpClickStats(options = {}) {
