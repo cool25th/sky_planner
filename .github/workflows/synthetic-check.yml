@@ -25,12 +25,15 @@ jobs:
     timeout-minutes: 5
     env:
       OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
-      VERCEL_REVALIDATE_SECRET: ${{ secrets.VERCEL_REVALIDATE_SECRET }}
+      DATABASE_INGEST_URL: ${{ secrets.DATABASE_INGEST_URL }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: 24
+      # 하트비트 기록에만 pg 필요 — 전체 의존성 설치를 피해 최소 설치한다(수 초).
+      - name: Install pg for heartbeat write
+        run: npm install --no-save pg
       # 스크립트가 관측+제품 임계+하트비트 기록을 모두 수행한다(임계 미달 → exit 1 = 회귀 인식).
       - name: Run synthetic product check and record heartbeat
         id: check

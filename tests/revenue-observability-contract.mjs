@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -174,14 +174,34 @@ test("synthetic check measures product metrics and fails on threshold breach", a
   // 하트비트 기록 스텝이 워크플로에 존재하는지 소스 고정.
   const synthYml = readFileSync(join(repoRoot, ".github/workflows/synthetic-check.yml"), "utf8");
   assert.match(synthYml, /node scripts\/ops-synthetic-check\.mjs/);
-  assert.match(synthYml, /VERCEL_REVALIDATE_SECRET/, "하트비트는 기존 시크릿으로 인증된다");
 });
 
-test("heartbeat API authorizes with the revalidate secret and whitelists metric keys", async () => {
-  const route = readFileSync(join(repoRoot, "app/api/ops/heartbeat/route.ts"), "utf8");
-  assert.match(route, /isRevalidateRequestAuthorized/, "기존 타이밍-세이프 인증 재사용");
-  assert.match(route, /HEARTBEAT_KEYS/, "메트릭 키 화이트리스트");
-  assert.match(route, /synthetic_check/);
-  assert.match(route, /ran_at_required/, "실행 시각 필수");
-  assert.match(route, /401/);
+test("synthetic heartbeat is written by the runner ingest role, never the BFF", () => {
+  // BFF(read 롤)에 쓰기 경로를 만들면 ADR-006 계정 분리가 깨진다 — 러너가 ingest 롤로 직접 기록.
+  const script = readFileSync(join(repoRoot, "scripts/ops-synthetic-check.mjs"), "utf8");
+  assert.match(script, /DATABASE_INGEST_URL/);
+  assert.match(script, /INSERT INTO batch_state/, "batch_state 하트비트 upsert");
+  assert.ok(!existsSync(join(repoRoot, "app/api/ops/heartbeat")), "앱 런타임 하트비트 쓰기 라우트가 없어야 한다");
+  const synthYml = readFileSync(join(repoRoot, ".github/workflows/synthetic-check.yml"), "utf8");
+  assert.match(synthYml, /npm install --no-save pg/, "러너 최소 의존성 설치");
+  assert.match(synthYml, /DATABASE_INGEST_URL/);
+});
+
+test("launch-gate 503 body still yields the pickable metric", async () => {
+  // 게이트 실패 = 라우트 503(설계) — 관측 스크립트는 본문의 축 값을 읽는다(관측≠판정).
+  const makeJson = (payload, status = 200) => ({ ok: status < 400, status, json: async () => payload });
+  const result = await runSyntheticCheck({
+    fetchImpl: async (url) => {
+      if (url.includes("/api/deals/map")) {
+        return makeJson({ diagnostics: { data_mode: "live" }, data: { deals: [
+          { destination_code: "BKI" }, { destination_code: "CEB" }, { destination_code: "DAD" },
+          { destination_code: "GUM" }, { destination_code: "TYO" },
+        ] } });
+      }
+      if (url.includes("/api/offers")) return makeJson({ data: { offers: [] } });
+      return makeJson({ passed: false, checks: [{ id: "weekly_picks_present", detail: "픽 가능 딜 96건" }] }, 503);
+    },
+  });
+  assert.equal(result.status, "pass", "503 본문 파싱 실패는 관측 실패가 아니다");
+  assert.equal(result.pickable_deals, 96);
 });

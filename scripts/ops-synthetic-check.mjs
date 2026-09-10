@@ -11,6 +11,9 @@
 import { appendFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
+import pg from "pg";
+
+const { Client } = pg;
 const SITE_URL = process.env.SITE_URL ?? "https://skyplanner-kappa.vercel.app";
 const MAP_API = `${SITE_URL}/api/deals/map?origin=ICN&region=ALL&cabin=ALL&stay_bucket=5_7&traveler=adt1`;
 
@@ -80,8 +83,11 @@ export async function runSyntheticCheck(options = {}) {
       }
     }
 
-    // ③ 주간 픽 가능 딜 — launch-gate API의 픽 축 재사용(같은 SQL, 독립 실행)
-    const gatePayload = await fetchJson(options.launchGateUrl ?? `${SITE_URL}/api/ops/launch-gate`, fetchImpl);
+    // ③ 주간 픽 가능 딜 — launch-gate API의 픽 축 재사용(같은 SQL, 독립 실행).
+    // 게이트 실패 시 라우트는 설계상 503으로 응답하지만 본문은 JSON이다 — 상태코드가 아니라
+    // 본문의 축 값을 읽는다(관측과 판정은 별개다).
+    const gateResponse = await fetchImpl(options.launchGateUrl ?? `${SITE_URL}/api/ops/launch-gate`, { signal: AbortSignal.timeout(30000) });
+    const gatePayload = await gateResponse.json().catch(() => null);
     const pickable = gatePayload?.checks?.find((check) => check.id === "weekly_picks_present");
     const detailMatch = /픽 가능 딜 (\d+)건/.exec(pickable?.detail ?? "");
     if (detailMatch) {
@@ -98,18 +104,23 @@ export async function runSyntheticCheck(options = {}) {
   return result;
 }
 
-// 관측 증거 기록 — 러너에 node_modules가 없어도 되도록 인증된 하트비트 API(기존
-// VERCEL_REVALIDATE_SECRET·타이밍-세이프)로 POST한다. launch-gate 4축이 이 기록의 최근성을 본다.
+// 관측 증거 기록 — 러너가 ingest 롤(DATABASE_INGEST_URL)로 batch_state에 직접 기록한다.
+// BFF(read 롤)에 쓰기 경로를 만들지 않는다(ADR-006) — 워크플로가 npm install --no-save pg로 준비.
 export async function recordSyntheticHeartbeat(result, options = {}) {
-  const secret = options.secret ?? process.env.VERCEL_REVALIDATE_SECRET ?? "";
-  const url = options.heartbeatUrl ?? `${SITE_URL}/api/ops/heartbeat`;
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-revalidate-secret": secret },
-    body: JSON.stringify(result),
-    signal: AbortSignal.timeout(15000),
-  });
-  return response.ok;
+  const connectionString = options.connectionString ?? process.env.DATABASE_INGEST_URL ?? process.env.DATABASE_URL;
+  if (!connectionString) return false;
+  const client = new Client({ connectionString });
+  await client.connect();
+  try {
+    await client.query(`
+      INSERT INTO batch_state (key, data)
+      VALUES ('synthetic_check', $1::jsonb)
+      ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
+    `, [JSON.stringify(result)]);
+    return true;
+  } finally {
+    await client.end();
+  }
 }
 
 async function main() {
