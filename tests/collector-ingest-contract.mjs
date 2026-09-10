@@ -1,13 +1,16 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
   buildSnapshotRows,
   collectorDatabaseUrl,
+  deactivateDealsWithoutLiveOffers,
   parseCollectorBatch,
   partitionOfferRows,
   sourceHealthStats24h,
+  sourceJobExpireAt,
   summarizeCollectorBatch,
   touchUnchangedOffers,
   upsertSourceAudit,
@@ -213,4 +216,73 @@ test("upsertSourceAudit writes the job row before aggregating window stats", asy
   const stats = JSON.parse(queries[healthIndex].params[1]);
   assert.equal(stats.total_jobs, 28, "health의 stats_24h는 창 집계값 — 마지막 잡 단일 값(total_jobs:1)이 아니다");
   assert.equal(stats.success_count, 28);
+});
+
+test("deactivateDealsWithoutLiveOffers flips only active groups with no live offers", async () => {
+  const queries = [];
+  const client = {
+    query: async (sql, params) => {
+      queries.push({ sql, params });
+      return { rows: [{ deal_id: "a" }, { deal_id: "b" }] };
+    },
+  };
+
+  const deactivated = await deactivateDealsWithoutLiveOffers(client);
+
+  assert.equal(deactivated, 2, "RETURNING 행 수가 비활성 전환 그룹 수다");
+  const sql = queries[0].sql;
+  assert.match(sql, /UPDATE deals_current d SET is_active = false/i);
+  assert.match(sql, /WHERE d\.is_active = true/i);
+  assert.match(sql, /NOT EXISTS/i, "live 조인 부재 조건 — live 있는 그룹은 건드리지 않는다");
+  assert.match(sql, /l\.origin_airport = d\.origin/i);
+  assert.match(sql, /l\.destination_city_id = d\.destination_city_id/i);
+  assert.match(sql, /l\.week = d\.week/i);
+  assert.match(sql, /l\.stay_bucket = d\.stay_bucket/i);
+  assert.match(sql, /l\.traveler = d\.traveler/i);
+  assert.doesNotMatch(sql, /DELETE/i, "비활성 전환만 — 데이터 삭제가 아니라");
+});
+
+test("ingest deactivates no-live deals before measuring the join ratio", async () => {
+  const source = readFileSync("scripts/ingest-collector-batch.mjs", "utf8");
+  const upsertIndex = source.indexOf("await upsertDeals(client, dealRows)");
+  const deactivateIndex = source.indexOf("await deactivateDealsWithoutLiveOffers(client)");
+  const measureIndex = source.indexOf("const dealJoin = await measureDealOfferJoin(client)");
+  assert.ok(upsertIndex !== -1 && deactivateIndex !== -1 && measureIndex !== -1);
+  assert.ok(
+    upsertIndex < deactivateIndex && deactivateIndex < measureIndex,
+    "딜 적재 → 비활성 전환 → ratio 측정 순서 — 측정은 정리된 상태를 본다(매 배치 ~1.0 수렴)",
+  );
+  assert.ok(
+    source.indexOf("await client.query(\"BEGIN\")") < deactivateIndex
+      && deactivateIndex < source.indexOf('options.rollback ? "ROLLBACK" : "COMMIT"'),
+    "비활성 전환은 트랜잭션 안에서 실행된다",
+  );
+});
+
+test("source job inserts stamp expire_at at completion + 30 days on every write path", async () => {
+  // INT-20260904-001: require/database.md 보존 계약(30일). 컬럼은 이미 DDL·프로덕션에 존재 —
+  // 성공(ingest)·실패(collector)·시드(seed) 3개 삽입 경로가 전부 스탬프하는지 고정한다.
+  assert.equal(
+    sourceJobExpireAt("2026-09-10T03:49:52Z"),
+    "2026-10-10T03:49:52.000Z",
+    "만료시각 = 완료시각 + 30일",
+  );
+  assert.equal(sourceJobExpireAt("not-a-date"), null);
+
+  const ingestSource = readFileSync("scripts/ingest-collector-batch.mjs", "utf8");
+  const ingestInsert = ingestSource.match(/INSERT INTO source_jobs \([\s\S]*?\);/)[0];
+  assert.match(ingestInsert, /expire_at/);
+  assert.match(ingestSource, /sourceJobExpireAt\(utcTimestamp\(batch\.stats\.completed_at \?\? batch\.collected_at\)\)/);
+
+  const collectorSource = readFileSync("scripts/run-authorized-feed-collector.mjs", "utf8");
+  const collectorInsert = collectorSource.match(/INSERT INTO source_jobs \([\s\S]*?\);/)[0];
+  assert.match(collectorInsert, /expire_at/);
+  assert.match(collectorSource, /sourceJobExpireAt\(completedAt\)/);
+
+  const seedSource = readFileSync("scripts/seed-postgres.mjs", "utf8");
+  const seedInsert = seedSource.match(/INSERT INTO source_jobs \([\s\S]*?\);/)[0];
+  assert.match(seedInsert, /expire_at/);
+  // seed는 SQL 리터럴로 산출 — 상수 짝 계약(한쪽만 바꾸면 실패, fare-freshness 이중 상수 패턴).
+  assert.match(seedInsert, /NOW\(\) \+ make_interval\(days => 30\)/);
+  assert.match(ingestSource, /SOURCE_JOB_RETENTION_DAYS = 30/);
 });

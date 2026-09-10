@@ -318,6 +318,15 @@ function snapshotExpireAt(capturedAt) {
   return Number.isFinite(ms) ? new Date(ms + SNAPSHOT_RETENTION_DAYS * 86_400_000).toISOString() : null;
 }
 
+// INT-20260904-001: require/database.md 보존 계약 — source_jobs expire_at은 완료시각+30일.
+// 컬럼은 DDL·프로덕션에 이미 존재한다(신규 행부터 스탬프 — 과거분 null은 계약상 정상).
+export const SOURCE_JOB_RETENTION_DAYS = 30;
+
+export function sourceJobExpireAt(completedAt) {
+  const ms = Date.parse(completedAt);
+  return Number.isFinite(ms) ? new Date(ms + SOURCE_JOB_RETENTION_DAYS * 86_400_000).toISOString() : null;
+}
+
 export function buildSnapshotRows(offerRows) {
   return offerRows.map((offer) => ({
     snapshot_id: `snapshot-${md5(`${offer.offer_id}|${offer.execution_id}`).slice(0, 20)}`,
@@ -760,6 +769,32 @@ export async function measureDealOfferJoin(client) {
   };
 }
 
+// DATA-20260910-001: 배치는 재계산한 그룹만 재활성화하고 비활성화는 스윕 전용이어서, 피드가
+// 72h+ 끊긴 그룹이 is_active=true로 재축적했다(09-10 실측 +48/일). live 가시 오퍼가 전혀 없는
+// 활성 그룹을 배치마다 비노출 전환한다 — 72h 가시 창이 부분 배치 완충 역할을 하므로 직전 배치
+// 하나의 실패로 그룹이 창을 벗어나지 않는다(스윕과 동일 의미론, 재수집 시 배치가 재활성화).
+export async function deactivateDealsWithoutLiveOffers(client) {
+  const { rows } = await client.query(`
+    WITH live AS (
+      SELECT DISTINCT o.origin_airport, o.destination_city_id, o.week, o.stay_bucket, o.traveler
+      FROM offers o
+      WHERE ${LIVE_OFFER_VISIBILITY_SQL}
+    )
+    UPDATE deals_current d SET is_active = false
+    WHERE d.is_active = true
+      AND NOT EXISTS (
+        SELECT 1 FROM live l
+        WHERE l.origin_airport = d.origin
+          AND l.destination_city_id = d.destination_city_id
+          AND l.week = d.week
+          AND l.stay_bucket = d.stay_bucket
+          AND l.traveler = d.traveler
+      )
+    RETURNING d.deal_id
+  `);
+  return rows.length;
+}
+
 // INT-20260909-001: stats_24h는 이름 그대로 최근 24시간 창 집계다. TP 전환 후 30개 설정이 하나의
 // source_id를 공유하며 각 잡이 health 행을 통째로 덮어써서 마지막 잡의 단일 값만 남았다
 // (2026-09-09 실측: 28잡 성공 배치에 total_jobs=1 — 창 내 실패가 뒤늦은 성공에 덮여 숨는 구멍).
@@ -799,9 +834,9 @@ export async function upsertSourceAudit(client, batch, changedRows, allRows) {
     INSERT INTO source_jobs (
       execution_id, source_id, status, parser_version, offers_found, offers_changed,
       snapshots_written, deals_recomputed, schema_validation_failed_count, price_anomaly_count,
-      artifact_prefix, started_at, completed_at
+      artifact_prefix, started_at, completed_at, expire_at
     )
-    VALUES ($1, $2, 'success', $3, $4, $5, $5, 0, $6, $7, $8, $9, $10)
+    VALUES ($1, $2, 'success', $3, $4, $5, $5, 0, $6, $7, $8, $9, $10, $11)
   `, [
     batch.execution_id,
     batch.source_id,
@@ -813,6 +848,7 @@ export async function upsertSourceAudit(client, batch, changedRows, allRows) {
     batch.artifact_prefix ?? null,
     utcTimestamp(batch.stats.started_at ?? batch.collected_at),
     utcTimestamp(batch.stats.completed_at ?? batch.collected_at),
+    sourceJobExpireAt(utcTimestamp(batch.stats.completed_at ?? batch.collected_at)),
   ]);
 
   const stats = await sourceHealthStats24h(client, batch.source_id, batch.collected_at);
@@ -933,6 +969,8 @@ export async function ingestCollectorBatch(batch, options = {}) {
     const materializationOffers = await fetchMaterializationOffers(client, groups);
     const dealRows = buildDealRows(materializationOffers);
     await upsertDeals(client, dealRows);
+    // DATA-20260910-001: 조인 비율은 비활성 전환 이후의 상태를 측정한다(매 배치 ~1.0 수렴).
+    const dealsDeactivated = await deactivateDealsWithoutLiveOffers(client);
     const dealJoin = await measureDealOfferJoin(client);
     await upsertSourceAudit(client, batch, changedRows, offerRows);
     await upsertBatchState(client, batch, offerRows, currentManifest);
@@ -947,6 +985,7 @@ export async function ingestCollectorBatch(batch, options = {}) {
       offers_touched: offersTouched,
       snapshots_written: snapshotRows.length,
       deals_recomputed: dealRows.length,
+      deals_deactivated: dealsDeactivated,
       anomaly_offers: offerRows.filter((row) => row.price_anomaly_status === "anomaly").length,
       deal_join: dealJoin,
     };

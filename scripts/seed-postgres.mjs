@@ -583,10 +583,10 @@ async function upsertSources(client, rows, sourceFlags) {
   await client.query(`
     INSERT INTO source_jobs (
       execution_id, source_id, status, parser_version, offers_found, offers_changed,
-      snapshots_written, deals_recomputed, started_at, completed_at
+      snapshots_written, deals_recomputed, started_at, completed_at, expire_at
     )
     SELECT execution_id, source_id, 'success', 'local-mock-v1', offers_found, offers_found,
-      0, 0, NOW(), NOW()
+      0, 0, NOW(), NOW(), NOW() + make_interval(days => 30)
     FROM jsonb_to_recordset($1::jsonb) AS x(
       execution_id text,
       source_id text,

@@ -11,6 +11,7 @@ import {
   ingestCollectorBatch,
   parseCollectorBatch,
   sourceHealthStats24h,
+  sourceJobExpireAt,
   summarizeCollectorBatch,
 } from "./ingest-collector-batch.mjs";
 
@@ -722,9 +723,9 @@ export async function recordCollectorFailure(inputConfig, error, options = {}) {
       INSERT INTO source_jobs (
         execution_id, source_id, status, parser_version, offers_found, offers_changed,
         snapshots_written, deals_recomputed, schema_validation_failed_count, price_anomaly_count,
-        failure_code, last_error, artifact_prefix, started_at, completed_at
+        failure_code, last_error, artifact_prefix, started_at, completed_at, expire_at
       )
-      VALUES ($1, $2, 'failed', $3, 0, 0, 0, 0, $4, 0, $5, $6, $7, $8, $9)
+      VALUES ($1, $2, 'failed', $3, 0, 0, 0, 0, $4, 0, $5, $6, $7, $8, $9, $10)
     `, [
       execution,
       config.source_id,
@@ -735,6 +736,7 @@ export async function recordCollectorFailure(inputConfig, error, options = {}) {
       options.artifactPrefix ?? config.artifact_prefix ?? null,
       startedAt,
       completedAt,
+      sourceJobExpireAt(completedAt),
     ]);
 
     const { rows: recentRows } = await client.query(`
