@@ -4,7 +4,9 @@ name: Synthetic check
 #   - 합성 체크(이 워크플로) = "방문자가 지금 가짜/빈 화면을 보는가" — 6시간 주기 사용자 높이 관측.
 #     last_good은 정상 완화 경로(성공), demo/unavailable/unreachable/딜 0만 실패.
 #   - 배치 전멸 감지(26분급 공백) = daily-batch.yml의 실패 알림 몫이다 — 주기를 줄여 분을 태우지 않는다.
-# 실패 시에만 OPS_ALERT_WEBHOOK_URL로 1회 핑(URL 없으면 조용히 스킵). checkout 없이 curl+jq만 쓴다.
+# UX-20260910-007: 제품 수치(지도 도시 수·offers dedup·주간 픽) 축 추가 + 측정 결과를
+# batch_state 'synthetic_check' 하트비트로 기록(launch-gate 관측 증거). 실패 시에만
+# OPS_ALERT_WEBHOOK_URL로 1회 핑(URL 없으면 조용히 스킵).
 on:
   schedule:
     - cron: "37 */6 * * *" # 6시간마다(무료 분 한도 내 ~20초/회)
@@ -22,34 +24,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      # week 미지정 = 서버가 KST 기준 현재/예약 가능 주간으로 해석(f155f08) — 홈 진입과 동일 경로.
-      MAP_API_URL: https://skyplanner-kappa.vercel.app/api/deals/map?origin=ICN&region=ALL&cabin=ALL&stay_bucket=5_7&traveler=adt1
       OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
+      DATABASE_INGEST_URL: ${{ secrets.DATABASE_INGEST_URL }}
     steps:
-      - name: Check live deals map
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      # 스크립트가 관측+제품 임계+하트비트 기록을 모두 수행한다(임계 미달 → exit 1 = 회귀 인식).
+      - name: Run synthetic product check and record heartbeat
         id: check
-        run: |
-          body=$(curl -sf --max-time 30 "$MAP_API_URL" || true)
-          if [ -z "$body" ]; then
-            echo "map api unreachable or non-200 (cold-start 503 포함)"
-            echo "mode=unreachable" >> "$GITHUB_OUTPUT"
-            echo "deals=0" >> "$GITHUB_OUTPUT"
-            exit 1
-          fi
-          mode=$(echo "$body" | jq -r '.diagnostics.data_mode // "missing"')
-          deals=$(echo "$body" | jq -r '.data.deals | length')
-          echo "mode=$mode deals=$deals"
-          echo "mode=$mode" >> "$GITHUB_OUTPUT"
-          echo "deals=$deals" >> "$GITHUB_OUTPUT"
-          # last_good는 [1]의 정상 완화 경로(스테일 라이브) — demo/unavailable만 실패다.
-          if [ "$mode" != "live" ] && [ "$mode" != "last_good" ]; then
-            echo "unexpected data_mode: $mode"
-            exit 1
-          fi
-          if [ "$deals" -lt 1 ]; then
-            echo "no displayable deals"
-            exit 1
-          fi
+        run: node scripts/ops-synthetic-check.mjs
 
       - name: Alert ops channel on synthetic check failure
         if: failure()

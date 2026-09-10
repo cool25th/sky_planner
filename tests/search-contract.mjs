@@ -86,24 +86,38 @@ test("source health blocks stale or unhealthy sources", () => {
     enabled_by_flag: true,
     last_success_at: "2026-05-24T11:30:00Z",
   };
-  const stale = {
+  // UX-20260910-006: 가시 창은 "직전 관측 + 6h 버퍼"를 커버하는 동적 값 — 25h/49h 지연 도착
+  // 배치가 살아 있는 인벤토리를 0으로 만들지 않는다(커버리지 불변식). env(24)는 정상 시 상한.
+  const delayed25h = {
     source_id: "korean_air_official",
     enabled_by_flag: true,
-    last_success_at: "2026-05-22T11:30:00Z",
+    last_success_at: "2026-05-23T11:00:00Z", // 25h 전
+  };
+  const delayed49h = {
+    source_id: "korean_air_official_2",
+    enabled_by_flag: true,
+    last_success_at: "2026-05-22T11:00:00Z", // 49h 전
+  };
+  const deadBeyondCap = {
+    source_id: "asiana_official",
+    enabled_by_flag: true,
+    last_success_at: "2026-05-09T11:00:00Z", // 15일 전 — 14일 절대 상한 초과
   };
   const circuitOpen = {
-    source_id: "asiana_official",
+    source_id: "asiana_official_2",
     enabled_by_flag: true,
     circuit_breaker_open: true,
     last_success_at: "2026-05-24T11:30:00Z",
   };
 
   assert.equal(sourceHealthBlockReason(healthy, now, 24), null);
-  assert.equal(sourceHealthBlockReason(stale, now, 24), "stale");
+  assert.equal(sourceHealthBlockReason(delayed25h, now, 24), null, "25h 지연은 커버리지(25+6h)로 생존");
+  assert.equal(sourceHealthBlockReason(delayed49h, now, 24), null, "49h 지연도 커버리지(49+6h)로 생존");
+  assert.equal(sourceHealthBlockReason(deadBeyondCap, now, 24), "stale", "14일 절대 상한 초과는 여전히 stale");
   assert.equal(sourceHealthBlockReason(circuitOpen, now, 24), "circuit_breaker_open");
   assert.deepEqual(
-    filterHealthySourceFlags(DEFAULT_SOURCE_FLAGS, [healthy, stale, circuitOpen], now, 24),
-    ["skyscanner_affiliate"],
+    filterHealthySourceFlags(DEFAULT_SOURCE_FLAGS, [healthy, delayed25h, delayed49h, deadBeyondCap, circuitOpen], now, 24),
+    ["skyscanner_affiliate", "korean_air_official"],
   );
 });
 

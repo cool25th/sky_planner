@@ -73,17 +73,20 @@ test("failure alert posts a one-line summary payload when configured", async () 
 test("synthetic check observes the deployed map and alerts only on failure", async () => {
   const yaml = await workflow("synthetic-check.yml");
   assert.match(yaml, /cron: "37 \*\/6 \* \* \*"/);
-  assert.match(yaml, /diagnostics\.data_mode/);
-  assert.match(yaml, /"\$mode" != "live"/);
-  assert.match(yaml, /"\$mode" != "last_good"/);
-  assert.match(yaml, /data\.deals \| length/);
-  assert.match(yaml, /-lt 1/);
+  // UX-20260910-007: 관측 로직은 스크립트가 담당(제품 수치+하트비트) — 워크플로는 실행·알림만.
+  assert.match(yaml, /node scripts\/ops-synthetic-check\.mjs/);
   assert.match(yaml, /if: failure\(\)/);
   assert.match(yaml, /webhook not configured — alert skipped/);
   assert.match(yaml, /synthetic_check_failed/);
   // 역할 분리가 주석과 계약에 명시돼 있다.
   assert.match(yaml, /방문자가 지금 가짜\/빈 화면을 보는가/, "합성 체크의 역할 정의가 사라졌다");
   assert.match(yaml, /배치 전멸 감지.*daily-batch/, "전멸 감지가 배치 알림 몫이라는 분리 명시가 없다");
+
+  const script = readFileSync("scripts/ops-synthetic-check.mjs", "utf8");
+  assert.match(script, /data_mode/, "모드 관측이 스크립트에 산다");
+  assert.match(script, /last_good/, "last_good 완화 경로 유지");
+  assert.match(script, /no displayable deals/);
+  assert.match(script, /synthetic_check/, "하트비트 기록 키");
 });
 
 // 배치 알림: 잡 실패(daily_batch_failed)와 조인 비율 미달(deal_join_ratio_below_min) 2축.

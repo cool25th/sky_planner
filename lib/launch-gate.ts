@@ -18,12 +18,15 @@ export interface LaunchGateInput {
   dealOfferJoinRatio: number | null;
   // 이번 주 픽 가능 딜 수(절감 근거 ≥5% + live offer + 미래 출발). null = 측정 불가.
   weeklyPickableDeals: number | null;
-  // 웹훅 설정 등 no-op이 아닌 실패 감지 수단 유무.
+  // 실패 감지 가능 — 최근 12h 내 외부 관측 실행 증거(합성 체크 하트비트). 웹훅은 추가 신호일 뿐
+  // 대체 불가(UX-20260910-007: 형식 요건[URL 존재]이 실제 관측 없이 게이트를 여는 구멍이었다).
   failureDetectionReady: boolean;
   // H6: 배포된 map API의 data_mode가 'demo'로 런타임 관측됐는가. null = 관측 실패(fail-closed).
   demoObserved: boolean | null;
   // 기본 뷰(ICN·현재 주차·5_7·adt1)의 live 도시 수. null = 측정 불가(fail-closed).
   defaultViewCities: number | null;
+  // 웹훅 설정 여부 — 표시용 추가 신호(판정에는 관측 증거만 사용).
+  webhookConfigured?: boolean;
 }
 
 export interface LaunchGateCheck {
@@ -69,9 +72,11 @@ export function evaluateLaunchGate(input: LaunchGateInput): LaunchGateResult {
     },
     {
       id: "failure_detection_ready",
-      label: "실패 감지 가능(웹훅 등)",
+      label: "실패 감지 가능(12h 내 관측)",
       passed: input.failureDetectionReady,
-      detail: input.failureDetectionReady ? "실패-only 알림 채널 구성됨" : "OPS_ALERT_WEBHOOK_URL 미설정",
+      detail: input.failureDetectionReady
+        ? (input.webhookConfigured ? "합성 체크 관측 최근성 확보(+웹훅 알림 채널)" : "합성 체크 관측 최근성 확보(웹훅 미설정)")
+        : "최근 12h 내 합성 체크 관측 기록 없음",
     },
     {
       id: "default_view_city_floor",
@@ -129,6 +134,27 @@ async function readWeeklyPickableDeals(): Promise<number | null> {
   }
 }
 
+// 관측 증거 최근성 — batch_state 'synthetic_check' 하트비트(6시간 합성 체크가 기록).
+// 12h 창은 체크 주기(6h)의 2배 여유. 웹훅 URL 존재는 증거가 될 수 없다(전송 설정이지 실행이 아니다).
+export const OBSERVATION_EVIDENCE_MAX_AGE_HOURS = 12;
+
+export function isObservationEvidenceFresh(lastRunAt: Date | string | null | undefined, now = new Date()): boolean {
+  if (!lastRunAt) return false;
+  const ms = lastRunAt instanceof Date ? lastRunAt.getTime() : Date.parse(String(lastRunAt));
+  return Number.isFinite(ms) && now.getTime() - ms <= OBSERVATION_EVIDENCE_MAX_AGE_HOURS * 3_600_000;
+}
+
+async function readObservationEvidence(): Promise<boolean> {
+  if (!postgresConfigured()) return false;
+  try {
+    const { query } = await import("./db");
+    const { rows } = await query("SELECT data FROM batch_state WHERE key = 'synthetic_check' LIMIT 1");
+    return isObservationEvidenceFresh(rows[0]?.data?.ran_at ?? rows[0]?.data?.last_run_at ?? null);
+  } catch {
+    return false;
+  }
+}
+
 // H6: 배포된 자신의 map API를 관측해 data_mode가 'demo'인지 본다 — 문서가 아닌 사용자가 보는 상태.
 // 도달 실패·비정상 응답은 null(fail-closed). unavailable(503 포함)은 데모가 아니지만 관측 실패로 닫는다.
 async function probeMapDataMode(): Promise<boolean | null> {
@@ -148,16 +174,19 @@ async function probeMapDataMode(): Promise<boolean | null> {
 }
 
 export async function readLaunchGate(env: Record<string, string | undefined> = process.env): Promise<LaunchGateResult> {
-  const [dealOfferJoinRatio, weeklyPickableDeals, demoObserved, defaultViewCities] = await Promise.all([
+  const [dealOfferJoinRatio, weeklyPickableDeals, demoObserved, defaultViewCities, observationEvidence] = await Promise.all([
     readDealOfferJoinRatio(),
     readWeeklyPickableDeals(),
     probeMapDataMode(),
     readDefaultViewCities(),
+    readObservationEvidence(),
   ]);
   return evaluateLaunchGate({
     dealOfferJoinRatio,
     weeklyPickableDeals,
-    failureDetectionReady: Boolean(String(env.OPS_ALERT_WEBHOOK_URL ?? "").trim()),
+    // 관측 증거(합성 체크 하트비트 최근성)만이 이 축을 통과시킨다 — 웹훅은 표시용 추가 신호.
+    failureDetectionReady: observationEvidence,
+    webhookConfigured: Boolean(String(env.OPS_ALERT_WEBHOOK_URL ?? "").trim()),
     demoObserved,
     defaultViewCities,
   });

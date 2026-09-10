@@ -48,7 +48,8 @@
     "test:source-health": "node --experimental-strip-types --test tests/source-readiness-contract.mjs",
     "test:search": "node --experimental-strip-types --test tests/search-contract.mjs",
     "lint": "biome check lib app components tests",
-    "lint:secrets": "node scripts/scan-secrets.mjs"
+    "lint:secrets": "node scripts/scan-secrets.mjs",
+    "report:clicks": "node scripts/report-affiliate-clicks.mjs"
   },
   "dependencies": {
     "firebase-admin": "^14.3.0",

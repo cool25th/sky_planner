@@ -1,5 +1,6 @@
 import { serviceRequiresPostgres } from "./service-mode.ts";
 import {
+  effectiveMaxStaleHours,
   enabledSourceFlagsFromEnv,
   SOURCE_POLICY_CATALOG,
   type SourceHealthStatus,
@@ -155,10 +156,18 @@ export function buildSourceReadinessSnapshot(input: SourceReadinessInput) {
     ...(eligibleSources.length >= MINIMUM_SEARCH_ELIGIBLE_SOURCES ? [] : ["insufficient_search_eligible_sources"]),
   ];
 
+  // UX-20260910-006: 보고치는 동적 가시 창(직전 관측 + 버퍰, env 상한, 14일 절대 상한) —
+  // 관측되는 값 자체가 대시보드 없는 신선도 상태 공개다.
+  const newestSuccess = input.healthRows
+    .map((row) => row.last_success_at)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
   return {
     status: readinessBlockers.length === 0 ? "ready" : "not_ready",
     generated_at: now.toISOString(),
-    max_stale_hours: maxStaleHours,
+    max_stale_hours: effectiveMaxStaleHours({ lastObservedAt: newestSuccess ?? null, now, baseHours: maxStaleHours }),
+    max_stale_hours_base: maxStaleHours,
     last_batch: lastBatch,
     counts: {
       policy_sources: sources.length,

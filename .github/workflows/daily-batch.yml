@@ -119,6 +119,15 @@ jobs:
           DATABASE_INGEST_URL: ${{ secrets.DATABASE_INGEST_URL }}
         run: npm run baseline:update
 
+      # UX-20260910-005: 제휴 클릭 회수 — TP 통계 API(기존 토큰)에서 전일 sub_id별 지표를
+      # affiliate_click_stats에 upsert. 실패는 경고만(스크립트가 exit 0 유지 — allow_empty 준용).
+      - name: Collect affiliate click stats
+        if: ${{ env.READY == 'true' }}
+        env:
+          TRAVELPAYOUTS_API_KEY: ${{ secrets.TRAVELPAYOUTS_API_KEY }}
+          DATABASE_INGEST_URL: ${{ secrets.DATABASE_INGEST_URL }}
+        run: node scripts/collect-tp-click-stats.mjs
+
       # INT-20260829-002: "Purge old batches" 스텝 제거 — scripts/cleanup-old-batches.mjs는 Firestore 전용이라
       # 현재 Postgres 파이프라인에서 구조적 no-op였고(매번 Firebase 자격증명 실패를 || true로 흡수),
       # 작동시키면 RECO-20260828-001의 30일 baseline 히스토리와 충돌한다. Firestore publish 재개 시 설계 후 복원.

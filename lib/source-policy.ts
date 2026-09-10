@@ -97,6 +97,26 @@ function timestampMs(value: Date | string | null | undefined) {
   return Number.isFinite(ms) ? ms : null;
 }
 
+// UX-20260910-006: 가시 창 자동화 — env 고정값(프로덕션 24h) 대신 "직전 관측 + 안전 버퍼"를
+// 커버하는 동적 창. 24h 마감을 넘긴 지연 도착 배치(25h/49h 시나리오)가 살아 있는 인벤토리를
+// 0으로 만들지 않는다(불변식). env는 정상 시 창 상한으로만 사용하고, 커버리지 불변식이 절대
+// 우선한다 — 현재 데이터를 차단하는 상한은 상한이 아니라 차단이기 때문. 절대 상한 14일은
+// 장기 전멸에서 무기한 노출을 막는 정직성 마지노트(스탬프·CTA 규칙은 기존 그대로).
+export const STALE_SAFETY_BUFFER_HOURS = 6;
+export const STALE_HARD_CAP_HOURS = 14 * 24;
+
+export function effectiveMaxStaleHours(
+  input: { lastObservedAt: Date | string | null | undefined; now?: Date; baseHours?: number },
+): number {
+  const base = input.baseHours ?? DEFAULT_SOURCE_MAX_STALE_HOURS;
+  const nowMs = (input.now ?? new Date()).getTime();
+  const observedMs = timestampMs(input.lastObservedAt);
+  const coverageHours = observedMs === null
+    ? base
+    : (nowMs - observedMs) / 3_600_000 + STALE_SAFETY_BUFFER_HOURS;
+  return Math.min(Math.max(base, coverageHours), STALE_HARD_CAP_HOURS);
+}
+
 export function sourceHealthBlockReason(
   health: SourceHealthStatus | undefined,
   now = new Date(),
@@ -110,7 +130,8 @@ export function sourceHealthBlockReason(
 
   const lastSuccessMs = timestampMs(health.last_success_at);
   if (lastSuccessMs === null) return "never_successful";
-  const staleAfterMs = maxStaleHours * 60 * 60 * 1000;
+  // 동적 가시 창: 이 소스의 직전 관측 + 버퍼를 커버(지연 도착 배치 잔존 보장) — 14일 절대 상한.
+  const staleAfterMs = effectiveMaxStaleHours({ lastObservedAt: new Date(lastSuccessMs), now, baseHours: maxStaleHours }) * 3_600_000;
   if (now.getTime() - lastSuccessMs > staleAfterMs) return "stale";
   return null;
 }

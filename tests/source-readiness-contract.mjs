@@ -69,8 +69,9 @@ test("source readiness reports stale, paused, and circuit-open enabled sources",
   const snapshot = buildSourceReadinessSnapshot({
     healthRows: [
       {
+        // UX-20260910-006: 15일 전 — 48h 지연은 동적 창이 생존시키므로 stale는 14일 상한 초과로만.
         source_id: "skyscanner_affiliate",
-        last_success_at: "2026-05-23T04:00:00Z",
+        last_success_at: "2026-05-10T04:00:00Z",
       },
       {
         source_id: "korean_air_official",

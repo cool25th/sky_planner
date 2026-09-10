@@ -445,7 +445,9 @@ test("internal source readiness adds source-specific operator actions", () => {
         enabled_by_flag: true,
         circuit_breaker_open: false,
         consecutive_failures: 0,
-        last_success_at: "2026-05-27T02:50:00Z",
+        // UX-20260910-006: 15일 전 — 동적 가시 창(직전 관측+6h)은 48h 지연을 생존시키므로
+        // stale 액션은 14일 절대 상한 초과로만 발화한다.
+        last_success_at: "2026-05-14T02:50:00Z",
       },
       {
         source_id: "korean_air_official",
