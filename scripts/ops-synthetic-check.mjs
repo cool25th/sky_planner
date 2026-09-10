@@ -11,9 +11,6 @@
 import { appendFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-import pg from "pg";
-
-const { Client } = pg;
 const SITE_URL = process.env.SITE_URL ?? "https://skyplanner-kappa.vercel.app";
 const MAP_API = `${SITE_URL}/api/deals/map?origin=ICN&region=ALL&cabin=ALL&stay_bucket=5_7&traveler=adt1`;
 
@@ -101,22 +98,18 @@ export async function runSyntheticCheck(options = {}) {
   return result;
 }
 
-// 관측 증거 기록 — launch-gate 4축이 이 하트비트의 최근성(12h)을 본다.
+// 관측 증거 기록 — 러너에 node_modules가 없어도 되도록 인증된 하트비트 API(기존
+// VERCEL_REVALIDATE_SECRET·타이밍-세이프)로 POST한다. launch-gate 4축이 이 기록의 최근성을 본다.
 export async function recordSyntheticHeartbeat(result, options = {}) {
-  const connectionString = options.connectionString ?? process.env.DATABASE_INGEST_URL ?? process.env.DATABASE_URL;
-  if (!connectionString) return false;
-  const client = new Client({ connectionString });
-  await client.connect();
-  try {
-    await client.query(`
-      INSERT INTO batch_state (key, data)
-      VALUES ('synthetic_check', $1::jsonb)
-      ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()
-    `, [JSON.stringify(result)]);
-    return true;
-  } finally {
-    await client.end();
-  }
+  const secret = options.secret ?? process.env.VERCEL_REVALIDATE_SECRET ?? "";
+  const url = options.heartbeatUrl ?? `${SITE_URL}/api/ops/heartbeat`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-revalidate-secret": secret },
+    body: JSON.stringify(result),
+    signal: AbortSignal.timeout(15000),
+  });
+  return response.ok;
 }
 
 async function main() {

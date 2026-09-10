@@ -174,5 +174,14 @@ test("synthetic check measures product metrics and fails on threshold breach", a
   // 하트비트 기록 스텝이 워크플로에 존재하는지 소스 고정.
   const synthYml = readFileSync(join(repoRoot, ".github/workflows/synthetic-check.yml"), "utf8");
   assert.match(synthYml, /node scripts\/ops-synthetic-check\.mjs/);
-  assert.match(synthYml, /DATABASE_INGEST_URL/);
+  assert.match(synthYml, /VERCEL_REVALIDATE_SECRET/, "하트비트는 기존 시크릿으로 인증된다");
+});
+
+test("heartbeat API authorizes with the revalidate secret and whitelists metric keys", async () => {
+  const route = readFileSync(join(repoRoot, "app/api/ops/heartbeat/route.ts"), "utf8");
+  assert.match(route, /isRevalidateRequestAuthorized/, "기존 타이밍-세이프 인증 재사용");
+  assert.match(route, /HEARTBEAT_KEYS/, "메트릭 키 화이트리스트");
+  assert.match(route, /synthetic_check/);
+  assert.match(route, /ran_at_required/, "실행 시각 필수");
+  assert.match(route, /401/);
 });

@@ -25,7 +25,7 @@ jobs:
     timeout-minutes: 5
     env:
       OPS_ALERT_WEBHOOK_URL: ${{ secrets.OPS_ALERT_WEBHOOK_URL }}
-      DATABASE_INGEST_URL: ${{ secrets.DATABASE_INGEST_URL }}
+      VERCEL_REVALIDATE_SECRET: ${{ secrets.VERCEL_REVALIDATE_SECRET }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
