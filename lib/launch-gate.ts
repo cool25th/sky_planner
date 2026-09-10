@@ -175,7 +175,7 @@ async function readDefaultViewCities(): Promise<number | null> {
     const countFor = async (week: string) => {
       const { rows } = await query(`
         WITH live AS (
-          SELECT DISTINCT o.origin_airport, o.destination_city_id, o.week, o.stay_bucket
+          SELECT DISTINCT o.origin_airport, o.destination_city_id, o.week, o.stay_bucket, o.traveler
           FROM offers o
           WHERE o.origin_airport = ANY($1::text[])
             AND o.traveler = 'adt1'

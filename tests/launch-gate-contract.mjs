@@ -86,3 +86,13 @@ test("default view city floor is a fail-closed axis", () => {
   assert.match(gateSource, /readDefaultViewCities/, "기본 뷰 도시 수는 게이트가 직접 측정한다");
   assert.match(gateSource, /minDefaultViewCities: 5/);
 });
+
+test("default view SQL keeps the live CTE joinable on traveler", () => {
+  // 2026-09-10 배포 실측: CTE가 o.traveler를 SELECT하지 않아 l.traveler 조인이 SQL 오류로
+  // 축이 "미측정"(fail-closed)으로 떨어졌다 — 조인이 참조하는 열은 CTE가 싣는다.
+  const gateSource = readFileSync(join(repoRoot, "lib/launch-gate.ts"), "utf8");
+  const fn = gateSource.slice(gateSource.indexOf("async function readDefaultViewCities"));
+  const cte = fn.slice(fn.indexOf("WITH live AS ("), fn.indexOf("SELECT count"));
+  assert.match(cte, /o\.traveler/, "live CTE는 traveler를 선택해 조인 가능해야 한다");
+  assert.match(fn, /l\.traveler = d\.traveler/);
+});

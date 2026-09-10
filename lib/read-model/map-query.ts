@@ -61,7 +61,7 @@ export async function countAdjacentMapCities(
   const weeks = [...new Set([prevWeek, mapQuery.week, nextWeek].filter((week): week is string => Boolean(week)))];
   const { rows } = await pgQuery(`
     WITH live AS (
-      SELECT DISTINCT o.origin_airport, o.destination_city_id, o.week, o.stay_bucket
+      SELECT DISTINCT o.origin_airport, o.destination_city_id, o.week, o.stay_bucket, o.traveler
       FROM offers o
       WHERE o.origin_airport = ANY($1::text[])
         AND o.traveler = $2
