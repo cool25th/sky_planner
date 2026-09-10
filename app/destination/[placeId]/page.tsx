@@ -130,13 +130,10 @@ export default async function DestinationPage(props: { params: Params; searchPar
     "@type": "Product",
     name: `${calendar.destination?.city || placeId} 왕복 항공권 특가`,
     description: `${query.origin} 출발 ${calendar.destination?.city || placeId}(${calendar.destination?.country || ""}) 왕복 항공권 최저가 탐색`,
-    offers: {
-      "@type": "AggregateOffer",
-      priceCurrency: "KRW",
-      // SEO-20260902-001: 이 페이지가 소유한 가격은 전부 stay_bucket·week 쿼리 종속이다(달력 셀도
-      // 지도 딜도 같은 버킷의 최저가) — 조건별 가격을 대표가처럼 노출하면 왜곡되므로 lowPrice를
-      // 붙이지 않는다. 전 체류 대표가 산출(버킷별 최저의 min, 별도 조회)이 생기면 재도입한다.
-    },
+    // SEO-20260902-001/SEO-20260909-001: 이 페이지가 소유한 가격은 전부 stay_bucket·week 쿼리
+    // 종속이라 대표가 노출이 불가능하다 — lowPrice 제거 후에도 남은 빈 offers 컨테이너는 구조화
+    // 데이터 검증 노이즈만 만들므로 offers 노드 자체를 싣지 않는다. 전 체류 대표가 산출
+    // (버킷별 최저의 min, 별도 조회)이 생기면 offers와 함께 재도입한다.
   };
 
   return (

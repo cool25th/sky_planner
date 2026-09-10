@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { query } from "@/lib/db";
 import { errorMessage } from "@/lib/error-message";
+import { postgresConfigured } from "@/lib/launch-gate";
 import {
   enrichInternalSourceReadinessSnapshot,
   opsJsonHeaders,
@@ -15,10 +16,12 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const access = resolveOpsRequestVisibility(request);
-  if (!process.env.DATABASE_URL) {
+  // INT-20260903-002: 게이트는 실제 조회 경로(lib/db.ts)와 같은 기준(READ_URL 우선)으로 —
+  // legacy DATABASE_URL 축소 시 DB가 정상이어도 ops 관측만 오탐 503로 죽는 일을 막는다.
+  if (!postgresConfigured()) {
     const payload = sourceHealthUnavailablePayload(access.visibility, {
       reason: "database_url_missing",
-      error: "DATABASE_URL is required for collector source health.",
+      error: "DATABASE_READ_URL or DATABASE_URL is required for collector source health.",
     });
     return NextResponse.json(payload, {
       status: 503,
