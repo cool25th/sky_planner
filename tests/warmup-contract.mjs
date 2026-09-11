@@ -3,17 +3,17 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-// TEST-20260901-001: warmup 워크플로 구조 계약 — PERF-20260831-001이 cron을 07시→05시로
-// 확장했으나 batch-watchdog과 달리 계약 가드가 없었다. 스케줄 커버리지(새벽 콜드 공백 방지)와
-// 예열 대상(홈+map API)이 조용히 좁아지는 회귀를 봉쇄한다.
+// TEST-20260901-001: warmup 워크플로 구조 계약. OPS-20260911-001(2026-09-11 사용자 결정)로
+// 30분 주기→6시간 주기로 완화(Neon 무료 이그레스 5GB/월 소진 위기 — 배치·게이트 이그레스 차단과
+// 함께 CU·이그레스 절감). 예열 대상(홈+map API)과 직렬화가 조용히 좁아지는 회귀를 봉쇄한다.
 
 async function workflow() {
   return readFile(path.join(process.cwd(), ".github/workflows/warmup.yml"), "utf8");
 }
 
-test("warmup covers KST 05:00-23:59 every 30 minutes", async () => {
+test("warmup runs every 6 hours (4 runs/day — OPS-20260911-001 relaxation)", async () => {
   const yaml = await workflow();
-  assert.ok(yaml.includes('- cron: "3,33 20-23,0-14 * * *"'), "missing expanded schedule (PERF-20260831-001)");
+  assert.ok(yaml.includes('- cron: "7 */6 * * *"'), "missing 6-hour schedule (OPS-20260911-001)");
   assert.match(yaml, /workflow_dispatch:/);
 });
 
