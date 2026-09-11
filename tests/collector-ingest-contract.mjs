@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
@@ -285,4 +289,31 @@ test("source job inserts stamp expire_at at completion + 30 days on every write 
   // seed는 SQL 리터럴로 산출 — 상수 짝 계약(한쪽만 바꾸면 실패, fare-freshness 이중 상수 패턴).
   assert.match(seedInsert, /NOW\(\) \+ make_interval\(days => 30\)/);
   assert.match(ingestSource, /SOURCE_JOB_RETENTION_DAYS = 30/);
+});
+
+test("currentOfferHashes reads only the incoming offers' fingerprints (Neon egress fix 2026-09-11)", async () => {
+  // 이전 구현은 소스마다 batch_state.offer_hashes 매니페스트를 통째로 SELECT해
+  // 28소스 × 수 MB × 매 배치로 무료 5GB/월 이그레스를 소진했다. 이제 수신 행의
+  // offer_id만 PK 조회한다 — 전체 매니페스트 인출과 batch_state 읽기는 금지(소스 스캔).
+  const { currentOfferHashes } = await import("../scripts/ingest-collector-batch.mjs");
+  const queries = [];
+  const client = { query: async (sql, params) => { queries.push({ sql, params }); return { rows: [
+    { offer_id: "collector-aaa", write_fingerprint: "fp-1" },
+  ] } } };
+  const manifest = await currentOfferHashes(client, [
+    { offer_id: "collector-aaa", write_fingerprint: "fp-1" },
+    { offer_id: "collector-bbb", write_fingerprint: "fp-2" },
+  ]);
+  assert.deepEqual(manifest, { "collector-aaa": "fp-1" });
+  assert.equal(queries.length, 1);
+  assert.match(queries[0].sql, /FROM offers/);
+  assert.match(queries[0].sql, /offer_id = ANY\(\$1::text\[\]\)/);
+  assert.deepEqual(queries[0].params[0], ["collector-aaa", "collector-bbb"]);
+
+  const empty = await currentOfferHashes(client, []);
+  assert.deepEqual(empty, {}, "빈 배치는 쿼리 없이 빈 매니페스트");
+  assert.equal(queries.length, 1, "빈 배치는 추가 쿼리를 실행하지 않는다");
+
+  const script = readFileSync(join(repoRoot, "scripts/ingest-collector-batch.mjs"), "utf8");
+  assert.doesNotMatch(script, /SELECT data FROM batch_state WHERE key = 'offer_hashes'/, "전체 매니페스트 인출 회귀 금지");
 });

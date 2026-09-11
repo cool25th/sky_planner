@@ -173,7 +173,19 @@ async function probeMapDataMode(): Promise<boolean | null> {
   }
 }
 
+// INT-20260910-001 트리거 도래(2026-09-11 Neon 이그레스 위기): robots·사이트맵·페이지 metadata가
+// 게이트 평가(쿼리 2회+map API 자기 fetch)를 요청마다 실행 — 색인 개방 후 크롤 트래픽이 DB 예산을
+// 두드린다. 60초 모듈 캐시로 왕복을 흡수한다. 게이트 축은 12h 하트비트·6h 배치 주기 scale이라
+// 60초 정체성은 판정에 무의미하고, 실패(fail-closed)도 같은 캐시를 공유해 개방 지연이 없다.
+export const LAUNCH_GATE_CACHE_TTL_MS = 60_000;
+let gateCache: { at: number; result: LaunchGateResult } | null = null;
+
+export function resetLaunchGateCacheForTests(): void {
+  gateCache = null;
+}
+
 export async function readLaunchGate(env: Record<string, string | undefined> = process.env): Promise<LaunchGateResult> {
+  if (gateCache && Date.now() - gateCache.at < LAUNCH_GATE_CACHE_TTL_MS) return gateCache.result;
   const [dealOfferJoinRatio, weeklyPickableDeals, demoObserved, defaultViewCities, observationEvidence] = await Promise.all([
     readDealOfferJoinRatio(),
     readWeeklyPickableDeals(),
@@ -181,7 +193,7 @@ export async function readLaunchGate(env: Record<string, string | undefined> = p
     readDefaultViewCities(),
     readObservationEvidence(),
   ]);
-  return evaluateLaunchGate({
+  const result = evaluateLaunchGate({
     dealOfferJoinRatio,
     weeklyPickableDeals,
     // 관측 증거(합성 체크 하트비트 최근성)만이 이 축을 통과시킨다 — 웹훅은 표시용 추가 신호.
@@ -190,6 +202,8 @@ export async function readLaunchGate(env: Record<string, string | undefined> = p
     demoObserved,
     defaultViewCities,
   });
+  gateCache = { at: Date.now(), result };
+  return result;
 }
 
 // 기본 뷰 도시 수 — /map 기본 조회(현재 주차·5_7·ICN 메트로·live 조인)와 동일 의미론.

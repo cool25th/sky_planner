@@ -96,3 +96,14 @@ test("default view SQL keeps the live CTE joinable on traveler", () => {
   assert.match(cte, /o\.traveler/, "live CTE는 traveler를 선택해 조인 가능해야 한다");
   assert.match(fn, /l\.traveler = d\.traveler/);
 });
+
+test("readLaunchGate caches evaluations for 60s (Neon egress fix 2026-09-11)", () => {
+  // INT-20260910-001 트리거 도래: robots·사이트맵·metadata가 게이트를 요청마다 평가(쿼리 2회+
+  // map API 자기 fetch) — 색인 개방 후 크롤 트래픽이 Neon 무료 이그레스를 소진한다(09-11 위기).
+  // readLaunchGate는 실DB/fetch 경로라 여기선 소스 스캔으로 계약 고정(헤르메틱).
+  const source = readFileSync(join(repoRoot, "lib/launch-gate.ts"), "utf8");
+  assert.match(source, /LAUNCH_GATE_CACHE_TTL_MS = 60_000/);
+  assert.match(source, /gateCache && Date\.now\(\) - gateCache\.at < LAUNCH_GATE_CACHE_TTL_MS/);
+  assert.match(source, /gateCache = \{ at: Date\.now\(\), result \}/);
+  assert.match(source, /resetLaunchGateCacheForTests/);
+});

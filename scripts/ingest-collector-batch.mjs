@@ -478,9 +478,17 @@ function buildDealRows(sqlOffers) {
   });
 }
 
-async function currentOfferHashes(client) {
-  const { rows } = await client.query("SELECT data FROM batch_state WHERE key = 'offer_hashes'");
-  return rows[0]?.data ?? {};
+// Neon public network transfer(무료 5GB/월 — 초과 시 컴퓨트 정지): 이전 구현은 배치의 소스마다
+// 해시 매니페스트(batch_state.offer_hashes)를 통째로 SELECT해 28소스 × 수 MB가 매 배치 반복됐다
+// (2026-09 실측 4.91GB/11일 — 09-11 위기). 이제 수신 오퍼(~수십 행)의 offer_id만 PK 조회한다 —
+// 매니페스트와 동일한 offer_id→지문 대응을 반환하며(비활성 행 포함 의미 유지) 이그레스는 KB 수준.
+export async function currentOfferHashes(client, offerRows) {
+  if (!offerRows.length) return {};
+  const { rows } = await client.query(
+    "SELECT offer_id, write_fingerprint FROM offers WHERE offer_id = ANY($1::text[])",
+    [offerRows.map((row) => row.offer_id)],
+  );
+  return Object.fromEntries(rows.map((row) => [row.offer_id, row.write_fingerprint]));
 }
 
 async function upsertPlaces(client, rows) {
@@ -958,7 +966,7 @@ export async function ingestCollectorBatch(batch, options = {}) {
   await client.connect();
   try {
     await client.query("BEGIN");
-    const currentManifest = await currentOfferHashes(client);
+    const currentManifest = await currentOfferHashes(client, offerRows);
     const { changedRows, unchangedRows } = partitionOfferRows(offerRows, currentManifest);
     const offersTouched = await touchUnchangedOffers(client, unchangedRows, batch);
     const snapshotRows = buildSnapshotRows(changedRows);
