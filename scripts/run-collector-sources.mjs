@@ -194,6 +194,13 @@ export async function loadCollectorSourceManifestFromEnv(envName, options = {}) 
   return resolveCollectorSourceManifest(JSON.parse(raw), options.baseDir ?? process.cwd());
 }
 
+// DATA-20260927-001: 다중설계(30설정 → source_id 공유)에서 sourceId만으로 artifactPrefix를
+// 만들면 30개 소스가 매 배치 같은 디렉터리에서 raw-source.json/normalized-batch.json을 서로
+// 덮어써 감사 증거가 마지막 소스만 남는다(08-28 다중설계 이후 지속). 소스 순번을 붙여 분리한다.
+export function perSourceArtifactDir(artifactRoot, runId, sourceId, index) {
+  return path.join(artifactRoot, runId, `${safeSegment(sourceId)}.${index}`);
+}
+
 export async function runCollectorSources(manifest, options = {}) {
   const parsed = CollectorSourceManifestSchema.parse(manifest);
   const startedAt = options.now ?? new Date();
@@ -225,7 +232,7 @@ export async function runCollectorSources(manifest, options = {}) {
       }
       const sourceId = safeSegment(config.source_id);
       const executionId = `${runId}_${sourceId}`;
-      const artifactPrefix = path.join(parsed.artifact_root, runId, sourceId);
+      const artifactPrefix = perSourceArtifactDir(parsed.artifact_root, runId, sourceId, index);
       const outcome = await collectAuthorizedFeed(config, {
         executionId,
         artifactPrefix,
@@ -265,7 +272,7 @@ export async function runCollectorSources(manifest, options = {}) {
           startedAt: sourceStartedAt.toISOString(),
           completedAt: new Date().toISOString(),
           failureCode,
-          artifactPrefix: path.join(parsed.artifact_root, runId, safeSegment(config.source_id)),
+          artifactPrefix: perSourceArtifactDir(parsed.artifact_root, runId, config.source_id, index),
         });
       }
       results.push({

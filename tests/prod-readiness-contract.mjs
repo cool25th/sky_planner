@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
@@ -566,4 +567,36 @@ test("db role separation audit fails when a role database is unreachable", async
   const readCheck = audit.checks.find((item) => item.name === "db_read_role_write_denied");
   assert.equal(readCheck.status, "fail");
   assert.equal(readCheck.detail.outcome, "unavailable");
+});
+
+test("manifest uniqueness follows request identity, not shared source_id (INT-20260911-002)", async () => {
+  // 다중설계(30설정 → source_id 1개 공유, INT-20260909-001)와 모순되던 낡은 불변식 정렬:
+  // 공유 source_id는 정상, 동일 요청 형태(endpoint·method·query·body)의 중복만 실패.
+  const { auditCollectorManifest } = await import("../scripts/prod-readiness-smoke.mjs");
+  const baseConfig = {
+    schema_version: "collector.authorized_feed_source.v1",
+    source_id: "travelpayouts_aviasales",
+    source_type: "authorized_feed",
+    endpoint: "https://feeds.example.com/cheap",
+    auth: { header_name: "x-api-key", token_env: "TRAVELPAYOUTS_API_KEY" },
+  };
+  const manifest = (configs) => ({ artifact_root: "runtime/collector-artifacts", sources: configs.map((config) => ({ enabled: true, config })) });
+  const env = { TRAVELPAYOUTS_API_KEY: "tok-1234567890abcdef", SOURCE_TRAVELPAYOUTS_AVIASALES_ENABLED: "true" };
+
+  const multiConfig = auditCollectorManifest(manifest([
+    { ...baseConfig, query: { origin: "ICN", destination: "CJU" } },
+    { ...baseConfig, query: { origin: "ICN", destination: "TYO" } },
+  ]), { env });
+  const uniqueCheck = multiConfig.checks.find((item) => item.name === "manifest_configs_unique");
+  assert.equal(uniqueCheck.status, "pass", "source_id 공유·query 상이 = 다중설계 정상");
+
+  const duplicated = auditCollectorManifest(manifest([
+    { ...baseConfig, query: { origin: "ICN", destination: "CJU" } },
+    { ...baseConfig, query: { origin: "ICN", destination: "CJU" } },
+  ]), { env });
+  const dupCheck = duplicated.checks.find((item) => item.name === "manifest_configs_unique");
+  assert.equal(dupCheck.status, "fail", "동일 요청 형태 2개 = 우연한 이중 수집");
+
+  const source = await readFile(new URL("../scripts/prod-readiness-smoke.mjs", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /manifest_source_ids_unique/, "낡은 체크명 회귀 금지");
 });

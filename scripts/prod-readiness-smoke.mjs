@@ -240,11 +240,22 @@ export function auditCollectorManifest(manifest, options = {}) {
       : check("manifest_enabled_sources", "fail", { count: 0 }),
   );
 
-  const duplicateSourceIds = enabledSourceIds.filter((sourceId, index) => enabledSourceIds.indexOf(sourceId) !== index);
+  // INT-20260911-002(2026-09-27 정렬): source_id는 health·stats 행의 소유자(다중설계가 하나를
+  // 의도적으로 공유 — INT-20260909-001가 관측을 그 설계에 맞춤)지 수집 단위가 아니다. 우연한
+  // 이중 수집의 실제 지문은 동일 요청 형태(endpoint·method·query·body)다 — 이를 유일성 기준으로
+  // 판정한다. 공유 source_id 자체는 정상이다.
+  const requestIdentity = (config) => JSON.stringify([
+    config.endpoint,
+    config.method ?? "GET",
+    config.query ?? null,
+    config.body ?? null,
+  ]);
+  const identities = enabledSources.map(requestIdentity);
+  const duplicateIdentities = identities.filter((identity, index) => identities.indexOf(identity) !== index);
   checks.push(
-    duplicateSourceIds.length === 0
-      ? check("manifest_source_ids_unique", "pass")
-      : check("manifest_source_ids_unique", "fail", { duplicate_source_ids: [...new Set(duplicateSourceIds)] }),
+    duplicateIdentities.length === 0
+      ? check("manifest_configs_unique", "pass", { source_ids: [...new Set(enabledSourceIds)] })
+      : check("manifest_configs_unique", "fail", { duplicate_request_identities: [...new Set(duplicateIdentities)] }),
   );
 
   checks.push(validateArtifactRoot(manifest));

@@ -163,7 +163,7 @@ test("collector source manifest runner keeps successful sources when one source 
       assert.equal(summary.results[1].failure_code, "source_unavailable");
       assert.equal(summary.results[2].status, "skipped");
 
-      const normalizedPath = path.join(tmpDir, "collector_manifest_test", "partner_success", "normalized-batch.json");
+      const normalizedPath = path.join(tmpDir, "collector_manifest_test", "partner_success.0", "normalized-batch.json");
       const normalized = JSON.parse(await readFile(normalizedPath, "utf-8"));
       assert.equal(normalized.execution_id, "collector_manifest_test_partner_success");
       assert.equal(normalized.offers.length, 2);
@@ -439,7 +439,7 @@ test("collector source manifest preserves json path mapping in inline configs", 
       assert.equal(summary.results[0].source_id, "mapped_partner_from_manifest");
       assert.equal(summary.results[0].offers_received, 2);
 
-      const normalizedPath = path.join(tmpDir, "collector_mapped_manifest_test", "mapped_partner_from_manifest", "normalized-batch.json");
+      const normalizedPath = path.join(tmpDir, "collector_mapped_manifest_test", "mapped_partner_from_manifest.0", "normalized-batch.json");
       const normalized = JSON.parse(await readFile(normalizedPath, "utf-8"));
       assert.equal(normalized.offers[0].source_offer_id, "raw-partner-tyo-economy-001");
       assert.equal(normalized.offers[0].total_price, 312000);
@@ -597,4 +597,20 @@ test("unknown response_mapping_ref fails fast at manifest resolution", async () 
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+test("each source writes artifacts to its own directory (DATA-20260927-001)", async () => {
+  // 다중설계(30설정 → source_id 공유)에서 sourceId만으로 artifactPrefix를 만들면 매 배치
+  // raw-source.json/normalized-batch.json을 서로 덮어써 증거가 마지막 소스만 남았다.
+  // 순번 분리로 30개 증거가 모두 살아남는다.
+  const { perSourceArtifactDir } = await import("../scripts/run-collector-sources.mjs");
+  const a = perSourceArtifactDir("runtime/collector-artifacts", "runX", "travelpayouts_aviasales", 0);
+  const b = perSourceArtifactDir("runtime/collector-artifacts", "runX", "travelpayouts_aviasales", 1);
+  assert.notEqual(a, b, "같은 source_id의 인접 소스도 디렉터리가 달라야 한다");
+  assert.ok(a.endsWith("travelpayouts_aviasales.0") && b.endsWith("travelpayouts_aviasales.1"));
+
+  // 러너 소스 스캔: 성공·실패 양경로 모두 순번이 붙은 헬퍼를 쓴다(원복 회귀 봉쇄).
+  const runner = await readFile(new URL("../scripts/run-collector-sources.mjs", import.meta.url), "utf8");
+  assert.equal((runner.match(/perSourceArtifactDir\(/g) ?? []).length, 3, "정의+성공경로+실패경로 3곳");
+  assert.doesNotMatch(runner, /path\.join\(parsed\.artifact_root, runId, safeSegment\(config\.source_id\)\)/);
 });
