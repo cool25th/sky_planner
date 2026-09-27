@@ -318,3 +318,26 @@ test("currentOfferHashes reads only the incoming offers' fingerprints (Neon egre
   const script = readFileSync(join(repoRoot, "scripts/ingest-collector-batch.mjs"), "utf8");
   assert.doesNotMatch(script, /SELECT data FROM batch_state WHERE key = 'offer_hashes'/, "전체 매니페스트 인출 회귀 금지");
 });
+
+test("retention consumer deletes only contract-stamped expiries (OPS-20260911-002)", async () => {
+  // expire_at 생산자(스탬프 3경로)의 삭제 소비자 — 소비자 부재가 131,712행 mock 잔여의 근원이었다.
+  // 전부 소량·일일 만료분 경계 삭제(§16 대규모 DELETE 아님): 스탬프 없는(역사) 행은 계약상 보존.
+  const { enforceRetention, OFFER_RETENTION_DAYS } = await import("../scripts/enforce-retention.mjs");
+  const queries = [];
+  const client = { query: async (sql, params) => { queries.push({ sql, params }); return { rowCount: 0 }; } };
+  const now = new Date("2026-09-11T12:00:00Z");
+  const results = await enforceRetention(client, now);
+
+  assert.deepEqual(results, { source_jobs_deleted: 0, fare_snapshots_deleted: 0, offers_deleted: 0 });
+  assert.equal(queries.length, 3);
+  assert.match(queries[0].sql, /DELETE FROM source_jobs WHERE expire_at IS NOT NULL AND expire_at < \$1/);
+  assert.match(queries[1].sql, /DELETE FROM fare_snapshots WHERE expire_at IS NOT NULL AND expire_at < \$1/);
+  assert.match(queries[2].sql, /DELETE FROM offers WHERE last_seen_at IS NOT NULL AND last_seen_at < \$1/);
+  assert.deepEqual(queries[0].params, [now]);
+  assert.equal(queries[2].params[0].getTime(), now.getTime() - OFFER_RETENTION_DAYS * 86_400_000);
+  assert.equal(OFFER_RETENTION_DAYS, 60, "72h 표시 창의 ~20배 여유 — 스토리지 추이 관측 후 조정 지점");
+
+  // 러너가 매일 실행하는지 소스 고정(배치 워크플로에 소비자 스텝 존재).
+  const batchYml = readFileSync(join(repoRoot, ".github/workflows/daily-batch.yml"), "utf8");
+  assert.match(batchYml, /node scripts\/enforce-retention\.mjs/);
+});

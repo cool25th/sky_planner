@@ -128,6 +128,15 @@ jobs:
           DATABASE_INGEST_URL: ${{ secrets.DATABASE_INGEST_URL }}
         run: node scripts/collect-tp-click-stats.mjs
 
+      # OPS-20260911-002: Neon 무료 스토리지(0.5GB) 지속 사용 — 만료 계약(source_jobs+30일·
+      # fare_snapshots+90일·offers 60일 무관측)의 삭제 소비자. 일일 소량 만료분만 지우는
+      # 경계 삭제다(§16 대규모 DELETE 아님). 실패는 경고만(스크립트 exit 0 — 배치 무실패).
+      - name: Enforce database retention
+        env:
+          DATABASE_INGEST_URL: ${{ secrets.DATABASE_INGEST_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: node scripts/enforce-retention.mjs
+
       # INT-20260829-002: "Purge old batches" 스텝 제거 — scripts/cleanup-old-batches.mjs는 Firestore 전용이라
       # 현재 Postgres 파이프라인에서 구조적 no-op였고(매번 Firebase 자격증명 실패를 || true로 흡수),
       # 작동시키면 RECO-20260828-001의 30일 baseline 히스토리와 충돌한다. Firestore publish 재개 시 설계 후 복원.
