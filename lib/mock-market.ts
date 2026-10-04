@@ -227,6 +227,9 @@ export interface CalendarData {
   return_dates: string[];
   cells: CalendarCell[];
   available_airlines: Array<{ code: string; name: string }>;
+  // 외부 검토 2026-10-04(P0): 조회 주간에 활성 딜이 없을 때 이 목적지에 딜이 남은 인접 주 —
+  // 빈 결과가 오류 문구로 읽히는 것을 대안 링크로 대체한다. mock 경로는 생략 가능.
+  alternative_weeks?: string[];
 }
 
 export interface OffersData {
@@ -301,9 +304,9 @@ const REGIONS = [
 
 export const TRIP_BUCKETS = [
   { code: "ALL", label: "전체 체류" },
-  { code: "3_4", label: "3-4일" },
-  { code: "5_7", label: "5-7일" },
-  { code: "8_14", label: "8-14일" },
+  { code: "3_4", label: "3-4박" },
+  { code: "5_7", label: "5-7박" },
+  { code: "8_14", label: "8-14박" },
 ] as const;
 
 export const ORIGINS: Origin[] = [

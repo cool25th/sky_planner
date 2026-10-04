@@ -42,7 +42,9 @@ export function addDiagnostics<T>(
 export function dataModeLabel(diagnostics?: Record<string, unknown>): string {
   // DATA-20260908-001: 운영(unavailable·last_good)에서 "데모 데이터" 라벨이 나오면 실제로는
   // 데모가 아닌 응답까지 가짜로 읽힌다 — 모드별로 정직한 라벨만 매핑한다(미지정만 데모 유지).
-  if (diagnostics?.data_mode === "live") return "실시간 데이터";
+  // 외부 검토 2026-10-04: "실시간"은 일 1회 수집과 모순 — 라벨은 데이터 성격만 말하고
+  // 신선도는 나란히 찍히는 관측 시각 스탬프가 담당한다.
+  if (diagnostics?.data_mode === "live") return "수집 운임 기준";
   if (diagnostics?.data_mode === "last_good") return "마지막 수집 데이터";
   if (diagnostics?.data_mode === "unavailable") return "데이터 일시 중단";
   return "데모 데이터";

@@ -24,14 +24,14 @@ const THEMES = [
   {
     icon: "🏖️",
     title: "연차 1일 주말치기",
-    desc: "3~4일 일정 · 후쿠오카, 타이베이, 제주",
+    desc: "3~4박 일정 · 후쿠오카, 타이베이, 제주",
     stayBucket: "3_4",
     region: "ALL",
   },
   {
     icon: "✈️",
     title: "알찬 1주일 휴가",
-    desc: "5~7일 일정 · 도쿄, 방콕, 다낭",
+    desc: "5~7박 일정 · 도쿄, 방콕, 다낭",
     stayBucket: "5_7",
     region: "ALL",
   },
@@ -277,7 +277,7 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
             <div className="quick-tags-row">
               <span className="quick-tag-title">추천 조건:</span>
               <Link href={href("/map", { ...searchState, stay_bucket: "3_4" })} className="quick-tag">
-                🏖️ 주말/연차 1일 (3~4일)
+                🏖️ 주말/연차 1일 (3~4박)
               </Link>
               <Link href={href("/map", { ...searchState, region: "JAPAN" })} className="quick-tag">
                 🍣 일본 특가
@@ -287,6 +287,10 @@ export default async function HomePage(props: { searchParams: SearchParams }) {
               </Link>
               <Link href={href("/map", { ...searchState, stay_bucket: "5_7" })} className="quick-tag">
                 ✈️ 알찬 1주일
+              </Link>
+              {/* 외부 검토 2026-10-04: 홈 진입점이 ICN 기본값에 묶여 PUS 1차 타겟의 입구가 없었다. */}
+              <Link href={href("/map", { ...searchState, origin: "PUS", stay_bucket: "3_4" })} className="quick-tag">
+                🚢 부산 출발 주말치기
               </Link>
             </div>
 

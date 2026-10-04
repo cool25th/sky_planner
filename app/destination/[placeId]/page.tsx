@@ -151,6 +151,21 @@ export default async function DestinationPage(props: { params: Params; searchPar
           </span>
         </div>
       )}
+      {/* 외부 검토 2026-10-04(P0): 주 말 소진 등으로 빈 주간에 들어온 색인·공유 진입 — 대안 주 링크로 탐색을 이어준다. */}
+      {calendar.destination && validCells.length === 0 && (calendar.alternative_weeks?.length ?? 0) > 0 && (
+        <div className="beta-banner">
+          <span>
+            <strong>이번 주간 특가 소진:</strong> {formatWeekNatural(query.week)}에는 표시할 특가가 없습니다.{" "}
+            {calendar.alternative_weeks?.map((week) => (
+              <span key={week}>
+                <Link href={href(`/destination/${placeId}`, { ...query, week })}>{formatWeekNatural(week)} 특가 보기</Link>
+                {" · "}
+              </span>
+            ))}
+              <Link href={href("/map", { origin: query.origin })}>전체 특가 지도</Link>
+          </span>
+        </div>
+      )}
       {calendar.destination && (
         <RecentDestinationTracker
           code={calendar.destination.code}
@@ -351,19 +366,20 @@ export default async function DestinationPage(props: { params: Params; searchPar
             );
           })()}
 
-          {/* Price Trend Gauge */}
-          {(() => {
+          {/* Price Trend Gauge — 외부 검토 2026-10-04: 데이터 없는 주간에 "적정 가격 구간"을
+              보여주는 건 근거 없는 진단이다 — 표시할 셀이 있을 때만 렌더한다. */}
+          {topRecommendations.length > 0 && (() => {
             const discountPct = spotlight
               ? (query.cabin === "BUSINESS" ? spotlight.business_discount_pct : spotlight.economy_discount_pct) ?? 0
               : 0;
 
             let trendStatus = "deal-fair";
-            let trendLabel = "✨ 적정 가격 구간 (평균 수준)";
+            let trendLabel = "✨ 평균 수준의 가격 구간";
             let gaugePos = "50%";
 
             if (discountPct >= 15) {
               trendStatus = "deal-hot";
-              trendLabel = `🔥 최근 30일 평균 대비 ${discountPct}% 저렴한 역대급 특가!`;
+              trendLabel = `🔥 최근 30일 평균 대비 ${discountPct}% 낮은 가격`;
               gaugePos = "15%";
             } else if (discountPct >= 5) {
               trendStatus = "deal-hot";
@@ -389,10 +405,10 @@ export default async function DestinationPage(props: { params: Params; searchPar
                     <div className="price-gauge-marker" style={{ left: gaugePos }} title={`현재 가격 위치: ${trendLabel}`} />
                   </div>
                   <div className="price-gauge-labels">
-                    <span>🟢 특가 구간 ({lowestCellPrice ? formatMoney(lowestCellPrice) : "최저"})</span>
-                    <span>🟡 평균</span>
-                    <span>🔴 성수기 / 고가</span>
-                  </div>
+                        <span>🟢 최저가 구간 ({lowestCellPrice ? formatMoney(lowestCellPrice) : "최저"})</span>
+                        <span>🟡 평균</span>
+                        <span>🔴 성수기 / 고가</span>
+                      </div>
                 </div>
               </section>
             );

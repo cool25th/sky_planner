@@ -1,8 +1,10 @@
 import Link from "next/link";
 
 import { query } from "@/lib/db";
+import { readLaunchGate } from "@/lib/launch-gate";
 import { redactServiceReadinessSnapshot } from "@/lib/ops-visibility";
 import { getServiceReadinessSnapshot } from "@/lib/service-readiness-runtime";
+import { sourceHealthBlockReason, sourceMaxStaleHoursFromEnv } from "@/lib/source-policy";
 
 const CHECK_LABELS: Record<string, string> = {
   postgres_read_model_configured: "운영 DB 연결",
@@ -130,6 +132,7 @@ export const dynamic = "force-dynamic";
 interface SourceHealthRow {
   source_id: string;
   is_paused: boolean;
+  enabled_by_flag: boolean;
   circuit_breaker_open: boolean;
   consecutive_failures: number;
   last_success_at: string | null;
@@ -140,7 +143,7 @@ async function loadSourceHealthRows(): Promise<SourceHealthRow[]> {
   if (!process.env.DATABASE_URL && !process.env.DATABASE_READ_URL) return [];
   try {
     const { rows } = await query(`
-      SELECT source_id, is_paused, circuit_breaker_open, consecutive_failures,
+      SELECT source_id, is_paused, enabled_by_flag, circuit_breaker_open, consecutive_failures,
              last_success_at, last_failure_code
       FROM source_health
       ORDER BY source_id
@@ -154,9 +157,12 @@ async function loadSourceHealthRows(): Promise<SourceHealthRow[]> {
 export default async function ServiceReadinessPage() {
   const snapshot = redactServiceReadinessSnapshot(await getServiceReadinessSnapshot());
   const sourceHealthRows = await loadSourceHealthRows();
-  const failedAxes = snapshot.axes.filter((axis) => axis.status === "fail");
   const blockers = [...new Set(snapshot.launch_blockers)];
   const operatorActions = snapshot.operator_actions;
+  // 외부 검토 2026-10-04(P0): 45항 점수는 "완전 자율 운영 인프라" 준비도다 — 그대로 노출하면
+  // 정상 서빙 중인 제품을 스스로 부정한다(게이트 5/5 ↔ 이 페이지 Blocked 모순). 서빙 진실은
+  // 출시 게이트가 담당하므로 두 축을 나란히 보여준다.
+  const launchGate = await readLaunchGate();
 
   return (
     <main className="service-page">
@@ -176,6 +182,10 @@ export default async function ServiceReadinessPage() {
       </section>
 
       <section className="service-summary-grid">
+        <article className={`service-summary-card ${launchGate.passed ? "is-ready" : "is-blocked"}`}>
+          <span>현재 서빙 상태 (출시 게이트)</span>
+          <strong>{launchGate.passed ? "정상" : "점검 중"}</strong>
+        </article>
         <article className="service-summary-card">
           <span>Passed</span>
           <strong>{snapshot.summary.passed}</strong>
@@ -188,11 +198,11 @@ export default async function ServiceReadinessPage() {
           <span>Blockers</span>
           <strong>{snapshot.summary.failed}</strong>
         </article>
-        <article className="service-summary-card">
-          <span>Blocked axes</span>
-          <strong>{failedAxes.length}</strong>
-        </article>
       </section>
+      <p className="panel-note" style={{ marginTop: "-6px" }}>
+        이 점수는 완전 자율 운영 인프라(수집 워크플로·계정 연결·env 주입) 준비도입니다 — 사용자가 보는
+        서빙 건강은 위 출시 게이트가 담당합니다. 잔여 항목은 운영자 조치 대기열을 따릅니다.
+      </p>
 
       {sourceHealthRows.length > 0 && (
         <section className="service-axis-grid">
@@ -203,29 +213,26 @@ export default async function ServiceReadinessPage() {
                 <h2>소스별 수집 상태</h2>
               </div>
               <strong>
-                {sourceHealthRows.filter((row) => !row.is_paused && !row.circuit_breaker_open && row.consecutive_failures === 0).length}/{sourceHealthRows.length}
+                {sourceHealthRows.filter((row) => sourceHealthBlockReason(row) === null).length}/{sourceHealthRows.length}
               </strong>
             </div>
             <div className="service-check-list">
+              {/* 외부 검토 2026-10-04(P0): 페이지가 자체 약식 판정(일시정지·서킷만)을 쓰는 바람에
+                  5주 묵은 mock 소스는 Ready, 직전 성공한 실소스는 collect-fares 실패 코드로 Blocked로
+                  뒤집혔다 — 소스-헬스 공유 판정(신선도 창 포함)을 그대로 쓴다. */}
               {sourceHealthRows.map((row) => {
-                const issues = [
-                  row.consecutive_failures > 0 ? `실패 ${row.consecutive_failures}회 연속` : null,
-                  row.circuit_breaker_open ? "서킷 오픈" : null,
-                  row.is_paused ? "일시 중지" : null,
-                  row.last_failure_code ? `코드 ${row.last_failure_code}` : null,
-                ].filter(Boolean).join(" · ");
-                const healthy = !issues;
+                const maxStaleHours = sourceMaxStaleHoursFromEnv();
+                const blockReason = sourceHealthBlockReason(row, new Date(), maxStaleHours);
+                const detail = blockReason
+                  ? `수집 ${blockReason === "stale" ? "중단(신선도 마감)" : "이상"}${row.last_success_at ? ` · 마지막 성공 ${formatStamp(row.last_success_at)}` : " · 성공 기록 없음"}`
+                  : `최근 성공 ${row.last_success_at ? formatStamp(row.last_success_at) : "—"}`;
                 return (
-                  <div key={row.source_id} className={`service-check ${healthy ? "is-ready" : "is-blocked"}`}>
+                  <div key={row.source_id} className={`service-check ${blockReason ? "is-blocked" : "is-ready"}`}>
                     <span>
                       {row.source_id}
-                      <small>
-                        {healthy
-                          ? row.last_success_at ? `최근 성공 ${formatStamp(row.last_success_at)}` : "성공 기록 없음"
-                          : issues}
-                      </small>
+                      <small>{detail}</small>
                     </span>
-                    <strong>{healthy ? "Ready" : "Blocked"}</strong>
+                    <strong>{blockReason ? "Stopped" : "Ready"}</strong>
                   </div>
                 );
               })}

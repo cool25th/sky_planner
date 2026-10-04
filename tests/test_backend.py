@@ -31,7 +31,7 @@ class BackendTestCase(unittest.TestCase):
         )
         target = next((cell for cell in response["data"]["cells"] if cell["stay_nights"] == 3), None)
         self.assertIsNotNone(target)
-        self.assertEqual(target["trip_bucket"], "3-4일")
+        self.assertEqual(target["trip_bucket"], "3-4박")
         self.assertIsNotNone(target["economy_min_total"])
         self.assertTrue(all(cell["stay_nights"] in (3, 4) for cell in response["data"]["cells"]))
 

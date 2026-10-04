@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Script from "next/script";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 import { CommandPalette } from "@/components/command-palette";
@@ -63,20 +62,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <Script id="figma-capture-loader" strategy="afterInteractive">
-          {`
-            (() => {
-              if (typeof window === "undefined") return;
-              if (!window.location.hash.includes("figmacapture=")) return;
-              if (document.querySelector('script[data-figma-capture="true"]')) return;
-              const script = document.createElement("script");
-              script.src = "https://mcp.figma.com/mcp/html-to-design/capture.js";
-              script.async = true;
-              script.dataset.figmaCapture = "true";
-              document.head.appendChild(script);
-            })();
-          `}
-        </Script>
+        {/* 외부 검토 2026-10-04(P0): figma-capture-loader 제거 — 개발 도구가 프로덕션 HTML에 실려
+            누구나 figmacapture= 해시로 외부 스크립트 로드를 유발할 수 있었다. */}
         {/* INT-20260907-001(승인 대기 패치): tp-em(Travelpayouts Drive) 로더 제거 — 전 페이지에서
             실패하는 외부 요청이었다. 사이트 소유 확인은 필요 시 문서 절차로 대체한다. */}
         <div className="site-shell">

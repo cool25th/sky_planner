@@ -37,9 +37,9 @@ REGIONS = [
 
 TRIP_BUCKETS = [
     {"code": "ALL", "label": "전체 체류"},
-    {"code": "3_4", "label": "3-4일"},
-    {"code": "5_7", "label": "5-7일"},
-    {"code": "8_14", "label": "8-14일"},
+    {"code": "3_4", "label": "3-4박"},
+    {"code": "5_7", "label": "5-7박"},
+    {"code": "8_14", "label": "8-14박"},
 ]
 
 ORIGINS = {

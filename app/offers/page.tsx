@@ -33,6 +33,34 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
     ? rawParams.sub_id
     : null;
 
+  // 외부 검토 2026-10-04(P0): 목적지·날짜 없는 직접 진입(색인·공유)은 "데이터 일시 중단" 장애 문구가
+  // 아니라 조건 선택 안내로 응답한다 — 파라미터 누락은 장애가 아니다(조회도 생략).
+  if (!query.destination || !query.depart || !query.return) {
+    return (
+      <main className="offers-page-container">
+        <section className="offers-summary-banner">
+          <div className="summary-banner-main">
+            <div>
+              <h1 className="summary-route">항공편 비교</h1>
+              <p className="summary-conditions">목적지와 출발·귀국 날짜를 선택하면 가격 비교 결과가 열립니다.</p>
+            </div>
+          </div>
+        </section>
+        <section className="offers-card-list">
+          <div className="empty-state">
+            <p>항공편 비교에는 목적지와 왕복 날짜가 필요합니다.</p>
+            <p className="panel-note">특가 지도나 목적지 상세에서 날짜 조합을 선택해 들어오세요.</p>
+            <div style={{ marginTop: "12px" }}>
+              <Link href={href("/map", { origin: query.origin })} className="cta-btn--secondary">
+                특가 지도에서 날짜 선택하기 →
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   const offersResponse = await resolveOffersResponse(query);
   const offersData = offersResponse.data;
   const serviceUnavailable = isServiceUnavailableDiagnostics(offersResponse.diagnostics);
@@ -311,7 +339,26 @@ export default async function OffersPage(props: { searchParams: SearchParams }) 
             );
           })
         ) : (
-          <div className="empty-state">선택한 조건에 맞는 항공편 옵션이 없습니다.</div>
+          <div className="empty-state">
+            <p>선택한 날짜({dateRangeLabel})에는 표시할 항공편이 없습니다.</p>
+            <p className="panel-note">출발일이 지났거나 이 날짜 조합의 수집 데이터가 없을 수 있습니다.</p>
+            {query.destination ? (
+              <div style={{ marginTop: "12px" }}>
+                <Link
+                  href={href(`/destination/${query.destination}`, {
+                    origin: query.origin,
+                    week: query.week,
+                    stay_bucket: "5_7",
+                    traveler: query.traveler,
+                    cabin: query.cabin,
+                  })}
+                  className="cta-btn--secondary"
+                >
+                  다른 날짜 조합 보기 →
+                </Link>
+              </div>
+            ) : null}
+          </div>
         )}
       </section>
     </main>

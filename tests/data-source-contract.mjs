@@ -51,7 +51,7 @@ test("mock fallback diagnostics mark data as demo", hermeticMockEnv(async () => 
 }));
 
 test("dataModeLabel maps only live diagnostics to the live label", () => {
-  assert.equal(dataModeLabel({ data_mode: "live" }), "실시간 데이터");
+  assert.equal(dataModeLabel({ data_mode: "live" }), "수집 운임 기준");
   assert.equal(dataModeLabel({ data_mode: "demo" }), "데모 데이터");
   assert.equal(dataModeLabel({ data_mode: "last_good" }), "마지막 수집 데이터");
   assert.equal(dataModeLabel({ data_mode: "unavailable" }), "데이터 일시 중단");

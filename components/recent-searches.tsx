@@ -37,9 +37,9 @@ export function saveRecentSearch(item: Omit<RecentSearchItem, "id" | "timestamp"
 }
 
 const STAY_LABELS: Record<string, string> = {
-  "3_4": "3~4일",
-  "5_7": "5~7일",
-  "8_14": "8~14일",
+  "3_4": "3~4박",
+  "5_7": "5~7박",
+  "8_14": "8~14박",
 };
 
 export function RecentSearches() {

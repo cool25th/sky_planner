@@ -48,7 +48,7 @@ export function BoardingPassModal({
       `📅 일정: ${formatDateDisplay(departDate)} ~ ${formatDateDisplay(returnDate)}\n` +
       `💺 좌석: ${cabinLabel}\n` +
       `💰 왕복 최저가: ${formatMoney(fare)} (성인 1인 총액)\n\n` +
-      `🔎 실시간 최저가 확인하기: ${window.location.href}`;
+      `🔎 최저가 확인하기: ${window.location.href}`;
 
     try {
       await navigator.clipboard.writeText(shareText);
