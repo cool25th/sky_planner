@@ -16,7 +16,7 @@ import {
   parseTpStatsRows,
   targetStatDate,
 } from "../scripts/collect-tp-click-stats.mjs";
-import { countDedupViolations, runSyntheticCheck, SYNTHETIC_PRODUCT_THRESHOLDS } from "../scripts/ops-synthetic-check.mjs";
+import { countDedupViolations, findBrokenSitemapUrls, runSyntheticCheck, SYNTHETIC_PRODUCT_THRESHOLDS } from "../scripts/ops-synthetic-check.mjs";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -204,6 +204,7 @@ test("synthetic check measures product metrics and fails on threshold breach", a
 
   const makeJson = (payload) => ({ ok: true, status: 200, json: async () => payload });
   const healthy = await runSyntheticCheck({
+    crawlSitemap: false,
     fetchImpl: async (url) => {
       if (url.includes("/api/deals/map")) {
         return makeJson({ diagnostics: { data_mode: "live" }, data: { deals: [
@@ -225,6 +226,7 @@ test("synthetic check measures product metrics and fails on threshold breach", a
   assert.equal(healthy.pickable_deals, 101);
 
   const regressed = await runSyntheticCheck({
+    crawlSitemap: false,
     fetchImpl: async (url) => {
       if (url.includes("/api/deals/map")) {
         return makeJson({ diagnostics: { data_mode: "live" }, data: { deals: [
@@ -253,6 +255,62 @@ test("synthetic check measures product metrics and fails on threshold breach", a
   assert.match(synthYml, /node scripts\/ops-synthetic-check\.mjs/);
 });
 
+// 외부 검토 2026-10-04 수리 2건: 주 말 소진은 다음 주 대안 충족 시 회귀가 아니다(week_depleted),
+// 색인 진입 URL(사이트맵)이 오류 문구를 렌더하면 회귀다.
+test("synthetic check passes end-of-week depletion when the next week satisfies the floor", async () => {
+  const makeJson = (payload) => ({ ok: true, status: 200, json: async () => payload });
+  const depleted = await runSyntheticCheck({
+    crawlSitemap: false,
+    fetchImpl: async (url) => {
+      if (url.includes("/api/deals/map")) {
+        return makeJson({
+          diagnostics: { data_mode: "live" },
+          data: {
+            deals: [{ destination_code: "TYO" }],
+            alternatives: [{ kind: "week", week: "2026-W41", label: "다음 주간", cities: 12 }],
+          },
+        });
+      }
+      return makeJson({ checks: [{ id: "weekly_picks_present", detail: "픽 가능 딜 191건" }] });
+    },
+  });
+  assert.equal(depleted.status, "pass");
+  assert.equal(depleted.week_depleted, true);
+  assert.equal(depleted.map_cities, 1);
+
+  const noAlternative = await runSyntheticCheck({
+    crawlSitemap: false,
+    fetchImpl: async (url) => {
+      if (url.includes("/api/deals/map")) {
+        return makeJson({ diagnostics: { data_mode: "live" }, data: { deals: [{ destination_code: "TYO" }] } });
+      }
+      return makeJson({ checks: [{ id: "weekly_picks_present", detail: "픽 가능 딜 191건" }] });
+    },
+  });
+  assert.equal(noAlternative.status, "fail");
+  assert.ok(noAlternative.regressions.some((r) => r.includes("map cities 1 <")));
+});
+
+test("sitemap crawl flags indexed URLs that render error copy", async () => {
+  const xml = "<urlset><url><loc>https://site/destination/FUK</loc></url><url><loc>https://site/offers</loc></url></urlset>";
+  const pages = {
+    "https://site/destination/FUK": "후쿠오카 특가 셸 본문",
+    "https://site/offers": "목적지와 출발·귀국 날짜를 선택하면",
+  };
+  const broken = await findBrokenSitemapUrls(async (url) => {
+    if (url.endsWith("sitemap.xml")) return { ok: true, text: async () => xml };
+    return { ok: true, text: async () => pages[url] ?? "" };
+  });
+  assert.deepEqual(broken, []);
+
+  const brokenWithMarker = await findBrokenSitemapUrls(async (url) => {
+    if (url.endsWith("sitemap.xml")) return { ok: true, text: async () => xml };
+    return { ok: true, text: async () => "목적지 정보를 불러올 수 없습니다" };
+  });
+  assert.equal(brokenWithMarker.length, 2);
+  assert.ok(brokenWithMarker.every((entry) => entry.includes("오류 문구")));
+});
+
 test("synthetic heartbeat is written by the runner ingest role, never the BFF", () => {
   // BFF(read 롤)에 쓰기 경로를 만들면 ADR-006 계정 분리가 깨진다 — 러너가 ingest 롤로 직접 기록.
   const script = readFileSync(join(repoRoot, "scripts/ops-synthetic-check.mjs"), "utf8");
@@ -268,6 +326,7 @@ test("launch-gate 503 body still yields the pickable metric", async () => {
   // 게이트 실패 = 라우트 503(설계) — 관측 스크립트는 본문의 축 값을 읽는다(관측≠판정).
   const makeJson = (payload, status = 200) => ({ ok: status < 400, status, json: async () => payload });
   const result = await runSyntheticCheck({
+    crawlSitemap: false,
     fetchImpl: async (url) => {
       if (url.includes("/api/deals/map")) {
         return makeJson({ diagnostics: { data_mode: "live" }, data: { deals: [

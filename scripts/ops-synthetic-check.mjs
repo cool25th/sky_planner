@@ -21,7 +21,37 @@ export const SYNTHETIC_PRODUCT_THRESHOLDS = {
   minMapCities: 5,
   maxOffersDedupViolations: 0,
   minWeeklyPickableDeals: 1,
+  maxSitemapBrokenUrls: 0,
 };
+
+// 외부 검토 2026-10-04(P0): 색인 진입 URL이 오류 화면을 렌더하는지 게이트가 전혀 안 봤다 —
+// 사이트맵 전 URL을 JS 없이 받아 사용자가 볼 오류 문구를 검사한다.
+const SITEMAP_ERROR_MARKERS = [
+  "목적지 정보를 불러올 수 없습니다", // 베어 /destination이 목적지 셸 대신 오류 문구로 떨어짐
+  "운임 데이터를 표시할 수 없습니다", // /offers가 조건 안내 대신 장애 안내로 떨어짐
+];
+
+export async function findBrokenSitemapUrls(fetchImpl = ((url, init) => fetch(url, init)), limit = 30) {
+  const response = await fetchImpl(`${SITE_URL}/sitemap.xml`, { signal: AbortSignal.timeout(30000) });
+  if (!response.ok) throw new Error(`sitemap.xml → HTTP ${response.status}`);
+  const xml = await response.text();
+  const urls = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]).slice(0, limit);
+  const broken = [];
+  for (const url of urls) {
+    try {
+      const page = await fetchImpl(url, { signal: AbortSignal.timeout(30000) });
+      const html = await page.text();
+      if (!page.ok) broken.push(`${url} → HTTP ${page.status}`);
+      else {
+        const marker = SITEMAP_ERROR_MARKERS.find((text) => html.includes(text));
+        if (marker) broken.push(`${url} → 오류 문구 "${marker}"`);
+      }
+    } catch (error) {
+      broken.push(`${url} → ${error?.message ?? error}`);
+    }
+  }
+  return broken;
+}
 
 async function fetchJson(url, fetchImpl = fetch) {
   const response = await fetchImpl(url, { signal: AbortSignal.timeout(30000) });
@@ -49,9 +79,11 @@ export async function runSyntheticCheck(options = {}) {
     map_mode: null,
     live_deals: 0,
     map_cities: 0,
+    week_depleted: false,
     offers_sample_size: 0,
     offers_dedup_violations: null,
     pickable_deals: null,
+    sitemap_broken_urls: [],
     regressions: [],
   };
 
@@ -67,7 +99,17 @@ export async function runSyntheticCheck(options = {}) {
     } else if (result.live_deals < 1) {
       result.regressions.push("no displayable deals");
     } else if (result.map_cities < thresholds.minMapCities) {
-      result.regressions.push(`map cities ${result.map_cities} < ${thresholds.minMapCities}`);
+      // 외부 검토 2026-10-04(자가 인식 §5 수리): 주 말에는 이번 주 잔여 출발이 소진돼 도시 수가
+      // 하한 미달이 된다(매주 금~일 반복·월요일 회복 관측). 다음 주 대안이 하한을 충족하면
+      // 제품은 정상이다 — 소진 플래그만 남기고 회귀로 세지 않는다.
+      const weekAlternative = (mapPayload?.data?.alternatives ?? []).find(
+        (alt) => alt.kind === "week" && alt.cities >= thresholds.minMapCities,
+      );
+      if (weekAlternative) {
+        result.week_depleted = true;
+      } else {
+        result.regressions.push(`map cities ${result.map_cities} < ${thresholds.minMapCities}`);
+      }
     }
 
     // ② /offers 샘플 dedup 위반 — 지도 첫 딜의 최저가 날짜 조합으로 표본 조회
@@ -94,6 +136,16 @@ export async function runSyntheticCheck(options = {}) {
       result.pickable_deals = Number(detailMatch[1]);
       if (result.pickable_deals < thresholds.minWeeklyPickableDeals) {
         result.regressions.push(`pickable deals ${result.pickable_deals} < ${thresholds.minWeeklyPickableDeals}`);
+      }
+    }
+
+    // ④ 색인 진입 URL 크롤 — 외부 검토 2026-10-04(P0): 게이트가 "사용자가 보는 결과"를 안 봤다.
+    if (options.crawlSitemap !== false) {
+      result.sitemap_broken_urls = await findBrokenSitemapUrls(fetchImpl).catch((error) => [
+        `sitemap crawl failed: ${error?.message ?? error}`,
+      ]);
+      if (result.sitemap_broken_urls.length > thresholds.maxSitemapBrokenUrls) {
+        result.regressions.push(`sitemap broken urls ${result.sitemap_broken_urls.length} > ${thresholds.maxSitemapBrokenUrls}`);
       }
     }
   } catch (error) {
