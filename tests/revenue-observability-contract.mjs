@@ -289,6 +289,34 @@ test("synthetic check passes end-of-week depletion when the next week satisfies 
   });
   assert.equal(noAlternative.status, "fail");
   assert.ok(noAlternative.regressions.some((r) => r.includes("map cities 1 <")));
+
+  // 주 말 완전 소진(0딜)도 다음 주 대안이 충족하면 통과 — 실측 2026-10-04: W40 5_7=0딜·W41=12도시.
+  const fullyDepleted = await runSyntheticCheck({
+    crawlSitemap: false,
+    fetchImpl: async (url) => {
+      if (url.includes("/api/deals/map")) {
+        return makeJson({
+          diagnostics: { data_mode: "live" },
+          data: { deals: [], alternatives: [{ kind: "week", week: "2026-W41", label: "다음 주간", cities: 12 }] },
+        });
+      }
+      return makeJson({ checks: [{ id: "weekly_picks_present", detail: "픽 가능 딜 191건" }] });
+    },
+  });
+  assert.equal(fullyDepleted.status, "pass");
+  assert.equal(fullyDepleted.week_depleted, true);
+
+  const zeroWithoutAlternative = await runSyntheticCheck({
+    crawlSitemap: false,
+    fetchImpl: async (url) => {
+      if (url.includes("/api/deals/map")) {
+        return makeJson({ diagnostics: { data_mode: "live" }, data: { deals: [] } });
+      }
+      return makeJson({ checks: [{ id: "weekly_picks_present", detail: "픽 가능 딜 191건" }] });
+    },
+  });
+  assert.equal(zeroWithoutAlternative.status, "fail");
+  assert.ok(zeroWithoutAlternative.regressions.includes("no displayable deals"));
 });
 
 test("sitemap crawl flags indexed URLs that render error copy", async () => {

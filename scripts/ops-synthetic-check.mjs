@@ -96,11 +96,9 @@ export async function runSyntheticCheck(options = {}) {
     result.map_cities = result.live_deals; // deals = 목적지(도시) 단위
     if (result.map_mode !== "live" && result.map_mode !== "last_good") {
       result.regressions.push(`unexpected data_mode: ${result.map_mode}`);
-    } else if (result.live_deals < 1) {
-      result.regressions.push("no displayable deals");
     } else if (result.map_cities < thresholds.minMapCities) {
       // 외부 검토 2026-10-04(자가 인식 §5 수리): 주 말에는 이번 주 잔여 출발이 소진돼 도시 수가
-      // 하한 미달이 된다(매주 금~일 반복·월요일 회복 관측). 다음 주 대안이 하한을 충족하면
+      // 하한(0 포함) 미달이 된다(매주 금~일 반복·월요일 회복 관측). 다음 주 대안이 하한을 충족하면
       // 제품은 정상이다 — 소진 플래그만 남기고 회귀로 세지 않는다.
       const weekAlternative = (mapPayload?.data?.alternatives ?? []).find(
         (alt) => alt.kind === "week" && alt.cities >= thresholds.minMapCities,
@@ -108,7 +106,9 @@ export async function runSyntheticCheck(options = {}) {
       if (weekAlternative) {
         result.week_depleted = true;
       } else {
-        result.regressions.push(`map cities ${result.map_cities} < ${thresholds.minMapCities}`);
+        result.regressions.push(result.live_deals < 1
+          ? "no displayable deals"
+          : `map cities ${result.map_cities} < ${thresholds.minMapCities}`);
       }
     }
 
